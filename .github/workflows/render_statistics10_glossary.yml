@@ -54,16 +54,11 @@ jobs:
                 --media_dir media_preview \
                 statistics10_glossary_masterclass.py \
                 Statistics10GlossaryMasterclass
-              python - <<"PY"
-from pathlib import Path
-matches = list(Path("media_preview").rglob("Statistics10GlossaryMasterclass.mp4"))
-if not matches:
-    raise SystemExit("PQL video was rendered but could not be located")
-source = max(matches, key=lambda p: p.stat().st_mtime)
-target = Path("delivery/Statistics10GlossaryMasterclass_pql_preview.mp4")
-target.write_bytes(source.read_bytes())
-print(f"PQL delivery: {source} -> {target} ({target.stat().st_size} bytes)")
-PY
+              VIDEO=$(find media_preview -type f -name Statistics10GlossaryMasterclass.mp4 -print -quit)
+              test -n "$VIDEO"
+              test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10GlossaryMasterclass_pql_preview.mp4
+              ls -lh delivery/Statistics10GlossaryMasterclass_pql_preview.mp4
             '
 
       - name: Render final high-quality video with literal -pqh
@@ -87,16 +82,11 @@ PY
                 --media_dir media_final \
                 statistics10_glossary_masterclass.py \
                 Statistics10GlossaryMasterclass
-              python - <<"PY"
-from pathlib import Path
-matches = list(Path("media_final").rglob("Statistics10GlossaryMasterclass.mp4"))
-if not matches:
-    raise SystemExit("PQH video was rendered but could not be located")
-source = max(matches, key=lambda p: p.stat().st_mtime)
-target = Path("delivery/Statistics10GlossaryMasterclass_pqh.mp4")
-target.write_bytes(source.read_bytes())
-print(f"PQH delivery: {source} -> {target} ({target.stat().st_size} bytes)")
-PY
+              VIDEO=$(find media_final -type f -name Statistics10GlossaryMasterclass.mp4 -print -quit)
+              test -n "$VIDEO"
+              test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10GlossaryMasterclass_pqh.mp4
+              ls -lh delivery/Statistics10GlossaryMasterclass_pqh.mp4
             '
 
       - name: Verify and stage delivery
