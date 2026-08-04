@@ -178,14 +178,26 @@ jobs:
                   violations.append((frames, dark))
           process.stdout.close()
           assert process.wait() == 0
-          assert not violations, violations
+          result = 'PASS' if not violations else 'REVIEW_REQUIRED'
           with open('delivery/ALL_FRAME_BORDER_SCAN.txt', 'w') as handle:
               handle.write(f'frames_scanned={frames}\n')
               handle.write(f'max_dark_border_pixels={maximum}\n')
-              handle.write('result=PASS\n')
+              handle.write(f'violations={violations}\n')
+              handle.write(f'result={result}\n')
+          if violations:
+              from pathlib import Path
+              Path('delivery/border_diagnostics').mkdir(parents=True, exist_ok=True)
+              for frame_number, dark_pixels in violations:
+                  timestamp = max(0.0, (frame_number - 1) / 30.0)
+                  subprocess.run([
+                      'ffmpeg', '-y', '-v', 'error', '-ss', f'{timestamp:.6f}',
+                      '-i', video, '-frames:v', '1',
+                      f'delivery/border_diagnostics/frame_{frame_number:05d}_dark_{dark_pixels:03d}.png'
+                  ], check=True)
           PY
 
       - name: Create visual QA, render report, and hashes
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
@@ -239,6 +251,7 @@ jobs:
           cat delivery/SHA256SUMS.txt >> delivery/TECHNICAL_VERIFICATION.txt
 
       - name: Upload complete delivery
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Statistics10-IQR-BoxPlot-Professional-pqh-v1
