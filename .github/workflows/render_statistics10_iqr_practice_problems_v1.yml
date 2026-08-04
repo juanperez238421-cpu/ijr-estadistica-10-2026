@@ -22,11 +22,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p delivery
-          echo "4cf4eb226a6625028b7e9bf9f7edc1786a2724d62b961252ee0a6354bb91e514  source_iqr_problems_v1.gz.b64" | sha256sum -c -
-          test "$(wc -c < source_iqr_problems_v1.gz.b64)" -eq 12668
+          echo "e92eb07cdf97a70d190a3806dc80dbd14135e20e71335a4675ef9afc5955266a  source_iqr_problems_v1.gz.b64" | sha256sum -c -
+          test "$(wc -c < source_iqr_problems_v1.gz.b64)" -eq 12892
           base64 -d source_iqr_problems_v1.gz.b64 | gzip -d > statistics10_iqr_graph_construction_problems.py
           test -s statistics10_iqr_graph_construction_problems.py
-          echo "13c0735aeeed5dd92b717b48a1599f94c16d5b07fb092b66cf45935f333fc219  statistics10_iqr_graph_construction_problems.py" | sha256sum -c -
+          echo "6be9eec5fa7dcfd4438e7c978b7b9d37bc33841ec1c46b4ba20df6309dcd22d9  statistics10_iqr_graph_construction_problems.py" | sha256sum -c -
           cp statistics10_iqr_graph_construction_problems.py delivery/
 
       - name: Validate source and lesson structure
@@ -40,6 +40,7 @@ jobs:
           grep -q 'EVEN SAMPLE SIZE — TWO-SIDED OUTLIERS' statistics10_iqr_graph_construction_problems.py
           grep -q 'def construct_graph' statistics10_iqr_graph_construction_problems.py
           grep -q 'def validate_all_problems' statistics10_iqr_graph_construction_problems.py
+          grep -q 'def quartile_tag' statistics10_iqr_graph_construction_problems.py
           python - <<'PY'
           from pathlib import Path
           source = Path('statistics10_iqr_graph_construction_problems.py').read_text()
@@ -228,7 +229,7 @@ jobs:
       - name: Upload complete delivery
         uses: actions/upload-artifact@v4
         with:
-          name: Statistics10-IQR-Graph-Construction-Problems-pqh-v1
+          name: Statistics10-IQR-Graph-Construction-Problems-pqh-v2
           path: delivery/
           if-no-files-found: error
           retention-days: 7
