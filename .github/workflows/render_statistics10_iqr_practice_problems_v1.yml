@@ -1,0 +1,37 @@
+name: Render Statistics 10 IQR Practice Problems PQH
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore and validate exact source
+        run: bash ci/iqr_problems_restore_validate.sh
+      - name: Prepare ManimCE environment
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          docker pull manimcommunity/manim:v0.20.1
+      - name: Run mathematical assertions
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python statistics10_iqr_graph_construction_problems.py' | tee delivery/MATHEMATICAL_ASSERTIONS.txt
+          grep -q 'IQR graph-construction problem assertions passed' delivery/MATHEMATICAL_ASSERTIONS.txt
+      - name: Render literal pql preview
+        run: bash ci/iqr_problems_render.sh preview
+      - name: Render literal pqh video
+        run: bash ci/iqr_problems_render.sh final
+      - name: Verify and create visual QA
+        run: bash ci/iqr_problems_verify_qa.sh
+      - name: Upload complete delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-IQR-Graph-Construction-Problems-pqh-v3
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
