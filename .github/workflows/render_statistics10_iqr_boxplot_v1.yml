@@ -1,4 +1,4 @@
-name: Render Statistics 10 IQR Box Plot V1 PQH
+name: Render Statistics 10 IQR Box Plot V2 PQH
 
 on:
   workflow_dispatch:
@@ -22,19 +22,19 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p delivery
-          echo "456d96fb0629c190b3f044012d2b5904622f75ae12da38c353c5861899a93ead  source_chunks_iqr_v1/part_00" | sha256sum -c -
-          echo "b113975abf25200470fa7b043dae7a08c0b57d9d8c4c47dee2c25216c3ce1b43  source_chunks_iqr_v1/part_01" | sha256sum -c -
-          echo "87b7b979ce957d0ba39753e41cc0ea870f8978151bc496a8ef400a7802d07e2f  source_chunks_iqr_v1/part_02" | sha256sum -c -
-          echo "7136361ee06207fde165986912ce1213053ff4ceb2654c7a274369ac7e7f7a6e  source_chunks_iqr_v1/part_03" | sha256sum -c -
-          cat source_chunks_iqr_v1/part_00 \
-              source_chunks_iqr_v1/part_01 \
-              source_chunks_iqr_v1/part_02 \
-              source_chunks_iqr_v1/part_03 \
+          echo "3f80fddc9aad9b6471647109b62cd771c4f590f15f190062ce51cecf65c0c0b8  source_chunks_iqr_v2/part_00" | sha256sum -c -
+          echo "56e2639dafb4092900b90fb758b7fb4054c4c8cf647bc60b768a2d092dc01c4e  source_chunks_iqr_v2/part_01" | sha256sum -c -
+          echo "2b9828d7d3e92dbfd7db816a0219b40d420a834bbcb194cd0eb7657e926de656  source_chunks_iqr_v2/part_02" | sha256sum -c -
+          echo "f5eb8ee51022462ef6fffae1ca8d8e7cd29510cd082e3589f3cbf1c587082de3  source_chunks_iqr_v2/part_03" | sha256sum -c -
+          cat source_chunks_iqr_v2/part_00 \
+              source_chunks_iqr_v2/part_01 \
+              source_chunks_iqr_v2/part_02 \
+              source_chunks_iqr_v2/part_03 \
               > source.gz.b64
-          test "$(wc -c < source.gz.b64)" -eq 15188
+          test "$(wc -c < source.gz.b64)" -eq 15440
           base64 -d source.gz.b64 | gzip -d > statistics10_iqr_boxplot_construction_masterclass.py
           test -s statistics10_iqr_boxplot_construction_masterclass.py
-          echo "81a6a9645ce6ed54876e93183daa1ea81800ba30ad9d23b04d3201c2c9d38627  statistics10_iqr_boxplot_construction_masterclass.py" | sha256sum -c -
+          echo "07301210437bcd692b57b75ad13146fd791be1429cd4edeb702b99cb876799a3  statistics10_iqr_boxplot_construction_masterclass.py" | sha256sum -c -
           cp statistics10_iqr_boxplot_construction_masterclass.py delivery/
 
       - name: Validate source and lesson structure
@@ -194,6 +194,7 @@ jobs:
                       '-i', video, '-frames:v', '1',
                       f'delivery/border_diagnostics/frame_{frame_number:05d}_dark_{dark_pixels:03d}.png'
                   ], check=True)
+          assert not violations, violations
           PY
 
       - name: Create visual QA, render report, and hashes
@@ -254,7 +255,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Statistics10-IQR-BoxPlot-Professional-pqh-v1
+          name: Statistics10-IQR-BoxPlot-Professional-pqh-v2
           path: delivery/
           if-no-files-found: error
           retention-days: 7
