@@ -20,10 +20,8 @@ jobs:
       - name: Pull official ManimCE image
         run: docker pull manimcommunity/manim:v0.20.1
 
-      - name: Validate source and statistics
-        run: |
-          python -m py_compile statistics10_glossary_masterclass.py
-          python statistics10_glossary_masterclass.py
+      - name: Validate Python syntax
+        run: python -m py_compile statistics10_glossary_masterclass.py
 
       - name: Render required low-quality validation with literal -pql
         run: |
@@ -41,6 +39,7 @@ jobs:
               printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
               chmod +x /tmp/manim-bin/xdg-open
               export PATH="/tmp/manim-bin:$PATH"
+              python statistics10_glossary_masterclass.py
               manim -pql --fps 15 -r 854,480 \
                 --format=mp4 --disable_caching \
                 --media_dir media_preview \
