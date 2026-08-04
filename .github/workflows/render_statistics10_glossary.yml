@@ -17,6 +17,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Restore complete Python source
+        run: |
+          base64 -d statistics10_glossary_masterclass.py.gz.b64 \
+            | gzip -d > statistics10_glossary_masterclass.py
+          test -s statistics10_glossary_masterclass.py
+
       - name: Pull official ManimCE image
         run: docker pull manimcommunity/manim:v0.20.1
 
