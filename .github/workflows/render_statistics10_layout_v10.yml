@@ -1,0 +1,231 @@
+name: Render Statistics 10 Mu Terminology V11 PQH
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore verified V10 source and apply terminology revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          echo "8fc2ab4cea3b86587d88f319d33ad45c062e316aaa811c83cac4c7c37d600202  source_chunks_layout_v9/part_00" | sha256sum -c -
+          echo "2fdbddb68cb83d907f2a101b99d589180ed3b0718e786056a4c8ca692df3070e  source_chunks_layout_v9/part_01" | sha256sum -c -
+          echo "9cbf5fdcdc6c172bae4390462e31b98cf285ca1bbf96f23e533d5d71e9c45da3  source_chunks_layout_v9_fix/part_02a" | sha256sum -c -
+          echo "2e4c0b355c729df5a93937a5844ad87850cfe4477fb2c939546c0c972018a9c5  source_chunks_layout_v9_fix/part_02b" | sha256sum -c -
+          echo "2bbfd8e05c7f3f8b2584402fc0442ed899379d81ccaa62a20551199af1a8f85b  source_chunks_layout_v9_fix/part_02c" | sha256sum -c -
+          echo "49df7e11ac2c1c7b965503d28bdcf73d9c0f0672a0f88a50522c54efaa765690  source_chunks_layout_v9/part_03" | sha256sum -c -
+          echo "882b7013e1adea457bbfad57ebc5d9ad99dd991bd2d42a4fed1393825f8d2c5b  source_chunks_layout_v9_fix/part_04a" | sha256sum -c -
+          echo "020b23e1b6aa38ffdc82752945913fbcae938fbe682793125dd5b5f051e9c08a  source_chunks_layout_v9_fix/part_04b" | sha256sum -c -
+          echo "12b4d80d5fbb80366347f48fca4c6abf55a1bd4e98f4acf7a9a17fbe29e164b3  source_chunks_layout_v9_fix/part_04c" | sha256sum -c -
+          echo "0a7d378582b2a8499c8eca348e45887cadc935a0833441c437edc23f7890c2da  source_chunks_layout_v9/part_05" | sha256sum -c -
+          echo "6d3547d494bd842d40a055c7612c5f9e15e39ea272e54c872235ed81e8a755f9  source_chunks_layout_v9/part_06" | sha256sum -c -
+          cat \
+            source_chunks_layout_v9/part_00 \
+            source_chunks_layout_v9/part_01 \
+            source_chunks_layout_v9_fix/part_02a \
+            source_chunks_layout_v9_fix/part_02b \
+            source_chunks_layout_v9_fix/part_02c \
+            source_chunks_layout_v9/part_03 \
+            source_chunks_layout_v9_fix/part_04a \
+            source_chunks_layout_v9_fix/part_04b \
+            source_chunks_layout_v9_fix/part_04c \
+            source_chunks_layout_v9/part_05 \
+            source_chunks_layout_v9/part_06 \
+            > source.gz.b64
+          test "$(wc -c < source.gz.b64)" -eq 18156
+          base64 -d source.gz.b64 | gzip -d > statistics10_frequency_variance_layout_v10.py
+          echo "4ac6569cbeefb63dc590fe4e9aefbd150473f925daa70afbf1deaa16bd07a73c  statistics10_frequency_variance_layout_v10.py" | sha256sum -c -
+
+          echo "4cb3c51936f7a29278dda7c22d0513fb3905284c6a110f4d7734d848f197444f  patches/statistics10_mu_terminology.patch.gz.b64" | sha256sum -c -
+          base64 -d patches/statistics10_mu_terminology.patch.gz.b64 | gzip -d > terminology.patch
+          echo "6fc819cac7278f2c07af6609c054b0b85440acddf219193c6a8bdff287c34e82  terminology.patch" | sha256sum -c -
+          patch --batch --forward < terminology.patch
+          mv statistics10_frequency_variance_layout_v10.py statistics10_frequency_variance_mu_terminology.py
+          echo "a415c8193449c50fbbfe7453a37cdaae32799c6391cb5205af4027918dbf0d7e  statistics10_frequency_variance_mu_terminology.py" | sha256sum -c -
+          cp statistics10_frequency_variance_mu_terminology.py delivery/
+
+      - name: Validate terminology, equations, and monochrome policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile statistics10_frequency_variance_mu_terminology.py
+          grep -q '^class Statistics10FrequencyTableVarianceMasterclass' statistics10_frequency_variance_mu_terminology.py
+          ! grep -En '(color|fill_color|stroke_color)[[:space:]]*=[[:space:]]*(BLUE|RED|GREEN|ORANGE|PURPLE|TEAL|YELLOW)' statistics10_frequency_variance_mu_terminology.py
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('statistics10_frequency_variance_mu_terminology.py').read_text()
+          controls = [(i, ord(c)) for i, c in enumerate(source) if ord(c) < 32 and c not in '\n\t']
+          assert not controls, controls[:20]
+          required = [
+              'SIGNED DEVIATION',
+              'ABSOLUTE DEVIATION',
+              'SQUARED DEVIATION',
+              r'headers=(r"x_i", r"x_i-\mu", r"|x_i-\mu|", r"(x_i-\mu)^2")',
+              r'\mu=\frac{\sum_i x_if_i}{N}',
+              r'\sigma^2=\frac{\sum_i f_i(x_i-\mu)^2}{N}',
+              r's^2=\frac{\sum_i f_i(x_i-\bar{x})^2}{n-1}',
+          ]
+          for token in required:
+              assert token in source, token
+          assert source.count(r'\bar{x}') == 1
+          assert r'd_i=x_i-\bar{x}' not in source
+          print('Terminology and notation audit passed.')
+          PY
+
+      - name: Prepare official ManimCE and FFmpeg
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run mathematical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim \
+            --entrypoint bash manimcommunity/manim:v0.20.1 \
+            -c 'set -euo pipefail; python statistics10_frequency_variance_mu_terminology.py'
+
+      - name: Render complete literal pql preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash \
+            manimcommunity/manim:v0.20.1 -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql statistics10_frequency_variance_mu_terminology.py \
+                Statistics10FrequencyTableVarianceMasterclass \
+                --format=mp4 --disable_caching --media_dir media_preview
+              VIDEO=$(find media_preview -type f -name Statistics10FrequencyTableVarianceMasterclass.mp4 -print -quit)
+              test -n "$VIDEO" && test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10FrequencyVarianceMuTerminology_pql.mp4
+            '
+          ffmpeg -v error -i delivery/Statistics10FrequencyVarianceMuTerminology_pql.mp4 -f null -
+          ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -show_entries format=duration,size -of default=noprint_wrappers=1 delivery/Statistics10FrequencyVarianceMuTerminology_pql.mp4 | tee delivery/PQL_FFPROBE.txt
+
+      - name: Render final literal pqh video
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash \
+            manimcommunity/manim:v0.20.1 -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh statistics10_frequency_variance_mu_terminology.py \
+                Statistics10FrequencyTableVarianceMasterclass \
+                --format=mp4 --disable_caching --media_dir media_final
+              VIDEO=$(find media_final -type f -name Statistics10FrequencyTableVarianceMasterclass.mp4 -print -quit)
+              test -n "$VIDEO" && test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10FrequencyVarianceMuTerminology_pqh.mp4
+            '
+
+      - name: Verify complete video and inspect every frame boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIDEO=delivery/Statistics10FrequencyVarianceMuTerminology_pqh.mp4
+          test -s "$VIDEO"
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames \
+            -show_entries format=duration,size -of default=noprint_wrappers=1 \
+            "$VIDEO" | tee delivery/FFPROBE.txt
+          grep -qx 'codec_name=h264' delivery/FFPROBE.txt
+          grep -qx 'width=1920' delivery/FFPROBE.txt
+          grep -qx 'height=1080' delivery/FFPROBE.txt
+          grep -qx 'r_frame_rate=30/1' delivery/FFPROBE.txt
+          grep -qx 'pix_fmt=yuv420p' delivery/FFPROBE.txt
+          ffmpeg -v error -i "$VIDEO" -f null -
+
+          python - "$VIDEO" <<'PY'
+          import subprocess, sys
+          video = sys.argv[1]
+          width, height = 320, 180
+          size = width * height
+          border = [y * width + x for y in range(height) for x in range(width) if x < 2 or x >= width - 2 or y < 2 or y >= height - 2]
+          process = subprocess.Popen(['ffmpeg','-v','error','-i',video,'-vf',f'scale={width}:{height},format=gray','-f','rawvideo','-pix_fmt','gray','-'], stdout=subprocess.PIPE)
+          frames = 0
+          maximum = 0
+          violations = []
+          while True:
+              data = process.stdout.read(size)
+              if not data:
+                  break
+              assert len(data) == size
+              frames += 1
+              dark = sum(data[index] < 96 for index in border)
+              maximum = max(maximum, dark)
+              if dark > 24 and len(violations) < 20:
+                  violations.append((frames, dark))
+          process.stdout.close()
+          assert process.wait() == 0
+          assert not violations, violations
+          Path = __import__('pathlib').Path
+          Path('delivery/ALL_FRAME_BORDER_SCAN.txt').write_text(
+              f'frames_scanned={frames}\nmax_dark_border_pixels={maximum}\nresult=PASS\n'
+          )
+          print(f'frames_scanned={frames}; max_dark_border_pixels={maximum}')
+          PY
+
+      - name: Create visual QA, report, and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIDEO=delivery/Statistics10FrequencyVarianceMuTerminology_pqh.mp4
+          mkdir -p delivery/qa_frames
+          DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")
+          python - "$DURATION" <<'PY'
+          import subprocess, sys
+          duration = float(sys.argv[1])
+          fractions = [0.01,0.035,0.06,0.085,0.11,0.135,0.16,0.185,0.21,0.235,0.26,0.285,0.31,0.335,0.36,0.385,0.41,0.435,0.46,0.485,0.51,0.535,0.56,0.585,0.61,0.635,0.66,0.685,0.71,0.735,0.76,0.785,0.81,0.835,0.86,0.885,0.91,0.935,0.96,0.99]
+          for index, fraction in enumerate(fractions, 1):
+              timestamp = max(0.0, min(duration - 0.2, duration * fraction))
+              subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{timestamp:.3f}','-i','delivery/Statistics10FrequencyVarianceMuTerminology_pqh.mp4','-frames:v','1',f'delivery/qa_frames/frame_{index:02d}.png'], check=True)
+          PY
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' -vf 'scale=384:-1,tile=5x8:padding=8:margin=8:color=white' -frames:v 1 delivery/QA_CONTACT_SHEET.png
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          Scene: Statistics10FrequencyTableVarianceMasterclass
+          Source: statistics10_frequency_variance_mu_terminology.py
+          ManimCE: 0.20.1
+          Preview: literal -pql
+          Final: literal -pqh
+          Terminology: x_i; population mean mu; signed deviation x_i-mu; absolute deviation |x_i-mu|; squared deviation (x_i-mu)^2; population variance sigma^2; population standard deviation sigma.
+          Visual design: monochrome, large tables, wrapped subtitles, padded cards, staged equations, protected margins.
+          EOF
+          sha256sum delivery/Statistics10FrequencyVarianceMuTerminology_pqh.mp4 delivery/Statistics10FrequencyVarianceMuTerminology_pql.mp4 delivery/statistics10_frequency_variance_mu_terminology.py delivery/QA_CONTACT_SHEET.png > delivery/SHA256SUMS.txt
+
+      - name: Upload complete delivery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10FrequencyVarianceMuTerminology-pqh
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
