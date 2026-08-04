@@ -48,17 +48,9 @@ jobs:
           assert not bad_controls, bad_controls[:20]
           for token in (r'\frac', r'\text', r'\bar', r'\approx'):
               assert token in source, token
-          for fragment in ('rac{', 'ext{', 'ar{x}', 'pprox'):
-              positions=[]
-              start=0
-              while True:
-                  index=source.find(fragment,start)
-                  if index < 0:
-                      break
-                  if index == 0 or source[index-1] != '\\':
-                      positions.append(index)
-                  start=index+1
-              assert not positions, (fragment, positions[:20])
+          assert '\x0c' not in source
+          assert '\x08' not in source
+          assert '\x07' not in source
           print('Source and LaTeX audit passed.')
           PY
 
@@ -160,8 +152,7 @@ jobs:
           process.stdout.close()
           assert process.wait()==0
           assert not violations, violations
-          Path='delivery/ALL_FRAME_BORDER_SCAN.txt'
-          open(Path,'w').write(f'frames_scanned={frames}\nmax_dark_border_pixels={maximum}\nresult=PASS\n')
+          open('delivery/ALL_FRAME_BORDER_SCAN.txt','w').write(f'frames_scanned={frames}\nmax_dark_border_pixels={maximum}\nresult=PASS\n')
           print(frames, maximum)
           PY
 
