@@ -1,0 +1,234 @@
+name: Render Statistics 10 IQR Practice Problems PQH
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore exact reviewed source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          echo "4cf4eb226a6625028b7e9bf9f7edc1786a2724d62b961252ee0a6354bb91e514  source_iqr_problems_v1.gz.b64" | sha256sum -c -
+          test "$(wc -c < source_iqr_problems_v1.gz.b64)" -eq 12668
+          base64 -d source_iqr_problems_v1.gz.b64 | gzip -d > statistics10_iqr_graph_construction_problems.py
+          test -s statistics10_iqr_graph_construction_problems.py
+          echo "13c0735aeeed5dd92b717b48a1599f94c16d5b07fb092b66cf45935f333fc219  statistics10_iqr_graph_construction_problems.py" | sha256sum -c -
+          cp statistics10_iqr_graph_construction_problems.py delivery/
+
+      - name: Validate source and lesson structure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile statistics10_iqr_graph_construction_problems.py
+          grep -q '^class Statistics10IQRGraphConstructionProblems' statistics10_iqr_graph_construction_problems.py
+          grep -q 'ODD SAMPLE SIZE — NO OUTLIERS' statistics10_iqr_graph_construction_problems.py
+          grep -q 'EVEN SAMPLE SIZE — ONE UPPER OUTLIER' statistics10_iqr_graph_construction_problems.py
+          grep -q 'EVEN SAMPLE SIZE — TWO-SIDED OUTLIERS' statistics10_iqr_graph_construction_problems.py
+          grep -q 'def construct_graph' statistics10_iqr_graph_construction_problems.py
+          grep -q 'def validate_all_problems' statistics10_iqr_graph_construction_problems.py
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('statistics10_iqr_graph_construction_problems.py').read_text()
+          assert not [(i, ord(c)) for i, c in enumerate(source) if ord(c) < 32 and c not in '\n\t']
+          for token in ('Q_1', 'Q_2', 'Q_3', 'lower_fence', 'upper_fence', 'lower_whisker', 'upper_whisker'):
+              assert token in source
+          print('Static source audit passed.')
+          PY
+
+      - name: Prepare ManimCE environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run mathematical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" -w /manim \
+            --entrypoint bash manimcommunity/manim:v0.20.1 \
+            -c 'set -euo pipefail; python statistics10_iqr_graph_construction_problems.py' \
+            | tee delivery/MATHEMATICAL_ASSERTIONS.txt
+          grep -q 'IQR graph-construction problem assertions passed' delivery/MATHEMATICAL_ASSERTIONS.txt
+
+      - name: Render complete literal pql preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.08 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash \
+            manimcommunity/manim:v0.20.1 -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql --fps 15 -r 854,480 \
+                statistics10_iqr_graph_construction_problems.py \
+                Statistics10IQRGraphConstructionProblems \
+                --format=mp4 --disable_caching --media_dir media_preview
+              VIDEO=$(find media_preview -type f -name Statistics10IQRGraphConstructionProblems.mp4 -print -quit)
+              test -n "$VIDEO" && test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10_IQR_Graph_Construction_Problems_pql.mp4
+            '
+          ffmpeg -v error -i delivery/Statistics10_IQR_Graph_Construction_Problems_pql.mp4 -f null -
+          ffprobe -v error \
+            -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+            -show_entries format=duration,size \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10_IQR_Graph_Construction_Problems_pql.mp4 \
+            | tee delivery/PQL_FFPROBE.txt
+
+      - name: Render final literal pqh video
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash \
+            manimcommunity/manim:v0.20.1 -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh --fps 30 -r 1920,1080 \
+                statistics10_iqr_graph_construction_problems.py \
+                Statistics10IQRGraphConstructionProblems \
+                --format=mp4 --disable_caching --media_dir media_final
+              VIDEO=$(find media_final -type f -name Statistics10IQRGraphConstructionProblems.mp4 -print -quit)
+              test -n "$VIDEO" && test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10_IQR_Graph_Construction_Problems_Professional_pqh.mp4
+            '
+
+      - name: Verify full output and every frame boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIDEO=delivery/Statistics10_IQR_Graph_Construction_Problems_Professional_pqh.mp4
+          test -s "$VIDEO"
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames \
+            -show_entries format=duration,size \
+            -of default=noprint_wrappers=1 \
+            "$VIDEO" | tee delivery/FFPROBE.txt
+          grep -qx 'codec_name=h264' delivery/FFPROBE.txt
+          grep -qx 'width=1920' delivery/FFPROBE.txt
+          grep -qx 'height=1080' delivery/FFPROBE.txt
+          grep -qx 'r_frame_rate=30/1' delivery/FFPROBE.txt
+          grep -qx 'pix_fmt=yuv420p' delivery/FFPROBE.txt
+          ffmpeg -v error -i "$VIDEO" -f null -
+
+          python - "$VIDEO" <<'PY'
+          import subprocess, sys
+          video = sys.argv[1]
+          width, height = 320, 180
+          frame_size = width * height
+          border = [
+              y * width + x
+              for y in range(height)
+              for x in range(width)
+              if x < 2 or x >= width - 2 or y < 2 or y >= height - 2
+          ]
+          process = subprocess.Popen([
+              'ffmpeg', '-v', 'error', '-i', video,
+              '-vf', f'scale={width}:{height},format=gray',
+              '-f', 'rawvideo', '-pix_fmt', 'gray', '-'
+          ], stdout=subprocess.PIPE)
+          frames = 0
+          maximum = 0
+          violations = []
+          while True:
+              data = process.stdout.read(frame_size)
+              if not data:
+                  break
+              assert len(data) == frame_size
+              frames += 1
+              dark = sum(data[index] < 96 for index in border)
+              maximum = max(maximum, dark)
+              if dark > 28 and len(violations) < 20:
+                  violations.append((frames, dark))
+          process.stdout.close()
+          assert process.wait() == 0
+          assert not violations, violations
+          with open('delivery/ALL_FRAME_BORDER_SCAN.txt', 'w') as handle:
+              handle.write(f'frames_scanned={frames}\n')
+              handle.write(f'max_dark_border_pixels={maximum}\n')
+              handle.write('violations=[]\n')
+              handle.write('result=PASS\n')
+          PY
+
+      - name: Create visual QA and reports
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIDEO=delivery/Statistics10_IQR_Graph_Construction_Problems_Professional_pqh.mp4
+          mkdir -p delivery/qa_frames
+          DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")
+          python - "$DURATION" <<'PY'
+          import subprocess, sys
+          duration = float(sys.argv[1])
+          count = 40
+          fractions = [(i + 0.5) / count for i in range(count)]
+          for index, fraction in enumerate(fractions, 1):
+              timestamp = max(0.0, min(duration - 0.2, duration * fraction))
+              subprocess.run([
+                  'ffmpeg', '-y', '-v', 'error', '-ss', f'{timestamp:.3f}',
+                  '-i', 'delivery/Statistics10_IQR_Graph_Construction_Problems_Professional_pqh.mp4',
+                  '-frames:v', '1', f'delivery/qa_frames/frame_{index:02d}.png'
+              ], check=True)
+          PY
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' \
+            -vf 'scale=360:-1,tile=5x8:padding=7:margin=7:color=white' \
+            -frames:v 1 delivery/QA_CONTACT_SHEET.png
+
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          Scene: Statistics10IQRGraphConstructionProblems
+          Source: statistics10_iqr_graph_construction_problems.py
+          ManimCE: 0.20.1
+          Format: horizontal 16:9
+          Final resolution: 1920x1080
+          Final frame rate: 30 fps
+          Problem 1: odd n, Q1=4.5, Q2=7, Q3=9.5, IQR=5, no outliers, whiskers 3 and 11.
+          Problem 2: even n, Q1=8, Q2=10.5, Q3=13, IQR=5, upper outlier 30, whiskers 5 and 14.
+          Problem 3: even n, Q1=6.5, Q2=9.5, Q3=12.5, IQR=6, outliers -10 and 30, whiskers 5 and 18.
+          Preview command: manim -pql statistics10_iqr_graph_construction_problems.py Statistics10IQRGraphConstructionProblems --format=mp4 --disable_caching
+          Final command: manim -pqh statistics10_iqr_graph_construction_problems.py Statistics10IQRGraphConstructionProblems --format=mp4 --disable_caching
+          EOF
+
+          sha256sum \
+            delivery/Statistics10_IQR_Graph_Construction_Problems_Professional_pqh.mp4 \
+            delivery/Statistics10_IQR_Graph_Construction_Problems_pql.mp4 \
+            delivery/statistics10_iqr_graph_construction_problems.py \
+            delivery/QA_CONTACT_SHEET.png \
+            > delivery/SHA256SUMS.txt
+          cp delivery/FFPROBE.txt delivery/TECHNICAL_VERIFICATION.txt
+          cat delivery/ALL_FRAME_BORDER_SCAN.txt >> delivery/TECHNICAL_VERIFICATION.txt
+          cat delivery/SHA256SUMS.txt >> delivery/TECHNICAL_VERIFICATION.txt
+
+      - name: Upload complete delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-IQR-Graph-Construction-Problems-pqh-v1
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
