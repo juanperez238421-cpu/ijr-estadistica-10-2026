@@ -21,11 +21,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat source_chunks_v2/iqr_chunk_* > statistics10_english_iqr_source.gz.b64
-          test "$(wc -c < statistics10_english_iqr_source.gz.b64)" -eq 13268
+          cat source_chunks_v3/iqr_v3_* > statistics10_english_iqr_source.gz.b64
+          test "$(wc -c < statistics10_english_iqr_source.gz.b64)" -eq 13200
           base64 -d statistics10_english_iqr_source.gz.b64 | gzip -d > statistics10_english_glossary_iqr_masterclass.py
           test -s statistics10_english_glossary_iqr_masterclass.py
-          echo "ff1a5d17117da15ac39f9a6d6a5ee24ef02b0d28e4cbe7620224bdeaa60b8ea1  statistics10_english_glossary_iqr_masterclass.py" | sha256sum -c -
+          echo "4fc42c1d7320d7493ee612913ed5711b3b5a047765fb8e53a801a3b9049ecfd2  statistics10_english_glossary_iqr_masterclass.py" | sha256sum -c -
           mkdir -p delivery
 
       - name: Validate Python syntax
@@ -39,6 +39,17 @@ jobs:
         run: |
           set -euo pipefail
           docker pull manimcommunity/manim:v0.20.1
+
+      - name: Ensure FFmpeg verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ffprobe >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
 
       - name: Execute statistical assertions
         shell: bash
@@ -80,8 +91,21 @@ jobs:
               test -n "$VIDEO"
               test -s "$VIDEO"
               cp "$VIDEO" delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4
-              ffprobe -v error -show_entries stream=width,height,r_frame_rate -show_entries format=duration,size -of default=noprint_wrappers=1 "$VIDEO" | tee delivery/PQL_FFPROBE.txt
+              ls -lh delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4
             '
+
+      - name: Inspect PQL preview on host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4
+          ffprobe -v error \
+            -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+            -show_entries format=duration,size \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4 \
+            | tee delivery/PQL_FFPROBE.txt
+          ffmpeg -v error -i delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4 -f null -
 
       - name: Render final high-quality video with literal -pqh
         shell: bash
