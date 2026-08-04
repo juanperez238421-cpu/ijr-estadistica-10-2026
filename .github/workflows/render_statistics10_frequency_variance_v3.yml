@@ -22,10 +22,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p delivery
+
+          echo "b0310c197f9b96190e8622d783f499205abca6343d813596e4a63ce6c3b372a6  source_chunks_frequency_v3/freq_v1_00_part_00" | sha256sum -c -
+          echo "c62ebcaa77eecdddb24903c2d94e2f395cf353373f4ffb5897b5dece0c02aad0  source_chunks_frequency_v3/freq_v1_00_part_01" | sha256sum -c -
+          echo "140c7482797a2ed93d9c095d06d0884b0c45c888da1fed5f05becaba63c024a2  source_chunks_frequency_v3/freq_v1_01" | sha256sum -c -
+
           cat \
-            source_chunks_frequency_v3/freq_v1_00 \
+            source_chunks_frequency_v3/freq_v1_00_part_00 \
+            source_chunks_frequency_v3/freq_v1_00_part_01 \
             source_chunks_frequency_v3/freq_v1_01 \
             > statistics10_frequency_variance_source.gz.b64
+
           test "$(wc -c < statistics10_frequency_variance_source.gz.b64)" -eq 17404
           base64 -d statistics10_frequency_variance_source.gz.b64 \
             | gzip -d \
