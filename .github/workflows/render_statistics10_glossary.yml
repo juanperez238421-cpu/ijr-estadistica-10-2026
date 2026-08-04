@@ -82,8 +82,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p delivery
-          PREVIEW="$(find media_preview -type f -name 'Statistics10GlossaryMasterclass.mp4' -print -quit)"
-          FINAL="$(find media_final -type f -name 'Statistics10GlossaryMasterclass.mp4' -print -quit)"
+          PREVIEW=$(find media_preview -type f -name Statistics10GlossaryMasterclass.mp4 | head -n 1)
+          FINAL=$(find media_final -type f -name Statistics10GlossaryMasterclass.mp4 | head -n 1)
           test -s "$PREVIEW"
           test -s "$FINAL"
           cp "$PREVIEW" delivery/Statistics10GlossaryMasterclass_pql_preview.mp4
