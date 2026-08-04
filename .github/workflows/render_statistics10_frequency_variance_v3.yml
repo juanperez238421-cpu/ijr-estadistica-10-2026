@@ -1,4 +1,4 @@
-name: Render Statistics 10 Frequency Variance V3 PQH
+name: Render Statistics 10 Frequency Variance V4 PQH
 
 on:
   workflow_dispatch:
@@ -17,23 +17,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore exact source and verify SHA-256
+      - name: Restore corrected source and verify SHA-256
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p delivery
-          echo "b0310c197f9b96190e8622d783f499205abca6343d813596e4a63ce6c3b372a6  source_chunks_frequency_v3/freq_v1_00_part_00" | sha256sum -c -
-          echo "c62ebcaa77eecdddb24903c2d94e2f395cf353373f4ffb5897b5dece0c02aad0  source_chunks_frequency_v3/freq_v1_00_part_01" | sha256sum -c -
-          echo "140c7482797a2ed93d9c095d06d0884b0c45c888da1fed5f05becaba63c024a2  source_chunks_frequency_v3/freq_v1_01" | sha256sum -c -
-          cat source_chunks_frequency_v3/freq_v1_00_part_00 \
-              source_chunks_frequency_v3/freq_v1_00_part_01 \
-              source_chunks_frequency_v3/freq_v1_01 \
-              > statistics10_frequency_variance_source.gz.b64
-          test "$(wc -c < statistics10_frequency_variance_source.gz.b64)" -eq 17404
+          echo "679e14377657f4a06f343dfa41b896150e6b687bb60998ccf9c16d0d34997543  source_chunks_frequency_v4/freq_v4_00" | sha256sum -c -
+          echo "50ca744b52e67b72421fe278156b9d0975538ce2227f2f8ac11c28239e975c18  source_chunks_frequency_v4/freq_v4_01" | sha256sum -c -
+          echo "a3d1ec4b1dfa1b96d000bf2d8597c2d252220ce6cab670c2ac174a7563150d0d  source_chunks_frequency_v4/freq_v4_02" | sha256sum -c -
+          echo "ee13e55ede4b5f4ec4c66572d66dbae1e17dbd4e7230bb742f82b82ffecbb5f1  source_chunks_frequency_v4/freq_v4_03" | sha256sum -c -
+          echo "d8d75e4ce7f3c626b3b318e1eecd9c03b3f1ec3219a0a02fb562768a66822e43  source_chunks_frequency_v4/freq_v4_04" | sha256sum -c -
+          cat source_chunks_frequency_v4/freq_v4_* > statistics10_frequency_variance_source.gz.b64
+          test "$(wc -c < statistics10_frequency_variance_source.gz.b64)" -eq 17584
           base64 -d statistics10_frequency_variance_source.gz.b64 | gzip -d \
             > statistics10_frequency_table_dispersion_variance_masterclass.py
           test -s statistics10_frequency_table_dispersion_variance_masterclass.py
-          echo "99d79be50562260a140ac200812b6d6728f758146257136fa23e1cf3ba622d2c  statistics10_frequency_table_dispersion_variance_masterclass.py" | sha256sum -c -
+          echo "f2ed2e9aff015fdb42ef2de5555108dcce5fee9e72628aa2a8b0531153d76e0f  statistics10_frequency_table_dispersion_variance_masterclass.py" | sha256sum -c -
 
       - name: Validate source and monochrome policy
         shell: bash
@@ -160,6 +159,7 @@ jobs:
           Preview: manim -pql statistics10_frequency_table_dispersion_variance_masterclass.py Statistics10FrequencyTableVarianceMasterclass --format=mp4 --disable_caching
           Final: manim -pqh statistics10_frequency_table_dispersion_variance_masterclass.py Statistics10FrequencyTableVarianceMasterclass --format=mp4 --disable_caching
           Visual policy: black text/equations; neutral grayscale shapes.
+          QA corrections: long titles dynamically fitted; mathematical headers typeset with MathTex.
           Dataset: 2, 2, 3, 4, 4, 4, 5, 6
           Mean: 3.75
           Population variance: 1.6875
@@ -175,7 +175,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Statistics10FrequencyTableVarianceMasterclass-pqh-v3
+          name: Statistics10FrequencyTableVarianceMasterclass-pqh-v4
           path: delivery/
           if-no-files-found: error
           retention-days: 7
