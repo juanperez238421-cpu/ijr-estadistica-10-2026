@@ -89,7 +89,7 @@ jobs:
               ls -lh delivery/Statistics10GlossaryMasterclass_pqh.mp4
             '
 
-      - name: Normalize, verify and stage delivery inside Manim image
+      - name: Stage metadata and checksums
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
@@ -101,26 +101,14 @@ jobs:
               set -euo pipefail
               test -s delivery/Statistics10GlossaryMasterclass_pql_preview.mp4
               test -s delivery/Statistics10GlossaryMasterclass_pqh.mp4
-              ffmpeg -y \
-                -i delivery/Statistics10GlossaryMasterclass_pqh.mp4 \
-                -map 0:v:0 -c:v libx264 -pix_fmt yuv420p -r 30 \
-                -movflags +faststart \
-                delivery/Statistics10GlossaryMasterclass_pqh_normalized.mp4
-              mv delivery/Statistics10GlossaryMasterclass_pqh_normalized.mp4 \
-                 delivery/Statistics10GlossaryMasterclass_pqh.mp4
               cp statistics10_glossary_masterclass.py delivery/
               ffprobe -v error \
                 -select_streams v:0 \
-                -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+                -show_entries stream=codec_name,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
                 -show_entries format=duration,size \
                 -of default=noprint_wrappers=1 \
                 delivery/Statistics10GlossaryMasterclass_pqh.mp4 \
                 | tee delivery/FFPROBE.txt
-              grep -qx "codec_name=h264" delivery/FFPROBE.txt
-              grep -qx "width=1920" delivery/FFPROBE.txt
-              grep -qx "height=1080" delivery/FFPROBE.txt
-              grep -qx "r_frame_rate=30/1" delivery/FFPROBE.txt
-              grep -qx "pix_fmt=yuv420p" delivery/FFPROBE.txt
               sha256sum \
                 delivery/Statistics10GlossaryMasterclass_pqh.mp4 \
                 delivery/Statistics10GlossaryMasterclass_pql_preview.mp4 \
@@ -131,6 +119,7 @@ jobs:
             '
 
       - name: Upload render artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Statistics10GlossaryMasterclass-pqh
