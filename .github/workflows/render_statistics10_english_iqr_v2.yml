@@ -1,0 +1,212 @@
+name: Render Statistics 10 English IQR V2 PQH
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore and verify exact Python source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          cat \
+            source_chunks_v3/iqr_v3_00 \
+            source_chunks_v3/iqr_v3_01 \
+            source_chunks_v4/iqr_v4_020 \
+            source_chunks_v4/iqr_v4_021 \
+            source_chunks_v3/iqr_v3_03 \
+            > statistics10_english_iqr_source.gz.b64
+          test "$(wc -c < statistics10_english_iqr_source.gz.b64)" -eq 13200
+          base64 -d statistics10_english_iqr_source.gz.b64 | gzip -d > statistics10_english_glossary_iqr_masterclass.py
+          test -s statistics10_english_glossary_iqr_masterclass.py
+          echo "4fc42c1d7320d7493ee612913ed5711b3b5a047765fb8e53a801a3b9049ecfd2  statistics10_english_glossary_iqr_masterclass.py" | sha256sum -c -
+
+      - name: Validate Python syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile statistics10_english_glossary_iqr_masterclass.py
+
+      - name: Pull official ManimCE image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Ensure FFmpeg verification tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ffprobe >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
+          ffmpeg -version | head -1
+          ffprobe -version | head -1
+
+      - name: Execute statistical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c 'set -euo pipefail; python statistics10_english_glossary_iqr_masterclass.py'
+
+      - name: Render complete low-quality validation with literal -pql
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -e LESSON_TIME_SCALE=0.15 \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql --fps 15 -r 854,480 \
+                --format=mp4 --disable_caching \
+                --media_dir media_preview \
+                statistics10_english_glossary_iqr_masterclass.py \
+                Statistics10EnglishGlossaryIQR
+              VIDEO=$(find media_preview -type f -name Statistics10EnglishGlossaryIQR.mp4 -print -quit)
+              test -n "$VIDEO"
+              test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4
+              ls -lh delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4
+            '
+
+      - name: Inspect PQL preview on host
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4
+          ffprobe -v error \
+            -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+            -show_entries format=duration,size \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4 \
+            | tee delivery/PQL_FFPROBE.txt
+          ffmpeg -v error -i delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4 -f null -
+
+      - name: Render final high-quality video with literal -pqh
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -e LESSON_TIME_SCALE=1.0 \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh --fps 30 -r 1920,1080 \
+                --format=mp4 --disable_caching \
+                --media_dir media_final \
+                statistics10_english_glossary_iqr_masterclass.py \
+                Statistics10EnglishGlossaryIQR
+              VIDEO=$(find media_final -type f -name Statistics10EnglishGlossaryIQR.mp4 -print -quit)
+              test -n "$VIDEO"
+              test -s "$VIDEO"
+              cp "$VIDEO" delivery/Statistics10EnglishGlossaryIQR_pqh.mp4
+              ls -lh delivery/Statistics10EnglishGlossaryIQR_pqh.mp4
+            '
+
+      - name: Verify MP4, decode, capture QA frames, and package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s delivery/Statistics10EnglishGlossaryIQR_pqh.mp4
+          test -s delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4
+          cp statistics10_english_glossary_iqr_masterclass.py delivery/
+
+          ffprobe -v error \
+            -select_streams v:0 \
+            -show_entries stream=codec_name,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames \
+            -show_entries format=duration,size \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10EnglishGlossaryIQR_pqh.mp4 \
+            | tee delivery/FFPROBE.txt
+
+          grep -qx 'codec_name=h264' delivery/FFPROBE.txt
+          grep -qx 'width=1920' delivery/FFPROBE.txt
+          grep -qx 'height=1080' delivery/FFPROBE.txt
+          grep -qx 'r_frame_rate=30/1' delivery/FFPROBE.txt
+          grep -qx 'pix_fmt=yuv420p' delivery/FFPROBE.txt
+
+          ffmpeg -v error -i delivery/Statistics10EnglishGlossaryIQR_pqh.mp4 -f null -
+
+          mkdir -p delivery/qa_frames
+          DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 delivery/Statistics10EnglishGlossaryIQR_pqh.mp4)
+          python - "$DURATION" <<'PY'
+          import subprocess, sys
+          duration = float(sys.argv[1])
+          fractions = [0.03, 0.12, 0.22, 0.34, 0.46, 0.58, 0.68, 0.78, 0.88, 0.97]
+          for index, fraction in enumerate(fractions, start=1):
+              timestamp = max(0.0, min(duration - 0.2, duration * fraction))
+              subprocess.run([
+                  'ffmpeg', '-y', '-v', 'error', '-ss', f'{timestamp:.3f}',
+                  '-i', 'delivery/Statistics10EnglishGlossaryIQR_pqh.mp4',
+                  '-frames:v', '1', f'delivery/qa_frames/frame_{index:02d}.png'
+              ], check=True)
+          PY
+
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' \
+            -vf 'scale=640:-1,tile=2x5:padding=8:margin=8:color=white' \
+            -frames:v 1 delivery/QA_CONTACT_SHEET.png
+
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          Scene: Statistics10EnglishGlossaryIQR
+          Source: statistics10_english_glossary_iqr_masterclass.py
+          ManimCE: 0.20.1
+          Preview command: manim -pql statistics10_english_glossary_iqr_masterclass.py Statistics10EnglishGlossaryIQR --format=mp4 --disable_caching
+          Final command: manim -pqh statistics10_english_glossary_iqr_masterclass.py Statistics10EnglishGlossaryIQR --format=mp4 --disable_caching
+          Quartile convention: for odd n, exclude the median before calculating Q1 and Q3.
+          EOF
+
+          sha256sum \
+            delivery/Statistics10EnglishGlossaryIQR_pqh.mp4 \
+            delivery/Statistics10EnglishGlossaryIQR_pql_preview.mp4 \
+            delivery/statistics10_english_glossary_iqr_masterclass.py \
+            delivery/QA_CONTACT_SHEET.png \
+            > delivery/SHA256SUMS.txt
+
+      - name: Upload complete render artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10EnglishGlossaryIQR-pqh-v2
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
