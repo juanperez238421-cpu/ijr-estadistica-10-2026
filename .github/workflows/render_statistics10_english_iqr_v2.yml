@@ -21,12 +21,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat source_chunks_v3/iqr_v3_* > statistics10_english_iqr_source.gz.b64
+          mkdir -p delivery
+          cat \
+            source_chunks_v3/iqr_v3_00 \
+            source_chunks_v3/iqr_v3_01 \
+            source_chunks_v4/iqr_v4_020 \
+            source_chunks_v4/iqr_v4_021 \
+            source_chunks_v3/iqr_v3_03 \
+            > statistics10_english_iqr_source.gz.b64
           test "$(wc -c < statistics10_english_iqr_source.gz.b64)" -eq 13200
           base64 -d statistics10_english_iqr_source.gz.b64 | gzip -d > statistics10_english_glossary_iqr_masterclass.py
           test -s statistics10_english_glossary_iqr_masterclass.py
           echo "4fc42c1d7320d7493ee612913ed5711b3b5a047765fb8e53a801a3b9049ecfd2  statistics10_english_glossary_iqr_masterclass.py" | sha256sum -c -
-          mkdir -p delivery
 
       - name: Validate Python syntax
         shell: bash
