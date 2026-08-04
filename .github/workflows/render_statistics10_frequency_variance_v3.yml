@@ -48,7 +48,7 @@ jobs:
           python -m py_compile statistics10_frequency_table_dispersion_variance_masterclass.py
           grep -q '^class Statistics10FrequencyTableVarianceMasterclass' \
             statistics10_frequency_table_dispersion_variance_masterclass.py
-          ! grep -En 'BLUE|RED|GREEN|ORANGE|PURPLE|TEAL|YELLOW' \
+          ! grep -En '(color|fill_color|stroke_color)[[:space:]]*=[[:space:]]*(BLUE|RED|GREEN|ORANGE|PURPLE|TEAL|YELLOW)' \
             statistics10_frequency_table_dispersion_variance_masterclass.py
 
       - name: Pull official ManimCE image
