@@ -28,15 +28,17 @@ jobs:
           echo '3afff039a7793ce746c77bb326234ddc4d9da85123b4acb04cef34c5542c25d4  render_motion_v4/source_v4.part05' | sha256sum -c -
           cat render_motion_v4/source_v4.part0{1,2,3,4,5} > /tmp/v4.b64
           echo 'cee2bab40b7114aa986d91505334183b102ffee703a1dce171e945f72800b586  /tmp/v4.b64' | sha256sum -c -
-          base64 -d /tmp/v4.b64 | gzip -d > physics9_motion_achilles_v5_frame_audited.py
-          echo 'fa062f56872a807dc2add7e46183290651910945134981a4dad465808810e2a9  physics9_motion_achilles_v5_frame_audited.py' | sha256sum -c -
+          base64 -d /tmp/v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
+          echo 'fa062f56872a807dc2add7e46183290651910945134981a4dad465808810e2a9  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
           patch -p0 < render_motion_v4/deep_zoom_final.patch
-          echo 'c93ee486ad0471d3fcaf278b3b00e49b17aef86cabf3ac1839383d2cc8fd19ef  physics9_motion_achilles_v5_frame_audited.py' | sha256sum -c -
+          echo 'c93ee486ad0471d3fcaf278b3b00e49b17aef86cabf3ac1839383d2cc8fd19ef  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
 
           echo 'eb9558fa0d8a4e1455b7494e328793c15a16a00ebe849330285ee9045eeb84c1  render_motion_v5/v4_to_v5_frame_audit.patch.gz.b64' | sha256sum -c -
           base64 -d render_motion_v5/v4_to_v5_frame_audit.patch.gz.b64 | gzip -d > /tmp/v5.patch
           echo '0fb250855e6ea243a73d85233d27d3ac58338b0af9d1871c9b441642c5cf521f  /tmp/v5.patch' | sha256sum -c -
           patch -p0 < /tmp/v5.patch
+          echo '1bcbc6b7060f5ecc4a74de2112d88789bdd331c01f148b503f6e066c629658eb  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          mv physics9_motion_achilles_v4_senior.py physics9_motion_achilles_v5_frame_audited.py
           echo '1bcbc6b7060f5ecc4a74de2112d88789bdd331c01f148b503f6e066c629658eb  physics9_motion_achilles_v5_frame_audited.py' | sha256sum -c -
 
           base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
