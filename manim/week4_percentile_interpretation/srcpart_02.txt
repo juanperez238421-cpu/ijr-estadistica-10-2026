@@ -1,0 +1,50 @@
+        "BELOW / AT",
+        "ABOVE / AT",
+        "CONTEXT",
+        "CHECK CLAIM",
+        "COMMUNICATE",
+    )
+
+    EXAM = PercentileStatement(70, 82, "exam score", "points")
+    RACE = PercentileStatement(25, 12.4, "100 m time", "s")
+    HEIGHT = PercentileStatement(90, 175, "height", "cm")
+    REVERSE = PercentileStatement(85, 88, "final test score", "points")
+    CHALLENGE = PercentileStatement(35, 14.2, "reaction time", "ms")
+
+    def setup(self):
+        super().setup()
+        self.camera.background_color = WHITE
+        self.header = None
+        self.step_strip = None
+        self._validate_lesson()
+
+    def _validate_lesson(self):
+        for st in (self.EXAM, self.RACE, self.HEIGHT, self.REVERSE, self.CHALLENGE):
+            assert 0 < st.k < 100
+            assert st.above == 100 - st.k
+        assert self.EXAM.above == 30
+        assert self.RACE.above == 75
+        assert self.HEIGHT.above == 10
+        assert self.REVERSE.above == 15
+        assert self.CHALLENGE.above == 65
+
+    # ------------------------------------------------------------------
+    # Typography / layout helpers
+    # ------------------------------------------------------------------
+    def t(self, content, size=29, weight=NORMAL, color=INK, **kwargs):
+        return Text(
+            content,
+            font_size=size,
+            color=color,
+            weight=weight,
+            line_spacing=0.92,
+            **kwargs,
+        )
+
+    def m(self, expr, size=40, color=INK, **kwargs):
+        return MathTex(expr, font_size=size, color=color, **kwargs)
+
+    def fit(self, mob, w=SAFE_W, h=5.65):
+        if mob.width > w:
+            mob.scale_to_fit_width(w)
+        if mob.height > h:
