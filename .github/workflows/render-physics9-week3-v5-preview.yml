@@ -21,17 +21,17 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          echo 'ee3014f2467ad1dd8c9573363a59f43d5e10b552965c9e8136863f1fd9d34f24  render_physics9_week3_v5/source_v5.b64' | sha256sum -c -
+          echo 'c3fa9874bed45626f1f0cc74e302b0a2336b187bc646020943c031217cc3b97e  render_physics9_week3_v5/source_v5.b64' | sha256sum -c -
           echo '2d205ad18561f17342bda4ac83775c3b847ce526a532b1ab1a5791e9ac6a6f16  render_physics9_week3_v5/style_exact.b64' | sha256sum -c -
           echo 'f2ff78c354aa62a2ec523c306174f507b39880baec343bf855bf9cc47af7ec95  render_physics9_week3_v5/checker_exact.b64' | sha256sum -c -
           base64 -d render_physics9_week3_v5/source_v5.b64 | gzip -d > physics9_week3_acceleration_v5.py
           base64 -d render_physics9_week3_v5/style_exact.b64 | gzip -d > library/jp_classroom_style.py
           base64 -d render_physics9_week3_v5/checker_exact.b64 | gzip -d > tools/check_manim_style.py
           touch library/__init__.py
-          echo 'a49f737f560e766aebca93de22fc52e7d9f5e53b8c026f0b382bfa96560ab091  physics9_week3_acceleration_v5.py' | sha256sum -c -
+          echo '90afebdf4fcd4a45168895eb2fbfdd5cb029ff58aa8f812bd812bf12f83ab100  physics9_week3_acceleration_v5.py' | sha256sum -c -
           echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
           echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
-          cp physics9_week3_acceleration_v5.py delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V5_SCALEFIX.py
+          cp physics9_week3_acceleration_v5.py delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V5_1_SCALEFIX.py
 
       - name: Static validation
         shell: bash
@@ -85,28 +85,23 @@ jobs:
           mkdir -p delivery/qa_theory delivery/qa_problems delivery/qa_targets
           python - <<'PY'
           import subprocess, os, glob
-          from PIL import Image, ImageOps, ImageDraw
+          from PIL import Image
           def duration(v):
               return float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v], text=True))
           def extract(v, out, n, f0=0.0, f1=1.0, prefix='frame'):
-              d=duration(v)
-              os.makedirs(out, exist_ok=True)
+              d=duration(v); os.makedirs(out, exist_ok=True)
               for i in range(n):
                   t=d*(f0+(f1-f0)*(i+.5)/n)
                   subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'{out}/{prefix}_{i+1:03d}.png'],check=True)
           def sheet(pattern, out, cols=10, thumb_w=300):
               paths=sorted(glob.glob(pattern)); ims=[]
               for p in paths:
-                  im=Image.open(p).convert('RGB')
-                  h=round(im.height*thumb_w/im.width)
-                  ims.append(im.resize((thumb_w,h)))
-              rows=(len(ims)+cols-1)//cols; h=max(i.height for i in ims)
-              canvas=Image.new('RGB',(cols*thumb_w,rows*h),'white')
+                  im=Image.open(p).convert('RGB'); h=round(im.height*thumb_w/im.width); ims.append(im.resize((thumb_w,h)))
+              rows=(len(ims)+cols-1)//cols; h=max(i.height for i in ims); canvas=Image.new('RGB',(cols*thumb_w,rows*h),'white')
               for k,im in enumerate(ims): canvas.paste(im,((k%cols)*thumb_w,(k//cols)*h))
               canvas.save(out)
           T='delivery/THEORY_PREVIEW.mp4'; P='delivery/PROBLEMS_PREVIEW.mp4'
-          extract(T,'delivery/qa_theory',100)
-          extract(P,'delivery/qa_problems',90)
+          extract(T,'delivery/qa_theory',100); extract(P,'delivery/qa_problems',90)
           extract(T,'delivery/qa_targets',48,.055,.19,'scene01')
           extract(T,'delivery/qa_targets',56,.20,.36,'scene03')
           extract(P,'delivery/qa_targets',64,.64,.83,'problem06')
@@ -121,10 +116,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sha256sum delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V5_SCALEFIX.py delivery/*PREVIEW.mp4 delivery/*PREVIEW_QA.png > delivery/SHA256SUMS_PREVIEW.txt
+          sha256sum delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V5_1_SCALEFIX.py delivery/*PREVIEW.mp4 delivery/*PREVIEW_QA.png > delivery/SHA256SUMS_PREVIEW.txt
           {
-            echo 'Physics 9 Week 3 V5 SCALEFIX PREVIEW QA'
-            echo 'Source SHA-256: a49f737f560e766aebca93de22fc52e7d9f5e53b8c026f0b382bfa96560ab091'
+            echo 'Physics 9 Week 3 V5.1 SCALEFIX PREVIEW QA'
+            echo 'Source SHA-256: 90afebdf4fcd4a45168895eb2fbfdd5cb029ff58aa8f812bd812bf12f83ab100'
             echo 'Renderer: manimcommunity/manim:v0.20.1'
             echo 'Protocol stage: literal -pql + decode + 358 temporal QA samples.'
           } > delivery/PREVIEW_REPORT.txt
@@ -132,7 +127,7 @@ jobs:
       - name: Upload preview artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Physics9-Week3-V5-SCALEFIX-PREVIEW-QA
+          name: Physics9-Week3-V5-1-SCALEFIX-PREVIEW-QA
           path: delivery/
           if-no-files-found: error
           retention-days: 7
