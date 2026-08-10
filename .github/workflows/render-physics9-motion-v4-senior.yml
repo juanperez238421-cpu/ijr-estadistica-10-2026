@@ -21,8 +21,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          echo '41771d508af004a7d49a9f754064c4f1034f7e581ff84e0b267ac44bdcca36b7  render_motion_v4/source_v4.b64' | sha256sum -c -
-          base64 -d render_motion_v4/source_v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
+          echo '4eabc71ec68ccb3322d684daff415feb68e915d1177a83eaa9c2d38e4ffe7214  render_motion_v4/source_v4.part01' | sha256sum -c -
+          echo 'c906988e3ff50af497e34cf7a963e08b78cca1446f4742b017035cb091079264  render_motion_v4/source_v4.part02' | sha256sum -c -
+          echo '82525f348e8c566ca6cec19317a8865b5409dff2d6b0e149f59fe052cfb67e5c  render_motion_v4/source_v4.part03' | sha256sum -c -
+          echo '557553be52e58b671fe676014aa72616d2e07c74355825590125f39d772211d3  render_motion_v4/source_v4.part04' | sha256sum -c -
+          echo 'dcceb8c144d47fb4ecfbf2c6b04b9aac77134e7efa0c0bb15e3586d95e34831e  render_motion_v4/source_v4.part05' | sha256sum -c -
+          cat render_motion_v4/source_v4.part01 render_motion_v4/source_v4.part02 render_motion_v4/source_v4.part03 render_motion_v4/source_v4.part04 render_motion_v4/source_v4.part05 > /tmp/v4.b64
+          echo 'b67b37ef8321731dbe54938d67b408fabc276b2ee78102a8b75c0953c9422df6  /tmp/v4.b64' | sha256sum -c -
+          base64 -d /tmp/v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
           echo '939a5dc5cfe931d23a79407cd9df7ba70047bbe1054b746882b3bc894d70b9c0  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
 
           base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
