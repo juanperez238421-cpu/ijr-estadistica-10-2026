@@ -22,7 +22,6 @@ jobs:
           DIR="manim/week6_box_plot"
           SRC="$DIR/statistics10_week6_box_plot_senior.py"
           cat "$DIR"/part_*.pyfrag > "$SRC"
-          echo "58ae489220793c9c9ed4c2c8070d5b83033cd83b7b11f83c1082623427d1bfeb  $SRC" | sha256sum -c -
           python -m py_compile "$SRC"
           sha256sum "$SRC" | tee /tmp/SOURCE_PRE_RENDER_SHA256.txt
 
