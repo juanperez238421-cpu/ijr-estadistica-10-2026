@@ -16,9 +16,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate exact lesson source
+      - name: Apply visual QA fix and validate exact lesson source
         run: |
           set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('manim/period1_week2_quartiles/statistics10_period1_week2_quartiles_positions.py')
+          s = p.read_text()
+          old = 'self.play(FadeOut(timer), FadeOut(task), run_time=RUN_FAST)'
+          new = 'self.play(FadeOut(timer), FadeOut(task), FadeOut(prompt), run_time=RUN_FAST)'
+          if old in s:
+              p.write_text(s.replace(old, new))
+          elif new not in s:
+              raise SystemExit('Expected mini-exercise transition not found')
+          PY
           python -m py_compile manim/period1_week2_quartiles/statistics10_period1_week2_quartiles_positions.py
           sha256sum manim/period1_week2_quartiles/statistics10_period1_week2_quartiles_positions.py
 
