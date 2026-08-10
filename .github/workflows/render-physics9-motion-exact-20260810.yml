@@ -1,0 +1,200 @@
+name: Render Physics 9 Motion EXACT PQH 20260810
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore exact user source and JP style
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p library tools delivery
+
+          echo "ca27c8eb75cae2a14cc8459db3eeff595aa69ba39650db8e621593da55ac2c15  render_motion_exact_20260810/source_exact.b64" | sha256sum -c -
+          echo "0b1fb11f14ac42d150e44231aece022b12e82109949a735744f72aac630a1d8d  render_motion_exact_20260810/style_exact.b64" | sha256sum -c -
+          echo "2b8ad2b10d3a2a1deb342ca87d60ba8ea8c1fd28c5ac2b54aa4ca33983e89fd0  render_motion_exact_20260810/checker_exact.b64" | sha256sum -c -
+
+          base64 -d render_motion_exact_20260810/source_exact.b64 | gzip -d > physics9_motion_exact_user.py
+          base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          touch library/__init__.py
+
+          echo "10f46117067bb10d729f1a4efd599501bdc6c80ed3013b97d1685a7fa7126a99  physics9_motion_exact_user.py" | sha256sum -c -
+          echo "3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py" | sha256sum -c -
+          echo "d2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py" | sha256sum -c -
+
+          cp physics9_motion_exact_user.py delivery/
+          cp library/jp_classroom_style.py delivery/
+          cp tools/check_manim_style.py delivery/
+
+      - name: Static source validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile physics9_motion_exact_user.py
+          python tools/check_manim_style.py physics9_motion_exact_user.py | tee delivery/STYLE_QA.txt
+          grep -q '^class Physics9MotionAchillesFull' physics9_motion_exact_user.py
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
+          grep -q 'config.pixel_width = 1920' library/jp_classroom_style.py
+          grep -q 'config.pixel_height = 1080' library/jp_classroom_style.py
+          grep -q 'config.frame_rate = 30' library/jp_classroom_style.py
+          grep -q 'config.background_color = WHITE' library/jp_classroom_style.py
+
+      - name: Prepare real ManimCE 0.20.1 environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run numerical lesson assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c 'python physics9_motion_exact_user.py' \
+            | tee delivery/MOTION_ASSERTIONS.txt
+          grep -q 'Motion lesson assertions passed.' delivery/MOTION_ASSERTIONS.txt
+
+      - name: Render complete literal pql preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -e LESSON_TIME_SCALE=0.10 \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql --fps 15 -r 854,480 \
+                physics9_motion_exact_user.py Physics9MotionAchillesFull \
+                --format=mp4 --disable_caching --media_dir media_preview
+              V=$(find media_preview -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
+              test -n "$V"
+              test -s "$V"
+              cp "$V" delivery/Physics9_Motion_Exact_User_pql.mp4
+            '
+          ffmpeg -v error -i delivery/Physics9_Motion_Exact_User_pql.mp4 -f null -
+
+      - name: Render exact final literal pqh
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -e LESSON_TIME_SCALE=1.00 \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh --fps 30 -r 1920,1080 \
+                physics9_motion_exact_user.py Physics9MotionAchillesFull \
+                --format=mp4 --disable_caching --media_dir media_final
+              V=$(find media_final -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
+              test -n "$V"
+              test -s "$V"
+              cp "$V" delivery/Physics9_Motion_Exact_User_FINAL_pqh.mp4
+            '
+
+      - name: Verify final video technically
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Physics9_Motion_Exact_User_FINAL_pqh.mp4
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames \
+            -show_entries format=duration,size \
+            -of default=noprint_wrappers=1 "$V" | tee delivery/FFPROBE.txt
+          grep -qx 'codec_name=h264' delivery/FFPROBE.txt
+          grep -qx 'width=1920' delivery/FFPROBE.txt
+          grep -qx 'height=1080' delivery/FFPROBE.txt
+          grep -qx 'r_frame_rate=30/1' delivery/FFPROBE.txt
+          grep -qx 'pix_fmt=yuv420p' delivery/FFPROBE.txt
+          ffmpeg -v error -i "$V" -f null -
+
+      - name: Create visual QA frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Physics9_Motion_Exact_User_FINAL_pqh.mp4
+          mkdir -p delivery/qa_frames
+          D=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$V")
+          python - "$D" <<'PY'
+          import subprocess, sys
+          v='delivery/Physics9_Motion_Exact_User_FINAL_pqh.mp4'
+          d=float(sys.argv[1])
+          fractions=[.02,.06,.10,.14,.18,.22,.26,.30,.34,.38,.42,.46,.50,.54,.58,.62,.66,.70,.74,.78,.82,.86,.90,.94,.98]
+          for i,f in enumerate(fractions,1):
+              t=max(0,min(d-.15,d*f))
+              subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_frames/frame_{i:02d}.png'],check=True)
+          PY
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' \
+            -vf 'scale=420:-1,tile=5x5:padding=8:margin=8:color=white' \
+            -frames:v 1 delivery/QA_CONTACT_SHEET.png
+
+      - name: Create render report and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          Lesson: Physics 9 — Motion Theory: Achilles and the Tortoise
+          Scene: Physics9MotionAchillesFull
+          Source: exact user attachment; no source edits
+          Source SHA-256: 10f46117067bb10d729f1a4efd599501bdc6c80ed3013b97d1685a7fa7126a99
+          Style: JP Classroom Manim Standard
+          ManimCE: 0.20.1 official Docker image
+          Preview: literal -pql, 854x480, 15 fps, LESSON_TIME_SCALE=0.10
+          Final: literal -pqh, 1920x1080, 30 fps, LESSON_TIME_SCALE=1.00
+          EOF
+          sha256sum \
+            delivery/Physics9_Motion_Exact_User_FINAL_pqh.mp4 \
+            delivery/Physics9_Motion_Exact_User_pql.mp4 \
+            delivery/physics9_motion_exact_user.py \
+            delivery/jp_classroom_style.py \
+            delivery/QA_CONTACT_SHEET.png \
+            > delivery/SHA256SUMS.txt
+          cat delivery/FFPROBE.txt delivery/SHA256SUMS.txt > delivery/TECHNICAL_VERIFICATION.txt
+
+      - name: Upload complete delivery artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Motion-Exact-User-FINAL-pqh
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
