@@ -22,9 +22,13 @@ jobs:
           set -euo pipefail
           mkdir -p library tools delivery
           cp render_physics9_week2/physics9_week2_velocity_time_galileo.py physics9_week2_velocity_time_galileo.py
-          base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
-          base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          echo '4a5c21279f5c7ae1b4daffa3928bf1eb0dbdde6873ae688161c87e9987663a74  render_physics9_week2/style_exact.b64' | sha256sum -c -
+          echo 'da1d43b8499b4613090d88689af8fadaa39a7280f65403e965aee8f96032a605  render_physics9_week2/checker_exact.b64' | sha256sum -c -
+          base64 -d render_physics9_week2/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d render_physics9_week2/checker_exact.b64 | gzip -d > tools/check_manim_style.py
           touch library/__init__.py
+          echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
+          echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
           sha256sum physics9_week2_velocity_time_galileo.py library/jp_classroom_style.py tools/check_manim_style.py | tee delivery/SOURCE_SHA256.txt
 
       - name: Static and style QA
@@ -75,7 +79,7 @@ jobs:
           set -euo pipefail
           mkdir -p delivery/qa_theory delivery/qa_problems
           python - <<'PY'
-          import subprocess, os
+          import subprocess
           specs=[('Physics9Week2VelocityTimeTheory',80,'delivery/qa_theory'),('Physics9Week2VelocityTimeProblems',64,'delivery/qa_problems')]
           for scene,n,out in specs:
               v=f'delivery/{scene}_PREVIEW_pql.mp4'
