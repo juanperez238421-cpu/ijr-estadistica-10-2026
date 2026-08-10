@@ -1,4 +1,4 @@
-name: Render Period 1 Week 3 Deciles Percentiles
+name: Render Period 1 Week 3 Deciles Percentiles V2
 
 on:
   pull_request:
@@ -16,12 +16,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore, validate and use visually corrected Week 3 source
+      - name: Restore and patch exact Week 3 V2 source
         run: |
           set -euo pipefail
           SRC_DIR="manim/period1_week3_deciles_percentiles"
+          PATCH_DIR="manim/period1_week3_deciles_percentiles_v2"
           cat "$SRC_DIR"/source_part_*.txt > "$SRC_DIR/statistics10_period1_week3_deciles_percentiles.py"
           echo "7aa9428807e1cd74e8d48a402fdc6c26d18d445e397e4e758febed17a5b90c7e  $SRC_DIR/statistics10_period1_week3_deciles_percentiles.py" | sha256sum -c -
+          cat "$PATCH_DIR"/patch_part_*.diff > /tmp/week3_v2.patch
+          patch -p1 < /tmp/week3_v2.patch
+          echo "be7f4771f7907afe701387ca8637ed730b4149cad4fe4b1c44aed4d5f67c2b3e  $SRC_DIR/statistics10_period1_week3_deciles_percentiles.py" | sha256sum -c -
           python -m py_compile "$SRC_DIR/statistics10_period1_week3_deciles_percentiles.py"
 
       - name: Pull fixed ManimCE image
@@ -69,48 +73,43 @@ jobs:
           mkdir -p delivery
           FINAL="$(find media/videos -type f -path '*1080p*' -name 'Statistics10Period1Week3DecilesPercentiles.mp4' | head -n 1)"
           test -n "$FINAL"
-          cp "$FINAL" delivery/Statistics10_Week3_Deciles_Percentiles_pqh.mp4
+          cp "$FINAL" delivery/Statistics10_Week3_Deciles_Percentiles_V2_pqh.mp4
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           ffprobe -v error -select_streams v:0 \
             -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
             -show_entries format=duration \
             -of default=noprint_wrappers=1 \
-            delivery/Statistics10_Week3_Deciles_Percentiles_pqh.mp4 | tee delivery/FFPROBE_PQH.txt
+            delivery/Statistics10_Week3_Deciles_Percentiles_V2_pqh.mp4 | tee delivery/FFPROBE_PQH.txt
           ffmpeg -y -loglevel error \
-            -i delivery/Statistics10_Week3_Deciles_Percentiles_pqh.mp4 \
+            -i delivery/Statistics10_Week3_Deciles_Percentiles_V2_pqh.mp4 \
             -f lavfi -i anullsrc=r=48000:cl=stereo \
             -map 0:v:0 -map 1:a:0 -shortest \
             -vf "fps=30,format=yuv420p" \
             -c:v libx264 -preset veryfast -crf 20 -profile:v main -level 4.0 \
             -c:a aac -b:a 96k -movflags +faststart \
-            delivery/Statistics10_Week3_Deciles_Percentiles_WIN.mp4
+            delivery/Statistics10_Week3_Deciles_Percentiles_V2_WIN.mp4
           ffprobe -v error -select_streams v:0 \
             -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
             -show_entries format=duration \
             -of default=noprint_wrappers=1 \
-            delivery/Statistics10_Week3_Deciles_Percentiles_WIN.mp4 | tee delivery/FFPROBE_WIN.txt
-          sha256sum delivery/Statistics10_Week3_Deciles_Percentiles_pqh.mp4 | tee delivery/SHA256_PQH.txt
-          sha256sum delivery/Statistics10_Week3_Deciles_Percentiles_WIN.mp4 | tee delivery/SHA256_WIN.txt
+            delivery/Statistics10_Week3_Deciles_Percentiles_V2_WIN.mp4 | tee delivery/FFPROBE_WIN.txt
+          sha256sum delivery/Statistics10_Week3_Deciles_Percentiles_V2_pqh.mp4 | tee delivery/SHA256_PQH.txt
+          sha256sum delivery/Statistics10_Week3_Deciles_Percentiles_V2_WIN.mp4 | tee delivery/SHA256_WIN.txt
           sha256sum manim/period1_week3_deciles_percentiles/statistics10_period1_week3_deciles_percentiles.py | tee delivery/SOURCE_SHA256.txt
-          printf '%s\n' \
-            'manim -pql statistics10_period1_week3_deciles_percentiles.py Statistics10Period1Week3DecilesPercentiles --format=mp4 --disable_caching' \
-            'manim -pqh statistics10_period1_week3_deciles_percentiles.py Statistics10Period1Week3DecilesPercentiles --format=mp4 --disable_caching' \
-            > delivery/RENDER_COMMANDS.txt
 
       - name: Upload render artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Statistics10-Week3-Deciles-Percentiles-pqh
+          name: Statistics10-Week3-Deciles-Percentiles-V2-pqh
           path: |
-            delivery/Statistics10_Week3_Deciles_Percentiles_pqh.mp4
-            delivery/Statistics10_Week3_Deciles_Percentiles_WIN.mp4
+            delivery/Statistics10_Week3_Deciles_Percentiles_V2_pqh.mp4
+            delivery/Statistics10_Week3_Deciles_Percentiles_V2_WIN.mp4
             delivery/FFPROBE_PQH.txt
             delivery/FFPROBE_WIN.txt
             delivery/SHA256_PQH.txt
             delivery/SHA256_WIN.txt
             delivery/SOURCE_SHA256.txt
-            delivery/RENDER_COMMANDS.txt
             manim/period1_week3_deciles_percentiles/statistics10_period1_week3_deciles_percentiles.py
           if-no-files-found: error
           retention-days: 7
