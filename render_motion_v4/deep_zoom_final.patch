@@ -1,0 +1,32 @@
+--- physics9_motion_achilles_v4_senior.py
++++ physics9_motion_achilles_v4_senior.py
+@@ -450,7 +450,7 @@
+         self.wait(PAUSE_EXPLAIN)
+ 
+         step4 = self.note_panel(
+-            "ZOOM ×1000 · STILL AHEAD",
++            "DEEP ZOOM · STILL AHEAD",
+             [
+                 "Achilles arrives at x = 11.11 m.",
+                 "Tortoise is already at x = 11.111 m.",
+@@ -465,16 +465,16 @@
+         self.play(
+             FadeOut(gap3), FadeOut(gap3_lab),
+             Transform(track_0, track_3),
+-            achilles.animate.move_to(map_3(11.1) + r_off),
+-            tortoise.animate.move_to(map_3(11.11) + t_off),
++            achilles.animate.scale(0.72).move_to(map_3(11.1) + r_off * 0.72),
++            tortoise.animate.scale(0.72).move_to(map_3(11.11) + t_off * 0.72),
+             ReplacementTransform(step3, step4),
+             run_time=RUN_SLOW * 1.4,
+         )
+         self.wait(PAUSE_READ)
+         self.play(
+             time_tracker.animate.set_value(1.111),
+-            achilles.animate.move_to(map_3(11.11) + r_off),
+-            tortoise.animate.move_to(map_3(11.111) + t_off),
++            achilles.animate.move_to(map_3(11.11) + r_off * 0.72),
++            tortoise.animate.move_to(map_3(11.111) + t_off * 0.72),
+             rate_func=linear,
+             run_time=RUN_SLOW * 1.55,
+         )
