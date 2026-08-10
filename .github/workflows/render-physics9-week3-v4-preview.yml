@@ -3,6 +3,8 @@ name: Physics 9 Week 3 Acceleration V4 PREVIEW QA
 on:
   push:
     branches: [render/physics9-week3-acceleration-v4-final-fix-2026-08-10]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
