@@ -1,0 +1,10 @@
+            "Numerical meaning: about 20% of times are at/below 24.5 min; about 80% are above.",
+            performance_note="Performance meaning: lower time is faster, so 24.5 min is faster than about 80% of observed times.",
+            final_note="P20 = 24.5 min: 20% of times are at/below it; 80% are above, so 24.5 min is relatively fast.",
+        )
+        self.compare_ranks()
+        self.claim_clinic()
+        self.reverse_reading()
+        self.complement_reasoning()
+        self.final_challenge()
+        self.final_summary()

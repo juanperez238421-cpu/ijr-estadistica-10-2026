@@ -1,0 +1,65 @@
+    def compare_ranks(self):
+        self.set_header("PROBLEM 4", "COMPARE PERCENTILE RANKS · same assessment")
+        prompt = self.note("Student A: 78th percentile     Student B: 62nd percentile", 11.8, 1.00, 27, fill=WHITE).move_to([0, 2.30, 0])
+        self.play(FadeIn(prompt), run_time=RUN)
+        work = self.note("YOUR TURN: who has the higher relative standing? What can you conclude — and what can you NOT conclude?", 12.2, 0.86, 23).move_to([0, 1.05, 0])
+        self.play(FadeIn(work), run_time=RUN); self.wait(PAUSE_WORK); self.play(FadeOut(work), run_time=RUN_FAST)
+
+        left = self.panel(5.65, 1.72, fill=WHITE, stroke=DARK, sw=1.5)
+        right = self.panel(5.65, 1.72, fill=WHITE, stroke=DARK, sw=1.5)
+        lg = VGroup(self.t("Student A", 27, BOLD), self.t("Percentile rank = 78", 29, BOLD), self.t("78th percentile", 22, NORMAL, color=MID)).arrange(DOWN, buff=0.10); self.fit(lg, w=5.1, h=1.25); lg.move_to(left)
+        rg = VGroup(self.t("Student B", 27, BOLD), self.t("Percentile rank = 62", 29, BOLD), self.t("62nd percentile", 22, NORMAL, color=MID)).arrange(DOWN, buff=0.10); self.fit(rg, w=5.1, h=1.25); rg.move_to(right)
+        cards = VGroup(VGroup(left, lg), VGroup(right, rg)).arrange(RIGHT, buff=0.55).move_to([0, 0.30, 0])
+        self.play(FadeIn(cards), run_time=RUN_SLOW)
+
+        correct = self.note("Student A has the higher RELATIVE POSITION: 78 > 62.", 11.6, 0.82, 24).move_to([0, -1.15, 0])
+        self.play(FadeIn(correct), run_time=RUN)
+        limit = self.note("Because this is the SAME assessment, A also outranks B in this comparison group. Percentile rank still does not mean 78% of a raw score.", 12.4, 0.86, 21.5).move_to([0, -2.20, 0])
+        self.play(FadeIn(limit), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def claim_clinic(self):
+        st = self.P5
+        self.set_header("PROBLEM 5 · CLAIM CLINIC", "For P65 = 74 points, classify each statement")
+        eq = self.formula_panel(r"P_{65}=74", 4.8, 1.02, 48).move_to([0, 2.42, 0])
+        self.play(FadeIn(eq), run_time=RUN)
+        work = self.note("Pause: mark each statement TRUE or FALSE before the explanations appear.", 11.4, 0.78, 23).move_to([0, 1.48, 0])
+        self.play(FadeIn(work), run_time=RUN); self.wait(PAUSE_WORK); self.play(FadeOut(work), run_time=RUN_FAST)
+        claims = (
+            self.claim_card("About 65% are at or below 74.", "TRUE", "This is the direct percentile interpretation.", 0.83),
+            self.claim_card("About 35% are above 74.", "TRUE", "Complement: 100 − 65 = 35.", -0.28),
+            self.claim_card("74 is 65% of the maximum score.", "FALSE", "Percentile rank is not a percent of the raw value.", -1.39),
+            self.claim_card("Everyone below the cutoff has the same score.", "FALSE", "Relative position does not imply equal observations.", -2.50),
+        )
+        for c in claims:
+            self.play(FadeIn(c, shift=UP * 0.05), run_time=RUN)
+            self.wait(0.45)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def reverse_reading(self):
+        self.set_header("PROBLEM 6 · REVERSE READING", "Translate contextual language back into percentile notation")
+        sentence = self.note("About 72% of students scored at or below 91 points on the final test.", 12.2, 1.00, 26, fill=WHITE).move_to([0, 2.22, 0])
+        self.play(FadeIn(sentence), run_time=RUN)
+        work = self.note("YOUR TURN: identify k, identify the value, then write Pk = x.", 10.8, 0.80, 23.5).move_to([0, 1.08, 0])
+        self.play(FadeIn(work), run_time=RUN); self.wait(PAUSE_WORK); self.play(FadeOut(work), run_time=RUN_FAST)
+        k = self.note("k = 72", 3.4, 0.76, 24, fill=WHITE).move_to([-2.25, 0.78, 0])
+        v = self.note("value = 91 points", 4.6, 0.76, 24, fill=WHITE).move_to([2.25, 0.78, 0])
+        self.play(FadeIn(k), FadeIn(v), run_time=RUN)
+        eq = self.formula_panel(r"P_{72}=91", 5.1, 1.10, 50).move_to([0, -0.55, 0])
+        self.play(FadeIn(eq), run_time=RUN_SLOW)
+        comp = self.note("Complement check: about 28% are above 91 because 100 − 72 = 28.", 11.1, 0.82, 23.5).move_to([0, -1.78, 0])
+        self.play(FadeIn(comp), run_time=RUN)
+        final = self.note("Communication: P72 = 91 points describes a cutoff/value; 72 is the percentile rank.", 11.7, 0.82, 22.5).move_to([0, -2.65, 0])
+        self.play(FadeIn(final), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def complement_reasoning(self):
+        self.set_header("PROBLEM 7 · COMPLEMENT REASONING", "Recover the percentile rank from the upper-side percentage")
+        sentence = self.note("About 28% of observations are ABOVE 56 units.", 10.6, 1.00, 28, fill=WHITE).move_to([0, 2.25, 0])
+        self.play(FadeIn(sentence), run_time=RUN)
+        work = self.note("YOUR TURN: what percentage is at/below 56? Then write the percentile notation.", 11.5, 0.82, 23.5).move_to([0, 1.10, 0])
+        self.play(FadeIn(work), run_time=RUN); self.wait(PAUSE_WORK); self.play(FadeOut(work), run_time=RUN_FAST)
+        calc = self.formula_panel(r"k=100-28=72", 6.1, 1.05, 43).move_to([0, 0.55, 0])
