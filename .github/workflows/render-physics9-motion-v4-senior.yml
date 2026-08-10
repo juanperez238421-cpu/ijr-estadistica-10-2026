@@ -16,20 +16,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct V4 source exactly
+      - name: Reconstruct exact V4 source and JP dependencies
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          cat render_motion_exact_20260810/source_exact.part0{1,2,3,4,5} > /tmp/v3.b64
-          base64 -d /tmp/v3.b64 | gzip -d > physics9_motion_exact_user_v3.py
-          echo 'addb0a92bbf8410cbe9dc7930bfa662250e760f3b578e11c4d78c7ba25af8ad3  physics9_motion_exact_user_v3.py' | sha256sum -c -
-
-          echo 'f5ed326b2276388d388d7567c69f920dac973d622d71a5767351fb8b0afd2a15  render_motion_v4/v3_to_v4.patch.b64' | sha256sum -c -
-          base64 -d render_motion_v4/v3_to_v4.patch.b64 | gzip -d > /tmp/v3_to_v4.patch
-          echo '2f0c4e7778b184cc46d208ba53019cd81506f2878bb6382dd98973a0b6b0cdec  /tmp/v3_to_v4.patch' | sha256sum -c -
-          patch -p0 --forward < /tmp/v3_to_v4.patch
-          mv physics9_motion_exact_user_v3.py physics9_motion_achilles_v4_senior.py
+          echo '41771d508af004a7d49a9f754064c4f1034f7e581ff84e0b267ac44bdcca36b7  render_motion_v4/source_v4.b64' | sha256sum -c -
+          base64 -d render_motion_v4/source_v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
           echo '939a5dc5cfe931d23a79407cd9df7ba70047bbe1054b746882b3bc894d70b9c0  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
 
           base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
