@@ -30,8 +30,10 @@ jobs:
           base64 -d render_motion_exact_20260810/source_exact.b64 | gzip -d > physics9_motion_exact_user.py
           base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
           base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          cp render_motion_exact_20260810/render_driver.py render_driver.py
           touch library/__init__.py
 
+          # Hard guarantee: the lesson source is byte-for-byte identical to the user attachment.
           echo "10f46117067bb10d729f1a4efd599501bdc6c80ed3013b97d1685a7fa7126a99  physics9_motion_exact_user.py" | sha256sum -c -
           echo "3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py" | sha256sum -c -
           echo "d2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py" | sha256sum -c -
@@ -39,12 +41,13 @@ jobs:
           cp physics9_motion_exact_user.py delivery/
           cp library/jp_classroom_style.py delivery/
           cp tools/check_manim_style.py delivery/
+          cp render_driver.py delivery/
 
       - name: Static source validation
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile physics9_motion_exact_user.py
+          python -m py_compile physics9_motion_exact_user.py render_driver.py
           python tools/check_manim_style.py physics9_motion_exact_user.py | tee delivery/STYLE_QA.txt
           grep -q '^class Physics9MotionAchillesFull' physics9_motion_exact_user.py
           grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
@@ -76,7 +79,7 @@ jobs:
             | tee delivery/MOTION_ASSERTIONS.txt
           grep -q 'Motion lesson assertions passed.' delivery/MOTION_ASSERTIONS.txt
 
-      - name: Render complete literal pql preview
+      - name: Render complete literal pql preview through compatibility driver
         shell: bash
         run: |
           set -euo pipefail
@@ -95,7 +98,7 @@ jobs:
               chmod +x /tmp/manim-bin/xdg-open
               export PATH="/tmp/manim-bin:$PATH"
               manim -pql --fps 15 -r 854,480 \
-                physics9_motion_exact_user.py Physics9MotionAchillesFull \
+                render_driver.py Physics9MotionAchillesFull \
                 --format=mp4 --disable_caching --media_dir media_preview
               V=$(find media_preview -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
               test -n "$V"
@@ -104,7 +107,7 @@ jobs:
             '
           ffmpeg -v error -i delivery/Physics9_Motion_Exact_User_pql.mp4 -f null -
 
-      - name: Render exact final literal pqh
+      - name: Render exact final literal pqh through compatibility driver
         shell: bash
         run: |
           set -euo pipefail
@@ -123,7 +126,7 @@ jobs:
               chmod +x /tmp/manim-bin/xdg-open
               export PATH="/tmp/manim-bin:$PATH"
               manim -pqh --fps 30 -r 1920,1080 \
-                physics9_motion_exact_user.py Physics9MotionAchillesFull \
+                render_driver.py Physics9MotionAchillesFull \
                 --format=mp4 --disable_caching --media_dir media_final
               V=$(find media_final -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
               test -n "$V"
@@ -176,6 +179,7 @@ jobs:
           Scene: Physics9MotionAchillesFull
           Source: exact user attachment; no source edits
           Source SHA-256: 10f46117067bb10d729f1a4efd599501bdc6c80ed3013b97d1685a7fa7126a99
+          Runtime compatibility: external render_driver.py only unwraps structured JP helper `.group` values passed to source-module VGroup; the lesson source remains byte-identical.
           Style: JP Classroom Manim Standard
           ManimCE: 0.20.1 official Docker image
           Preview: literal -pql, 854x480, 15 fps, LESSON_TIME_SCALE=0.10
@@ -186,6 +190,7 @@ jobs:
             delivery/Physics9_Motion_Exact_User_pql.mp4 \
             delivery/physics9_motion_exact_user.py \
             delivery/jp_classroom_style.py \
+            delivery/render_driver.py \
             delivery/QA_CONTACT_SHEET.png \
             > delivery/SHA256SUMS.txt
           cat delivery/FFPROBE.txt delivery/SHA256SUMS.txt > delivery/TECHNICAL_VERIFICATION.txt
