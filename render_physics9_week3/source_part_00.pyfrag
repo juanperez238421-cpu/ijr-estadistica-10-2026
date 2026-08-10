@@ -1,0 +1,330 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Physics 9 — Week 3: acceleration + Galileo quantitative bridge.
+
+Two independent ManimCE scenes using the JP Classroom visual protocol:
+    1) Physics9Week3AccelerationTheory
+    2) Physics9Week3AccelerationProblems
+
+Pedagogical sequence
+--------------------
+- Recover Week 2: velocity can change and slope on v–t carries information.
+- Define acceleration as change in velocity per unit time.
+- Interpret units m/s^2 as "meters per second of velocity change, each second".
+- Separate acceleration sign from speeding-up/slowing-down language.
+- Connect v–t slope to acceleration.
+- Build v = v0 + at for constant acceleration.
+- Return to the schematic Galileo ramp and quantify its constant acceleration.
+- Solve progressive problems and prepare a velocity-card laboratory.
+
+Target: ManimCE 0.20.x, horizontal Full HD, white JP Classroom style.
+"""
+
+from __future__ import annotations
+
+import math
+import numpy as np
+from manim import *
+
+from library.jp_classroom_style import (
+    JPMathClassroomScene,
+    BLACK_TEXT,
+    BLACK_LINE,
+    DARK_GRAY,
+    MID_GRAY,
+    LIGHT_GRAY,
+    VERY_LIGHT_GRAY,
+    PAPER_GRAY,
+    WHITE_FILL,
+    SAFE_WIDTH,
+    RUN_QUICK,
+    RUN_NORMAL,
+    RUN_SLOW,
+    PAUSE_SHORT,
+    PAUSE_READ,
+    PAUSE_EXPLAIN,
+    PAUSE_WORK,
+    PAUSE_SUMMARY,
+    PAUSE_FINAL,
+    assert_close,
+)
+
+
+# =============================================================================
+# VALIDATED LESSON DATA
+# =============================================================================
+GALILEO_T = np.array([0, 1, 2, 3, 4], dtype=float)
+# Same schematic model used in Week 2: x = 0.25 t^2, so a = 0.50 m/s^2.
+GALILEO_X = 0.25 * GALILEO_T**2
+GALILEO_DX = np.diff(GALILEO_X)
+GALILEO_INTERVAL_MID_T = np.array([0.5, 1.5, 2.5, 3.5])
+GALILEO_INTERVAL_V = GALILEO_DX / 1.0
+GALILEO_A = np.diff(GALILEO_INTERVAL_V) / 1.0
+
+THEORY_V0 = 2.0
+THEORY_A = 2.0
+THEORY_DT = 4.0
+THEORY_VF = THEORY_V0 + THEORY_A * THEORY_DT
+
+P1_V0, P1_VF, P1_DT = 2.0, 14.0, 4.0
+P2_V0, P2_VF, P2_DT = 18.0, 6.0, 3.0
+P3_V0, P3_VF, P3_DT = -2.0, -10.0, 4.0
+P4_V0, P4_VF, P4_DT = -12.0, -4.0, 4.0
+
+CARDS_T = np.array([0, 1, 2, 3], dtype=float)
+CARDS_V = np.array([2, 5, 8, 11], dtype=float)
+CARDS_A = np.diff(CARDS_V) / np.diff(CARDS_T)
+
+PIECEWISE_VT = [
+    (0.0, 3.0, 2.0, 8.0),   # +2 m/s^2
+    (3.0, 5.0, 8.0, 8.0),   # 0 m/s^2
+    (5.0, 9.0, 8.0, 0.0),   # -2 m/s^2
+]
+PIECEWISE_A = [(v1 - v0) / (t1 - t0) for t0, t1, v0, v1 in PIECEWISE_VT]
+
+
+def acceleration(v0: float, vf: float, dt: float) -> float:
+    return (vf - v0) / dt
+
+
+def validate_week3_data() -> None:
+    assert np.allclose(GALILEO_DX, [0.25, 0.75, 1.25, 1.75])
+    assert np.allclose(GALILEO_INTERVAL_V, [0.25, 0.75, 1.25, 1.75])
+    assert np.allclose(GALILEO_A, [0.5, 0.5, 0.5])
+    assert_close(THEORY_VF, 10.0, label="theory vf")
+    assert_close(acceleration(P1_V0, P1_VF, P1_DT), 3.0, label="problem 1 acceleration")
+    assert_close(acceleration(P2_V0, P2_VF, P2_DT), -4.0, label="problem 2 acceleration")
+    assert_close(acceleration(P3_V0, P3_VF, P3_DT), -2.0, label="problem 3 acceleration")
+    assert_close(acceleration(P4_V0, P4_VF, P4_DT), 2.0, label="problem 4 acceleration")
+    assert np.allclose(CARDS_A, [3.0, 3.0, 3.0])
+    assert np.allclose(PIECEWISE_A, [2.0, 0.0, -2.0])
+
+
+# =============================================================================
+# COMMON VISUAL BASE
+# =============================================================================
+class Physics9Week3Base(JPMathClassroomScene):
+    """Shared helpers for Week 3 cinematic theory and worked problems."""
+
+    def validate_lesson_data(self) -> None:
+        validate_week3_data()
+
+    def set_header(self, number: int, title: str, subtitle: str) -> None:
+        """Week 2 / V5.3 header scale and fade transition discipline."""
+        number_box = RoundedRectangle(
+            width=0.78,
+            height=0.56,
+            corner_radius=0.10,
+            stroke_color=BLACK_LINE,
+            stroke_width=2.0,
+            fill_color=WHITE_FILL,
+            fill_opacity=1.0,
+        )
+        number_text = self.text(f"{number:02d}", 26, BOLD).move_to(number_box)
+        title_text = self.text(title, 39, BOLD)
+        self.fit(title_text, SAFE_WIDTH - number_box.width - 0.40, 0.64)
+        title_row = VGroup(VGroup(number_box, number_text), title_text).arrange(RIGHT, buff=0.28)
+        title_row.to_edge(UP, buff=0.13).to_edge(LEFT, buff=0.48)
+
+        rule = Line(LEFT * 7.48, RIGHT * 7.48, color=LIGHT_GRAY, stroke_width=2)
+        rule.next_to(title_row, DOWN, buff=0.07)
+
+        words = subtitle.split()
+        if len(subtitle) > 92:
+            midpoint = len(words) // 2
+            best = min(
+                range(max(1, midpoint - 5), min(len(words), midpoint + 6)),
+                key=lambda i: abs(len(" ".join(words[:i])) - len(" ".join(words[i:]))),
+            )
+            subtitle_text = VGroup(
+                self.text(" ".join(words[:best]), 26),
+                self.text(" ".join(words[best:]), 26),
+            ).arrange(DOWN, aligned_edge=LEFT, buff=0.05)
+        else:
+            subtitle_text = self.text(subtitle, 26)
+        self.fit(subtitle_text, 14.10, 0.92)
+        subtitle_text.next_to(rule, DOWN, buff=0.08).align_to(title_row, LEFT)
+
+        new_header = VGroup(title_row, rule)
+        if self.header_group is None:
+            self.header_group = new_header
+            self.subtitle_group = subtitle_text
+            self.add(new_header, subtitle_text)
+        else:
+            old_header = self.header_group
+            old_subtitle = self.subtitle_group
+            self.play(FadeOut(old_header), FadeOut(old_subtitle), run_time=RUN_QUICK)
+            self.remove(old_header, old_subtitle)
+            self.header_group = new_header
+            self.subtitle_group = subtitle_text
+            self.play(FadeIn(new_header), FadeIn(subtitle_text), run_time=RUN_QUICK)
+
+    def motion_object(self, scale_factor: float = 1.0) -> VGroup:
+        body = RoundedRectangle(
+            width=0.82,
+            height=0.34,
+            corner_radius=0.07,
+            stroke_color=BLACK_LINE,
+            stroke_width=2.2,
+            fill_color=VERY_LIGHT_GRAY,
+            fill_opacity=1,
+        )
+        roof = Polygon(
+            LEFT * 0.25 + UP * 0.17,
+            LEFT * 0.08 + UP * 0.42,
+            RIGHT * 0.25 + UP * 0.42,
+            RIGHT * 0.36 + UP * 0.17,
+            stroke_color=BLACK_LINE,
+            stroke_width=2.0,
+            fill_color=WHITE_FILL,
+            fill_opacity=1,
+        )
+        w1 = Circle(radius=0.09, color=BLACK_LINE, stroke_width=2, fill_color=WHITE, fill_opacity=1).move_to(LEFT * 0.25 + DOWN * 0.22)
+        w2 = w1.copy().move_to(RIGHT * 0.25 + DOWN * 0.22)
+        return VGroup(body, roof, w1, w2).scale(scale_factor)
+
+    def vt_axes(self, x_max=8, y_min=-4, y_max=12, width=6.5, height=3.9) -> tuple[VGroup, Axes]:
+        y_step = 2 if (y_max - y_min) <= 16 else 4
+        axes = Axes(
+            x_range=[0, x_max, 1],
+            y_range=[y_min, y_max, y_step],
+            x_length=width,
+            y_length=height,
+            axis_config={"color": BLACK_LINE, "stroke_width": 2.0, "include_tip": True},
+            x_axis_config={"numbers_to_include": list(range(0, x_max + 1, 2)), "font_size": 22},
+            y_axis_config={"numbers_to_include": list(range(y_min, y_max + 1, y_step)), "font_size": 22},
+        )
+        xl = self.math(r"t\,(s)", 28).next_to(axes.x_axis.get_end(), DOWN, buff=0.08)
+        yl = self.math(r"v\,(m/s)", 28).next_to(axes.y_axis.get_end(), LEFT, buff=0.08)
+        return VGroup(axes, xl, yl), axes
+
+    def at_axes(self, x_max=8, y_min=-4, y_max=4, width=6.5, height=3.7) -> tuple[VGroup, Axes]:
+        axes = Axes(
+            x_range=[0, x_max, 1],
+            y_range=[y_min, y_max, 1],
+            x_length=width,
+            y_length=height,
+            axis_config={"color": BLACK_LINE, "stroke_width": 2.0, "include_tip": True},
+            x_axis_config={"numbers_to_include": list(range(0, x_max + 1, 2)), "font_size": 22},
+            y_axis_config={"numbers_to_include": list(range(y_min, y_max + 1, 2)), "font_size": 22},
+        )
+        xl = self.math(r"t\,(s)", 28).next_to(axes.x_axis.get_end(), DOWN, buff=0.08)
+        yl = self.math(r"a\,(m/s^2)", 27).next_to(axes.y_axis.get_end(), LEFT, buff=0.08)
+        return VGroup(axes, xl, yl), axes
+
+    def number_track(self, x_min=-14, x_max=16, step=2, length=7.2) -> tuple[VGroup, NumberLine]:
+        line = NumberLine(
+            x_range=[x_min, x_max, step],
+            length=length,
+            include_numbers=True,
+            font_size=24,
+            color=BLACK_LINE,
+            stroke_width=2.2,
+            decimal_number_config={"color": BLACK_TEXT, "num_decimal_places": 0},
+        )
+        label = self.text("velocity v (m/s)", 25, MEDIUM).next_to(line, DOWN, buff=0.45).align_to(line, RIGHT)
+        return VGroup(line, label), line
+
+    def velocity_arrow(self, start: np.ndarray, value: float, scale=0.18, label: str | None = None) -> VGroup:
+        direction = RIGHT if value >= 0 else LEFT
+        length = max(0.35, abs(value) * scale)
+        arrow = Arrow(
+            start,
+            start + direction * length,
+            buff=0,
+            color=BLACK_LINE,
+            stroke_width=4.0,
+            max_tip_length_to_length_ratio=0.18,
+        )
+        text = self.math(label if label is not None else fr"v={value:g}\,\mathrm{{m/s}}", 27)
+        text.next_to(arrow, UP, buff=0.08)
+        return VGroup(arrow, text)
+
+    def acceleration_arrow(self, start: np.ndarray, value: float, scale=0.22, label: str | None = None) -> VGroup:
+        direction = RIGHT if value >= 0 else LEFT
+        length = max(0.40, abs(value) * scale)
+        arrow = Arrow(
+            start,
+            start + direction * length,
+            buff=0,
+            color=DARK_GRAY,
+            stroke_width=3.4,
+            max_tip_length_to_length_ratio=0.20,
+        )
+        text = self.math(label if label is not None else fr"a={value:g}\,\mathrm{{m/s^2}}", 25)
+        text.next_to(arrow, DOWN, buff=0.08)
+        return VGroup(arrow, text)
+
+    def slope_triangle(self, axes: Axes, t0: float, t1: float, v0: float, v1: float) -> VGroup:
+        tri = Polygon(
+            axes.c2p(t0, v0),
+            axes.c2p(t1, v0),
+            axes.c2p(t1, v1),
+            color=MID_GRAY,
+            stroke_width=2.2,
+            fill_opacity=0,
+        )
+        dt = self.math(fr"\Delta t={t1-t0:g}\,s", 25).next_to(
+            Line(axes.c2p(t0, v0), axes.c2p(t1, v0)), DOWN, buff=0.08
+        )
+        dv = self.math(fr"\Delta v={v1-v0:+g}\,m/s", 25).next_to(
+            Line(axes.c2p(t1, v0), axes.c2p(t1, v1)), RIGHT, buff=0.08
+        )
+        return VGroup(tri, dt, dv)
+
+    def state_card(self, title: str, v: float, a: float, conclusion: str, width=3.05, height=2.25) -> VGroup:
+        box = RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.12,
+            stroke_color=LIGHT_GRAY,
+            stroke_width=1.8,
+            fill_color=WHITE,
+            fill_opacity=1,
+        )
+        title_t = self.text(title, 25, BOLD)
+        row = VGroup(self.math(fr"v={v:+g}", 29), self.math(fr"a={a:+g}", 29)).arrange(RIGHT, buff=0.30)
+        conclusion_t = self.text(conclusion, 24, BOLD)
+        group = VGroup(title_t, row, conclusion_t).arrange(DOWN, buff=0.20)
+        self.fit(group, width - 0.34, height - 0.30)
+        group.move_to(box)
+        return VGroup(box, group)
+
+    def velocity_card(self, t: float, v: float, width=2.55, height=1.65) -> VGroup:
+        box = RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.10,
+            stroke_color=BLACK_LINE,
+            stroke_width=1.8,
+            fill_color=WHITE,
+            fill_opacity=1,
+        )
+        ttxt = self.math(fr"t={t:g}\,s", 25)
+        vtxt = self.math(fr"v={v:g}\,m/s", 30)
+        grp = VGroup(ttxt, vtxt).arrange(DOWN, buff=0.16).move_to(box)
+        return VGroup(box, grp)
+
+
+# =============================================================================
+# THEORY VIDEO
+# =============================================================================
+class Physics9Week3AccelerationTheory(Physics9Week3Base):
+    """Week 3 theory: acceleration as velocity change and v–t slope."""
+
+    def construct(self) -> None:
+        self.scene_00_opening()
+        self.scene_01_week2_bridge()
+        self.scene_02_define_acceleration()
+        self.scene_03_units_meaning()
+        self.scene_04_sign_logic()
+        self.scene_05_vt_slope()
+        self.scene_06_constant_acceleration_model()
+        self.scene_07_galileo_quantified()
+        self.scene_08_motion_cases()
+        self.scene_09_summary()
+
+    def scene_00_opening(self) -> None:
+        self.standard_opening(
+            "GRADE 9 · PHYSICS · WEEK 3",
+            "ACCELERATION",
