@@ -1,0 +1,162 @@
+name: Render Physics 9 Motion V5.2 FRAME AUDITED FINAL PQH
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact V5.2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p library tools delivery
+          cat render_motion_v4/source_v4.part0{1,2,3,4,5} > /tmp/v4.b64
+          echo 'cee2bab40b7114aa986d91505334183b102ffee703a1dce171e945f72800b586  /tmp/v4.b64' | sha256sum -c -
+          base64 -d /tmp/v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
+          echo 'fa062f56872a807dc2add7e46183290651910945134981a4dad465808810e2a9  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          patch -p0 < render_motion_v4/deep_zoom_final.patch
+          echo 'c93ee486ad0471d3fcaf278b3b00e49b17aef86cabf3ac1839383d2cc8fd19ef  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          base64 -d render_motion_v5/v4_to_v5_frame_audit.patch.gz.b64 | gzip -d > /tmp/v5.patch
+          echo '0fb250855e6ea243a73d85233d27d3ac58338b0af9d1871c9b441642c5cf521f  /tmp/v5.patch' | sha256sum -c -
+          patch -p0 < /tmp/v5.patch
+          echo '1bcbc6b7060f5ecc4a74de2112d88789bdd331c01f148b503f6e066c629658eb  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          mv physics9_motion_achilles_v4_senior.py physics9_motion_achilles_v5_2_frame_audited.py
+          patch -p0 < render_motion_v5/v5_to_v5_1_layout_fix.patch
+          echo '8353ea73568a89aa5e94954c7469ecca2e14f37de509c7b2d9c2292c206f8748  physics9_motion_achilles_v5_2_frame_audited.py' | sha256sum -c -
+          patch -p0 < render_motion_v5/v5_1_to_v5_2_final_layout.patch
+          echo 'd55d1d6f184b333a1cd2cdce7769fcb20b22d445fcd4ac0e93c902e32767c75f  physics9_motion_achilles_v5_2_frame_audited.py' | sha256sum -c -
+
+          base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          touch library/__init__.py
+          echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
+          echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
+          cp physics9_motion_achilles_v5_2_frame_audited.py delivery/
+
+      - name: Static source validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile physics9_motion_achilles_v5_2_frame_audited.py
+          python tools/check_manim_style.py physics9_motion_achilles_v5_2_frame_audited.py | tee delivery/STYLE_QA.txt
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
+
+      - name: Prepare real ManimCE 0.20.1 environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run numerical lesson assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python physics9_motion_achilles_v5_2_frame_audited.py' | tee delivery/MOTION_ASSERTIONS.txt
+          grep -q 'Motion lesson assertions passed.' delivery/MOTION_ASSERTIONS.txt
+
+      - name: Render complete literal pql preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+            set -euo pipefail
+            mkdir -p /tmp/manim-home /tmp/manim-bin
+            printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+            chmod +x /tmp/manim-bin/xdg-open
+            export PATH="/tmp/manim-bin:$PATH"
+            manim -pql --fps 15 -r 854,480 physics9_motion_achilles_v5_2_frame_audited.py Physics9MotionAchillesFull --format=mp4 --disable_caching --media_dir media_preview
+          '
+          V=$(find media_preview -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
+          test -n "$V" && test -s "$V"
+          cp "$V" delivery/Physics9_Motion_Achilles_V5_2_PREVIEW_pql.mp4
+          ffmpeg -v error -i delivery/Physics9_Motion_Achilles_V5_2_PREVIEW_pql.mp4 -f null -
+
+      - name: Render final literal pqh
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+            set -euo pipefail
+            mkdir -p /tmp/manim-home /tmp/manim-bin
+            printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+            chmod +x /tmp/manim-bin/xdg-open
+            export PATH="/tmp/manim-bin:$PATH"
+            manim -pqh --fps 30 -r 1920,1080 physics9_motion_achilles_v5_2_frame_audited.py Physics9MotionAchillesFull --format=mp4 --disable_caching --media_dir media_final
+          '
+          V=$(find media_final -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
+          test -n "$V" && test -s "$V"
+          cp "$V" delivery/Physics9_Motion_Achilles_V5_2_FRAME_AUDITED_FINAL_pqh.mp4
+
+      - name: Verify final video technically
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Physics9_Motion_Achilles_V5_2_FRAME_AUDITED_FINAL_pqh.mp4
+          ffprobe -v error -show_entries stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,avg_frame_rate,nb_frames:format=duration,size -of default=noprint_wrappers=1 "$V" | tee delivery/FFPROBE.txt
+          grep -q 'codec_name=h264' delivery/FFPROBE.txt
+          grep -q 'width=1920' delivery/FFPROBE.txt
+          grep -q 'height=1080' delivery/FFPROBE.txt
+          grep -q 'pix_fmt=yuv420p' delivery/FFPROBE.txt
+          ffmpeg -v error -i "$V" -f null -
+          echo 'PASS: full FFmpeg decode completed without errors.' | tee delivery/TECHNICAL_VERIFICATION.txt
+
+      - name: Create dense full-HD visual QA package
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Physics9_Motion_Achilles_V5_2_FRAME_AUDITED_FINAL_pqh.mp4
+          mkdir -p delivery/qa_global delivery/qa_scenes
+          D=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$V")
+          python - "$D" <<'PY'
+          import subprocess, sys, os
+          v='delivery/Physics9_Motion_Achilles_V5_2_FRAME_AUDITED_FINAL_pqh.mp4'
+          d=float(sys.argv[1])
+          # 90 uniformly distributed samples over the complete final video.
+          for i in range(90):
+              t=max(0,min(d-.05,d*(i+.5)/90))
+              subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_global/frame_{i+1:03d}.png'],check=True)
+          # Scene ranges derived from the complete preview timeline; eight samples per scene.
+          ranges=[(0,.035),(.035,.22),(.22,.38),(.38,.53),(.53,.60),(.60,.71),(.71,.79),(.79,.89),(.89,.995)]
+          for s,(a,b) in enumerate(ranges):
+              out=f'delivery/qa_scenes/s{s:02d}'; os.makedirs(out,exist_ok=True)
+              for j in range(8):
+                  f=a+(b-a)*(j+.5)/8
+                  t=max(0,min(d-.05,d*f))
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'{out}/frame_{j+1:02d}.png'],check=True)
+          PY
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_global/frame_*.png' -vf 'scale=320:-1,tile=9x10:padding=5:margin=5:color=white' -frames:v 1 delivery/GLOBAL_90_FRAME_QA.png
+          for s in 00 01 02 03 04 05 06 07 08; do
+            ffmpeg -y -v error -pattern_type glob -i "delivery/qa_scenes/s${s}/frame_*.png" -vf 'scale=600:-1,tile=4x2:padding=8:margin=8:color=white' -frames:v 1 "delivery/SCENE_${s}_FINAL_QA.png"
+          done
+
+      - name: Create report and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          Physics 9 Motion — Achilles and the Tortoise V5.2 Frame-Audited Final
+          Source SHA-256: d55d1d6f184b333a1cd2cdce7769fcb20b22d445fcd4ac0e93c902e32767c75f
+          Renderer: official manimcommunity/manim:v0.20.1
+          Preview: literal -pql, 854x480, 15 fps, LESSON_TIME_SCALE=0.10
+          Final: literal -pqh, 1920x1080, 30 fps, LESSON_TIME_SCALE=1.00
+          QA progression: original V4 systematic temporal audit; V5 full preview with 114 sampled states; V5.1/V5.2 targeted scene QA; final V5.2 90 global full-HD frames + 8 frames per scene.
+          EOF
+          sha256sum delivery/Physics9_Motion_Achilles_V5_2_FRAME_AUDITED_FINAL_pqh.mp4 delivery/Physics9_Motion_Achilles_V5_2_PREVIEW_pql.mp4 delivery/physics9_motion_achilles_v5_2_frame_audited.py delivery/GLOBAL_90_FRAME_QA.png > delivery/SHA256SUMS.txt
+
+      - name: Upload complete final delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Motion-Achilles-V5-2-FRAME-AUDITED-FINAL-pqh
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
