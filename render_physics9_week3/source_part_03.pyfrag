@@ -1,0 +1,120 @@
+        layout = self.split_layout(panel.group, right, left_width=7.55, right_width=5.7, max_height=5.18, center_y=-0.48, gap=0.35)
+        self.assert_content_safe(layout.group, title)
+        return VGroup(panel.group, right)
+
+    def scene_01_positive_acceleration(self) -> None:
+        self.set_header(1, "PROBLEM 1 · POSITIVE ACCELERATION", "A car changes velocity from 2 m/s to 14 m/s in 4 s. Find acceleration and interpret it.")
+        track_group, track = self.number_track(x_min=0, x_max=16, step=2, length=7.0)
+        start = Dot(track.n2p(P1_V0), radius=0.10, color=BLACK_LINE)
+        end = Dot(track.n2p(P1_VF), radius=0.10, color=BLACK_LINE)
+        arrow = DoubleArrow(track.n2p(P1_V0), track.n2p(P1_VF), buff=0.08, color=MID_GRAY, stroke_width=2.5)
+        dv = self.math(r"\Delta v=+12\,\mathrm{m/s}", 31).next_to(arrow, DOWN, buff=0.16)
+        content = VGroup(track_group, start, end, arrow, dv)
+        eqs = self.equation_stack([
+            r"\Delta v=14-2=+12\,\mathrm{m/s}",
+            r"a=\frac{+12}{4}",
+            r"a=+3\,\mathrm{m/s^2}",
+        ], sizes=[36, 42, 46], buff=0.34, max_width=5.55, max_height=2.85)
+        note = self.note_panel("INTERPRET", ["Velocity increases by 3 m/s each second."], width=5.55, title_size=29, body_size=27)
+        layout = self.problem_layout("2 m/s → 14 m/s", content, eqs, note)
+        panel = layout[0]
+        self.play(FadeIn(panel[0]), FadeIn(panel[1]), Create(track_group), FadeIn(start), run_time=RUN_NORMAL)
+        moving = self.motion_object(0.80).move_to(track.n2p(P1_V0) + UP * 0.45)
+        self.play(FadeIn(moving), run_time=RUN_QUICK)
+        self.play(moving.animate.move_to(track.n2p(P1_VF) + UP * 0.45), run_time=RUN_SLOW * 1.7, rate_func=linear)
+        self.play(FadeIn(end), Create(arrow), FadeIn(dv), run_time=RUN_NORMAL)
+        for eq in eqs:
+            self.play(FadeIn(eq, shift=RIGHT * 0.06), run_time=RUN_NORMAL); self.wait(PAUSE_READ)
+        self.play(FadeIn(note), FadeIn(panel[-1]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY); self.clear_stage()
+
+    def scene_02_braking(self) -> None:
+        self.set_header(2, "PROBLEM 2 · BRAKING", "A car moves at +18 m/s and slows to +6 m/s in 3 s. Calculate acceleration and decide what the negative sign means.")
+        track_group, track = self.number_track(x_min=0, x_max=20, step=2, length=7.0)
+        start = Dot(track.n2p(P2_V0), radius=0.10, color=BLACK_LINE)
+        end = Dot(track.n2p(P2_VF), radius=0.10, color=BLACK_LINE)
+        arrow = DoubleArrow(track.n2p(P2_VF), track.n2p(P2_V0), buff=0.08, color=MID_GRAY, stroke_width=2.5)
+        dv = self.math(r"\Delta v=-12\,\mathrm{m/s}", 31).next_to(arrow, DOWN, buff=0.16)
+        content = VGroup(track_group, start, end, arrow, dv)
+        eqs = self.equation_stack([
+            r"\Delta v=6-18=-12\,\mathrm{m/s}",
+            r"a=\frac{-12}{3}",
+            r"a=-4\,\mathrm{m/s^2}",
+        ], sizes=[36, 42, 46], buff=0.34, max_width=5.55, max_height=2.85)
+        note = self.note_panel("INTERPRET", ["v is positive but a is negative → speed decreases."], width=5.55, title_size=29, body_size=27)
+        layout = self.problem_layout("+18 m/s → +6 m/s", content, eqs, note)
+        panel = layout[0]
+        self.play(FadeIn(panel[0]), FadeIn(panel[1]), Create(track_group), FadeIn(start), run_time=RUN_NORMAL)
+        speed_arrow = self.velocity_arrow(track.n2p(8) + UP * 0.45, +18, scale=0.12, label=r"v_i=+18")
+        brake_arrow = self.acceleration_arrow(track.n2p(8) + DOWN * 0.20, -4, scale=0.35, label=r"a=-4")
+        self.play(FadeIn(speed_arrow), FadeIn(brake_arrow), run_time=RUN_NORMAL)
+        self.play(Transform(speed_arrow, self.velocity_arrow(track.n2p(8) + UP * 0.45, +6, scale=0.12, label=r"v_f=+6")), run_time=RUN_SLOW * 1.4)
+        self.play(FadeIn(end), Create(arrow), FadeIn(dv), run_time=RUN_NORMAL)
+        for eq in eqs:
+            self.play(FadeIn(eq, shift=RIGHT * 0.06), run_time=RUN_NORMAL); self.wait(PAUSE_READ)
+        self.play(FadeIn(note), FadeIn(panel[-1]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY); self.clear_stage()
+
+    def scene_03_negative_speeding_up(self) -> None:
+        self.set_header(3, "PROBLEM 3 · NEGATIVE VELOCITY CAN SPEED UP", "Velocity changes from −2 m/s to −10 m/s in 4 s. Find acceleration, then compare the signs of v and a.")
+        track_group, track = self.number_track(x_min=-12, x_max=2, step=2, length=7.0)
+        content = VGroup(track_group)
+        eqs = self.equation_stack([
+            r"\Delta v=-10-(-2)=-8\,\mathrm{m/s}",
+            r"a=\frac{-8}{4}=-2\,\mathrm{m/s^2}",
+            r"v<0,\quad a<0",
+            r"|v|:\;2\rightarrow10\quad\Rightarrow\quad \text{speed increases}",
+        ], sizes=[35, 39, 39, 34], buff=0.27, max_width=5.6, max_height=3.45)
+        note = self.note_panel("KEY", ["Negative acceleration does NOT automatically mean slowing down."], width=5.6, title_size=29, body_size=27)
+        layout = self.problem_layout("−2 m/s → −10 m/s", content, eqs, note)
+        panel = layout[0]
+        self.play(FadeIn(panel[0]), FadeIn(panel[1]), Create(track_group), run_time=RUN_NORMAL)
+        origin = track.n2p(-5) + UP * 0.45
+        v1 = self.velocity_arrow(origin, -2, scale=0.25, label=r"v_i=-2")
+        a1 = self.acceleration_arrow(origin + DOWN * 0.62, -2, scale=0.55, label=r"a=-2")
+        self.play(FadeIn(v1), FadeIn(a1), run_time=RUN_NORMAL)
+        self.play(Transform(v1, self.velocity_arrow(origin, -10, scale=0.25, label=r"v_f=-10")), run_time=RUN_SLOW * 1.6)
+        for eq in eqs:
+            self.play(FadeIn(eq, shift=RIGHT * 0.05), run_time=RUN_NORMAL); self.wait(PAUSE_READ)
+        self.play(FadeIn(note), FadeIn(panel[-1]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY); self.clear_stage()
+
+    def scene_04_negative_slowing_down(self) -> None:
+        self.set_header(4, "PROBLEM 4 · POSITIVE a CAN SLOW NEGATIVE MOTION", "Velocity changes from −12 m/s to −4 m/s in 4 s. Calculate acceleration and explain why speed decreases.")
+        track_group, track = self.number_track(x_min=-14, x_max=2, step=2, length=7.0)
+        content = VGroup(track_group)
+        eqs = self.equation_stack([
+            r"\Delta v=-4-(-12)=+8\,\mathrm{m/s}",
+            r"a=\frac{+8}{4}=+2\,\mathrm{m/s^2}",
+            r"v<0,\quad a>0",
+            r"|v|:\;12\rightarrow4\quad\Rightarrow\quad \text{speed decreases}",
+        ], sizes=[35, 39, 39, 34], buff=0.27, max_width=5.6, max_height=3.45)
+        note = self.note_panel("KEY", ["Opposite signs of v and a make the speed shrink."], width=5.6, title_size=29, body_size=27)
+        layout = self.problem_layout("−12 m/s → −4 m/s", content, eqs, note)
+        panel = layout[0]
+        self.play(FadeIn(panel[0]), FadeIn(panel[1]), Create(track_group), run_time=RUN_NORMAL)
+        origin = track.n2p(-6) + UP * 0.45
+        v1 = self.velocity_arrow(origin, -12, scale=0.22, label=r"v_i=-12")
+        a1 = self.acceleration_arrow(origin + DOWN * 0.62, +2, scale=0.55, label=r"a=+2")
+        self.play(FadeIn(v1), FadeIn(a1), run_time=RUN_NORMAL)
+        self.play(Transform(v1, self.velocity_arrow(origin, -4, scale=0.22, label=r"v_f=-4")), run_time=RUN_SLOW * 1.6)
+        for eq in eqs:
+            self.play(FadeIn(eq, shift=RIGHT * 0.05), run_time=RUN_NORMAL); self.wait(PAUSE_READ)
+        self.play(FadeIn(note), FadeIn(panel[-1]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY); self.clear_stage()
+
+    def scene_05_piecewise_vt_slopes(self) -> None:
+        self.set_header(5, "PROBLEM 5 · READ ACCELERATION FROM v–t SLOPE", "A velocity graph has three segments. Compute the acceleration on each interval and build the acceleration timeline.")
+        vt_group, vt = self.vt_axes(x_max=10, y_min=0, y_max=10, width=6.7, height=3.75)
+        segs = VGroup(
+            Line(vt.c2p(0, 2), vt.c2p(3, 8), color=BLACK_LINE, stroke_width=3.3),
+            Line(vt.c2p(3, 8), vt.c2p(5, 8), color=MID_GRAY, stroke_width=3.3),
+            Line(vt.c2p(5, 8), vt.c2p(9, 0), color=DARK_GRAY, stroke_width=3.3),
+        )
+        vt_panel = self.figure_panel(VGroup(vt_group, segs), width=7.35, height=4.70, title="v–t GRAPH", caption="Slope changes at t = 3 s and t = 5 s.", title_size=31, caption_size=24)
+        at_group, at = self.at_axes(x_max=10, y_min=-3, y_max=3, width=5.20, height=2.70)
+        a_lines = VGroup(
+            Line(at.c2p(0, 2), at.c2p(3, 2), color=BLACK_LINE, stroke_width=3.1),
+            Line(at.c2p(3, 0), at.c2p(5, 0), color=MID_GRAY, stroke_width=3.1),
+            Line(at.c2p(5, -2), at.c2p(9, -2), color=DARK_GRAY, stroke_width=3.1),
+        )
