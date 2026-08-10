@@ -16,15 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore exact lesson source
+      - name: Validate exact lesson source
         run: |
           set -euo pipefail
-          SRC_DIR="manim/period1_week2_quartiles"
-          base64 -d "$SRC_DIR/statistics10_period1_week2_quartiles_positions.py.gz.b64" | gzip -d > "$SRC_DIR/statistics10_period1_week2_quartiles_positions.py"
-          sha256sum "$SRC_DIR/statistics10_period1_week2_quartiles_positions.py"
-
-      - name: Syntax validation
-        run: python -m py_compile manim/period1_week2_quartiles/statistics10_period1_week2_quartiles_positions.py
+          python -m py_compile manim/period1_week2_quartiles/statistics10_period1_week2_quartiles_positions.py
+          sha256sum manim/period1_week2_quartiles/statistics10_period1_week2_quartiles_positions.py
 
       - name: Pull fixed ManimCE image
         run: docker pull manimcommunity/manim:v0.20.1
