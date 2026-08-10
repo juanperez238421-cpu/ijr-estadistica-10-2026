@@ -24,7 +24,7 @@ jobs:
           set -euo pipefail
           mkdir -p library tools delivery
           base64 -d render_physics9_week3_v4/source_v4.b64 | gzip -d > physics9_week3_acceleration_v4.py
-          echo 'dbd40ef66aa6686d6036956f2bd5752be7dfcc11746785c123518e92f55e8ad8  physics9_week3_acceleration_v4.py' | sha256sum -c -
+          echo '6691f254d228afa7eeb410f83c9fbbd904c868ff63acc21a8b320a348cf6ea6b  physics9_week3_acceleration_v4.py' | sha256sum -c -
 
           git fetch --depth=1 origin render/physics9-week2-vt-cinematic-v2-2026-08-10
           git show FETCH_HEAD:render_physics9_week2/style_exact.b64 > /tmp/style_exact.b64
