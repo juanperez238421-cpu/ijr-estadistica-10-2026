@@ -1,0 +1,50 @@
+            mob.scale_to_fit_height(h)
+        return mob
+
+    def panel(self, width, height, fill=PAPER, stroke=LIGHT, sw=1.5):
+        return RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.12,
+            stroke_color=stroke,
+            stroke_width=sw,
+            fill_color=fill,
+            fill_opacity=1,
+        )
+
+    def note(self, text, width=11.0, height=0.82, size=25, fill=VERY_LIGHT):
+        box = self.panel(width, height, fill=fill)
+        tx = self.t(text, size, NORMAL, color=DARK)
+        self.fit(tx, w=width - 0.45, h=height - 0.18)
+        tx.move_to(box)
+        return VGroup(box, tx)
+
+    def formula_panel(self, tex, width=8.4, height=1.05, size=43):
+        box = self.panel(width, height, fill=WHITE, stroke=DARK, sw=1.6)
+        eq = self.m(tex, size)
+        self.fit(eq, w=width - 0.55, h=height - 0.22)
+        eq.move_to(box)
+        return VGroup(box, eq)
+
+    def set_header(self, section, subtitle):
+        if self.header is not None and self.header in self.mobjects:
+            self.remove(self.header)
+        label = self.t(section, 23, BOLD, color=DARK).to_edge(UL, buff=0.42)
+        available = 14.85 - label.width - 0.38
+        sub = self.t(subtitle, 24, NORMAL, color=MID)
+        if sub.width > available:
+            sub.scale_to_fit_width(max(available, 4.0))
+        sub.next_to(label, RIGHT, buff=0.34)
+        line = Line(LEFT * 7.55, RIGHT * 7.55, color=LIGHT, stroke_width=1.6)
+        line.next_to(label, DOWN, buff=0.20).align_to(label, LEFT)
+        self.header = VGroup(label, sub, line)
+        self.add(self.header)
+
+    def clear_stage(self, keep_header=True, keep_steps=False):
+        keep = set()
+        if keep_header and self.header is not None:
+            keep.add(self.header)
+        if keep_steps and self.step_strip is not None:
+            keep.add(self.step_strip)
+        removable = [mob for mob in self.mobjects if mob not in keep]
+        if removable:
