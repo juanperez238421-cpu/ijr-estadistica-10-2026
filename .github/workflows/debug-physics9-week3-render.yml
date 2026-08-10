@@ -1,0 +1,74 @@
+name: Physics 9 Week 3 DEBUG render logs
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct source and dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p library tools debug_logs
+          cat render_physics9_week3/source_part_00.pyfrag render_physics9_week3/source_part_01.pyfrag render_physics9_week3/source_part_02.pyfrag render_physics9_week3/source_part_03.pyfrag render_physics9_week3/source_part_04.pyfrag > physics9_week3_acceleration_galileo.py
+          echo '539627bb7f00f3e8f192e0cc0040dec2895a200af8df812ebfa096093b1b0e96  physics9_week3_acceleration_galileo.py' | sha256sum -c -
+          git fetch --depth=1 origin render/physics9-week2-vt-cinematic-v2-2026-08-10
+          git show FETCH_HEAD:render_physics9_week2/style_exact.b64 > /tmp/style_exact.b64
+          git show FETCH_HEAD:render_physics9_week2/checker_exact.b64 > /tmp/checker_exact.b64
+          base64 -d /tmp/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d /tmp/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          touch library/__init__.py
+      - name: Prepare renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull manimcommunity/manim:v0.20.1
+      - name: Render Theory and capture complete log
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+            mkdir -p /tmp/manim-home /tmp/manim-bin
+            printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+            chmod +x /tmp/manim-bin/xdg-open
+            export PATH="/tmp/manim-bin:$PATH"
+            manim -ql --fps 15 -r 854,480 physics9_week3_acceleration_galileo.py Physics9Week3AccelerationTheory --format=mp4 --disable_caching --media_dir media_debug_theory
+          ' > debug_logs/theory.log 2>&1
+          code=$?
+          echo "$code" > debug_logs/theory.exit
+          tail -n 160 debug_logs/theory.log > debug_logs/theory_tail.log
+          exit 0
+      - name: Render Problems and capture complete log
+        shell: bash
+        continue-on-error: true
+        run: |
+          set +e
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+            mkdir -p /tmp/manim-home /tmp/manim-bin
+            printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+            chmod +x /tmp/manim-bin/xdg-open
+            export PATH="/tmp/manim-bin:$PATH"
+            manim -ql --fps 15 -r 854,480 physics9_week3_acceleration_galileo.py Physics9Week3AccelerationProblems --format=mp4 --disable_caching --media_dir media_debug_problems
+          ' > debug_logs/problems.log 2>&1
+          code=$?
+          echo "$code" > debug_logs/problems.exit
+          tail -n 160 debug_logs/problems.log > debug_logs/problems_tail.log
+          exit 0
+      - name: Upload debug logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Week3-DEBUG-LOGS
+          path: debug_logs/
+          if-no-files-found: error
+          retention-days: 3
