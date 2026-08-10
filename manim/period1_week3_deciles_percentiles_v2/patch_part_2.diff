@@ -1,0 +1,162 @@
++        res_lab = self.t(fmt(result), 26, BOLD).next_to(mark, UP, buff=0.14)
++        frac_lab = self.m(rf"d={fmt(fraction)}", 30).next_to(line, UP, buff=0.58)
++        return VGroup(line, left_tick, right_tick, mark, low_lab, high_lab, res_lab, frac_lab)
++
+     def person_icon(self, score):
+         head = Circle(radius=0.18, stroke_color=DARK, stroke_width=1.5, fill_color=WHITE, fill_opacity=1)
+         body = Line(DOWN * 0.15, DOWN * 0.72, color=DARK, stroke_width=2)
+@@ -408,70 +422,67 @@
+         self.clear_stage(keep_header=False)
+ 
+     def bridge_and_meaning(self):
+-        self.set_header("1 · POSITION LANGUAGE", "Quartiles, deciles and percentiles describe ordered position")
+-        q = self.panel(4.2, 2.25)
+-        qtitle = self.t("QUARTILES", 27, BOLD).move_to(q).shift(UP * 0.65)
+-        qeq = self.m(r"Q_1\;\;Q_2\;\;Q_3", 39).move_to(q)
+-        qdesc = self.t("4 broad parts", 23, NORMAL, color=MID).move_to(q).shift(DOWN * 0.65)
++        self.set_header("1 · POSITION LANGUAGE", "From three quartile cuts to any percentage position")
++        q = self.panel(4.15, 2.25)
++        qtitle = self.t("QUARTILES", 29, BOLD).move_to(q).shift(UP * 0.66)
++        qeq = self.m(r"Q_1\;Q_2\;Q_3", 43).move_to(q)
++        qdesc = self.t("3 cuts → 4 broad parts", 24, NORMAL, color=MID).move_to(q).shift(DOWN * 0.67)
+         qg = VGroup(q, qtitle, qeq, qdesc)
+-
+-        d = self.panel(4.2, 2.25)
+-        dtitle = self.t("DECILES", 27, BOLD).move_to(d).shift(UP * 0.65)
+-        deq = self.m(r"D_1\ldots D_9", 39).move_to(d)
+-        ddesc = self.t("10 broad parts", 23, NORMAL, color=MID).move_to(d).shift(DOWN * 0.65)
++        d = self.panel(4.15, 2.25)
++        dtitle = self.t("DECILES", 29, BOLD).move_to(d).shift(UP * 0.66)
++        deq = self.m(r"D_1\ldots D_9", 43).move_to(d)
++        ddesc = self.t("9 cuts → 10 broad parts", 24, NORMAL, color=MID).move_to(d).shift(DOWN * 0.67)
+         dg = VGroup(d, dtitle, deq, ddesc)
+-
+-        p = self.panel(4.2, 2.25)
+-        ptitle = self.t("PERCENTILES", 27, BOLD).move_to(p).shift(UP * 0.65)
+-        peq = self.m(r"P_1\ldots P_{99}", 39).move_to(p)
+-        pdesc = self.t("100 position bands", 23, NORMAL, color=MID).move_to(p).shift(DOWN * 0.65)
++        p = self.panel(4.15, 2.25)
++        ptitle = self.t("PERCENTILES", 29, BOLD).move_to(p).shift(UP * 0.66)
++        peq = self.m(r"P_1\ldots P_{99}", 43).move_to(p)
++        pdesc = self.t("99 cuts → 100 position bands", 23, NORMAL, color=MID).move_to(p).shift(DOWN * 0.67)
+         pg = VGroup(p, ptitle, peq, pdesc)
+-
+-        trio = VGroup(qg, dg, pg).arrange(RIGHT, buff=0.38).move_to(UP * 0.65)
++        trio = VGroup(qg, dg, pg).arrange(RIGHT, buff=0.40).move_to(UP * 0.86)
+         self.play(LaggedStart(*[FadeIn(g) for g in trio], lag_ratio=0.18), run_time=RUN_SLOW)
+         self.wait(PAUSE_READ)
+-
+-        bar = self.percent_bar(60).move_to(DOWN * 1.55)
++        bar = self.percent_bar(60).move_to(DOWN * 1.30)
+         self.play(FadeIn(bar), run_time=RUN_SLOW)
+-        meaning = self.note("P60 is the 60th-percentile location: conceptually, it separates the lower 60% from the upper 40%.", 13.3, 0.92, 23)
+-        meaning.next_to(bar, DOWN, buff=0.42)
++        meaning = self.note("P60 names a relative POSITION in an ordered distribution — not 60% of a score.", 13.5, 0.90, 25)
++        meaning.move_to([0, -2.46, 0])
+         self.play(FadeIn(meaning), run_time=RUN)
++        misconception = self.note("If P60 = 29, the percentile value is 29. It does NOT mean 60% × 29 or 29%.", 13.2, 0.82, 23)
++        misconception.move_to([0, -3.25, 0])
++        self.play(FadeIn(misconception), run_time=RUN)
+         self.wait(PAUSE_EXPLAIN)
+         self.clear_stage()
+ 
+     def deciles(self):
+-        self.set_header("2 · DECILES", "Every decile is also a percentile")
+-        ruler = self.decile_ruler().move_to(UP * 0.65)
++        self.set_header("2 · DECILES", "Ten equal percentage bands; nine internal cut points")
++        ruler = self.decile_ruler().move_to(UP * 0.82)
+         self.play(FadeIn(ruler), run_time=RUN_SLOW)
+-        self.wait(PAUSE_READ)
+-        maps = VGroup(
+-            self.m(r"D_1=P_{10}", 38),
+-            self.m(r"D_4=P_{40}", 38),
+-            self.m(r"D_5=P_{50}", 38),
+-            self.m(r"D_9=P_{90}", 38),
+-        ).arrange(RIGHT, buff=0.75).move_to(DOWN * 1.30)
++        caption = self.t("Each cut advances 10 percentage points", 27, BOLD, color=DARK).move_to([0, -0.82, 0])
++        self.play(FadeIn(caption), run_time=RUN)
++        maps = VGroup(self.m(r"D_1=P_{10}", 41), self.m(r"D_4=P_{40}", 41), self.m(r"D_5=P_{50}", 41), self.m(r"D_9=P_{90}", 41)).arrange(RIGHT, buff=0.78).move_to(DOWN * 1.62)
+         self.play(LaggedStart(*[Write(x) for x in maps], lag_ratio=0.18), run_time=RUN_SLOW)
+-        note = self.note("Rule: D_j = P_{10j}.  A decile problem becomes a percentile problem immediately.", 12.8, 0.88, 24)
+-        note.next_to(maps, DOWN, buff=0.48)
++        note = self.note("Conversion rule:  D_j = P_{10j}.  Example: D4 means the same target position as P40.", 13.2, 0.90, 24)
++        note.move_to([0, -2.90, 0])
+         self.play(FadeIn(note), run_time=RUN)
+         self.wait(PAUSE_EXPLAIN)
+         self.clear_stage()
+ 
+     def method(self):
+-        self.set_header("3 · CLASSROOM METHOD", "One explicit locator convention for Week 3")
+-        self.set_step(1)
+-        formula = self.locator_formula().move_to(UP * 1.42)
++        self.set_header("3 · CLASSROOM METHOD", "Percentile number → locator → neighbors → value")
++        formula = self.locator_formula().move_to(UP * 1.66)
+         self.play(FadeIn(formula), run_time=RUN_SLOW)
+-        definitions = VGroup(
+-            self.m(r"k=\text{percentile number}", 33),
+-            self.m(r"n=\text{number of observations}", 33),
+-            self.m(r"L=\text{1-indexed location in the ordered list}", 31),
+-        ).arrange(DOWN, aligned_edge=LEFT, buff=0.27).move_to(DOWN * 0.35)
+-        self.play(LaggedStart(*[FadeIn(x) for x in definitions], lag_ratio=0.18), run_time=RUN_SLOW)
+-        self.wait(PAUSE_READ)
+-        interp = self.interpolation_formula().move_to(DOWN * 1.80)
++        cards = VGroup()
++        defs = ((r"k", "target percentile"), (r"n", "number of data values"), (r"L", "ordered-list location"), (r"d", "decimal part of L"))
++        for sym, desc in defs:
++            box = self.panel(3.12, 1.26, fill=WHITE)
++            sy = self.m(sym, 38).move_to(box).shift(LEFT*0.86)
++            tx = self.t(desc, 22, BOLD if sym in (r"L",r"d") else NORMAL, color=DARK).move_to(box).shift(RIGHT*0.44)
++            self.fit(tx, w=1.85, h=0.70)
++            cards.add(VGroup(box, sy, tx))
++        cards.arrange(RIGHT, buff=0.25).move_to([0, 0.12, 0])
++        self.play(LaggedStart(*[FadeIn(c) for c in cards], lag_ratio=0.12), run_time=RUN_SLOW)
++        interp = self.interpolation_formula().move_to(DOWN * 1.50)
+         self.play(FadeIn(interp), run_time=RUN)
+-        caveat = self.note("Course convention: use this locator for Week 3 percentile tasks. Other software may use a different sample-quantile convention.", 13.6, 0.82, 21)
++        caveat = self.note("Week 3 convention: use L=(k/100)(n+1). Different software may implement another sample-percentile convention.", 13.7, 0.86, 22)
+         caveat.move_to([0, -2.92, 0])
+         self.play(FadeIn(caveat), run_time=RUN)
+         self.wait(PAUSE_EXPLAIN)
+@@ -489,103 +500,88 @@
+         self.wait(PAUSE_READ)
+ 
+         self.set_step(2)
+-        nline = self.m(rf"n={len(sol.ordered)}", 40).move_to([0, -0.05, 0])
++        nline = self.m(rf"n={len(sol.ordered)}", 42).move_to([0, -0.02, 0])
+         self.play(Write(nline), run_time=RUN)
+-
+         self.set_step(3)
+-        if decile_name:
+-            choose = self.m(rf"{decile_name}=P_{{{int(k)}}}\quad\Rightarrow\quad k={int(k)}", 39).move_to([0, -0.72, 0])
+-        else:
+-            choose = self.m(rf"P_{{{int(k)}}}\quad\Rightarrow\quad k={int(k)}", 40).move_to([0, -0.72, 0])
++        choose_expr = rf"{decile_name}=P_{{{int(k)}}}\Rightarrow k={int(k)}" if decile_name else rf"P_{{{int(k)}}}\Rightarrow k={int(k)}"
++        choose = self.m(choose_expr, 42).move_to([0, -0.72, 0])
+         self.play(Write(choose), run_time=RUN)
+-
+         self.set_step(4)
+-        loc = self.m(rf"L=\frac{{{int(k)}}}{{100}}({len(sol.ordered)}+1)={fmt(sol.locator)}", 41).move_to([0, -1.43, 0])
++        loc = self.m(rf"L=\frac{{{int(k)}}}{{100}}({len(sol.ordered)}+1)={fmt(sol.locator)}", 44).move_to([0, -1.48, 0])
+         self.play(Write(loc), run_time=RUN_SLOW)
++        self.wait(PAUSE_READ)
+ 
+-        indexed = self.indexed_row(sol.ordered, y=0.75)
+-        self.play(FadeOut(raw), FadeOut(ordered), FadeOut(nline), FadeOut(choose), FadeOut(loc), run_time=RUN_FAST)
+-        self.play(FadeIn(indexed), run_time=RUN)
++        indexed = self.indexed_row(sol.ordered, y=0.62)
++        self.play(FadeOut(raw), FadeOut(ordered), FadeOut(nline), FadeOut(choose), run_time=RUN_FAST)
++        self.play(Transform(loc, self.m(rf"L={fmt(sol.locator)}", 40).move_to([0, -0.42, 0])), FadeIn(indexed), run_time=RUN)
++        marker = self.locator_marker(indexed, sol.locator, rf"L={fmt(sol.locator)}")
++        self.play(FadeIn(marker), run_time=RUN)
+ 
+         self.set_step(5)
+         cards, indices = indexed
+         for pos in sorted(set((sol.lower_position, sol.upper_position))):
+-            card = cards[pos - 1]
+-            self.play(Indicate(card, color=DARK, scale_factor=1.08), run_time=RUN_FAST)
+-        neigh = self.t(
+-            f"Position {fmt(sol.locator)} uses " +
+-            (f"x{sol.lower_position} only" if sol.lower_position == sol.upper_position else f"x{sol.lower_position} and x{sol.upper_position}"),
+-            24,
+-            BOLD,
+-            color=DARK,
