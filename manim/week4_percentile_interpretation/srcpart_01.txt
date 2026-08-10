@@ -1,0 +1,50 @@
+
+INK = BLACK
+DARK = "#303030"
+MID = "#777777"
+LIGHT = "#D6D6D6"
+VERY_LIGHT = "#EEEEEE"
+PAPER = "#F8F8F8"
+SAFE_W = 14.60
+
+RUN_FAST = 0.40
+RUN = 0.72
+RUN_SLOW = 1.00
+PAUSE_READ = 1.35
+PAUSE_EXPLAIN = 2.05
+PAUSE_WORK = 3.50
+PAUSE_SUMMARY = 3.30
+
+# Centralized vertical bands. These are intentionally reused across scenes.
+Y_HEADER = 3.93
+Y_MAIN = 2.28
+Y_MODEL = 0.78
+Y_DETAIL = -0.60
+Y_RESULT = -2.10
+Y_STEPS = -3.57
+STEP_SAFE_TOP = -3.14
+
+
+@dataclass(frozen=True)
+class PercentileStatement:
+    k: int
+    value: float
+    context: str
+    unit: str = ""
+
+    @property
+    def above(self) -> int:
+        return 100 - self.k
+
+
+def fmt(v: float) -> str:
+    if abs(v - round(v)) < 1e-9:
+        return str(int(round(v)))
+    return f"{v:.2f}".rstrip("0").rstrip(".")
+
+
+class Statistics10Week4PercentileInterpretationSenior(Scene):
+    STEP_NAMES = (
+        "READ",
+        "IDENTIFY k",
+        "VALUE",

@@ -1,0 +1,50 @@
+        x0 = -width / 2
+        x1 = width / 2
+        split = x0 + width * (k / 100)
+        base = Line([x0, y, 0], [x1, y, 0], color=DARK, stroke_width=4)
+        progress = Line([x0, y, 0], [split, y, 0], color=DARK, stroke_width=10)
+        ticks = VGroup(
+            Line([x0, y - 0.18, 0], [x0, y + 0.18, 0], color=DARK, stroke_width=2),
+            Line([split, y - 0.22, 0], [split, y + 0.22, 0], color=DARK, stroke_width=2.5),
+            Line([x1, y - 0.18, 0], [x1, y + 0.18, 0], color=DARK, stroke_width=2),
+        )
+        labels = VGroup(
+            self.t("0%", 20, NORMAL, color=MID).next_to(ticks[0], DOWN, buff=0.10),
+            self.t(f"{k}%", 22, BOLD, color=DARK).next_to(ticks[1], UP, buff=0.12),
+            self.t("100%", 20, NORMAL, color=MID).next_to(ticks[2], DOWN, buff=0.10),
+        )
+        val = self.t(value_label, 26, BOLD, color=DARK).next_to(ticks[1], DOWN, buff=0.20)
+        return VGroup(base, progress, ticks, labels, val)
+
+    def meaning_pair(self, st: PercentileStatement, y=-0.70):
+        left = self.panel(5.45, 1.18, fill=WHITE)
+        right = self.panel(5.45, 1.18, fill=WHITE)
+        l1 = self.t(f"≈ {st.k}%", 30, BOLD, color=DARK)
+        l2 = self.t(f"at or below {fmt(st.value)} {st.unit}".strip(), 23, NORMAL, color=MID)
+        r1 = self.t(f"≈ {st.above}%", 30, BOLD, color=DARK)
+        r2 = self.t(f"at or above {fmt(st.value)} {st.unit}".strip(), 23, NORMAL, color=MID)
+        lg = VGroup(l1, l2).arrange(DOWN, buff=0.08); self.fit(lg, w=5.0, h=0.78); lg.move_to(left)
+        rg = VGroup(r1, r2).arrange(DOWN, buff=0.08); self.fit(rg, w=5.0, h=0.78); rg.move_to(right)
+        group = VGroup(VGroup(left, lg), VGroup(right, rg)).arrange(RIGHT, buff=0.36)
+        group.move_to([0, y, 0])
+        return group
+
+    def statement_card(self, st, title=None, y=2.22):
+        box = self.panel(10.8, 1.20, fill=WHITE, stroke=DARK, sw=1.6)
+        headline = title or f"P{st.k} = {fmt(st.value)} {st.unit}".strip()
+        a = self.t(headline, 34, BOLD, color=DARK)
+        b = self.t(st.context, 23, NORMAL, color=MID)
+        content = VGroup(a, b).arrange(DOWN, buff=0.08)
+        self.fit(content, w=10.2, h=0.82); content.move_to(box)
+        card = VGroup(box, content).move_to([0, y, 0])
+        return card
+
+    def claim_card(self, claim, verdict, explanation, y, width=12.0):
+        box = self.panel(width, 1.14, fill=WHITE)
+        verdict_tx = self.t(verdict, 23, BOLD, color=DARK)
+        claim_tx = self.t(claim, 23, NORMAL, color=INK)
+        exp_tx = self.t(explanation, 20.5, NORMAL, color=MID)
+        top = VGroup(verdict_tx, claim_tx).arrange(RIGHT, buff=0.25)
+        content = VGroup(top, exp_tx).arrange(DOWN, buff=0.08, aligned_edge=LEFT)
+        self.fit(content, w=width - 0.48, h=0.82)
+        content.move_to(box)

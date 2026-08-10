@@ -1,0 +1,50 @@
+        self.play(FadeIn(context), run_time=RUN)
+        self.set_step(7)
+        check = self.note("Check the claim: percentile rank ≠ percent of the raw value.", 10.4, 0.80, 24).move_to([0, -2.48, 0])
+        self.play(FadeIn(check), run_time=RUN)
+        self.set_step(8)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False, keep_steps=False)
+        self.step_strip = None
+
+    def worked_context(self, number, st, title, context_note, performance_note=None):
+        self.set_header(f"EXAMPLE {number}", title)
+        self.set_step(1)
+        card = self.statement_card(st)
+        self.play(FadeIn(card), run_time=RUN)
+        self.wait(0.5)
+
+        self.set_step(2)
+        k_card = self.note(f"k = {st.k}", 3.2, 0.76, 25, fill=WHITE).move_to([-2.05, 1.12, 0])
+        self.set_step(3)
+        v_card = self.note(f"value = {fmt(st.value)} {st.unit}".strip(), 4.6, 0.76, 25, fill=WHITE).move_to([2.05, 1.12, 0])
+        self.play(FadeIn(k_card), FadeIn(v_card), run_time=RUN)
+
+        bar = self.percentile_bar(st.k, f"{fmt(st.value)} {st.unit}".strip(), width=11.2, y=0.14)
+        self.play(Create(bar[0]), Create(bar[1]), FadeIn(bar[2]), FadeIn(bar[3]), FadeIn(bar[4]), run_time=RUN_SLOW)
+
+        self.set_step(4)
+        pair = self.meaning_pair(st, y=-1.08)
+        self.play(FadeIn(pair[0]), run_time=RUN)
+        self.set_step(5)
+        self.play(FadeIn(pair[1]), run_time=RUN)
+
+        self.set_step(6)
+        cnote = self.note(context_note, 12.1, 0.82, 23.5).move_to([0, -2.32, 0])
+        self.play(FadeIn(cnote), run_time=RUN)
+        if performance_note:
+            self.play(Transform(cnote, self.note(performance_note, 12.1, 0.82, 23.0).move_to([0, -2.32, 0])), run_time=RUN)
+
+        self.set_step(7)
+        self.wait(0.5)
+        self.set_step(8)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False, keep_steps=False)
+        self.step_strip = None
+
+    def comparison_scene(self):
+        self.set_header("COMPARE PERCENTILE RANKS", "Relative standing can be compared — raw values may not be comparable")
+        left = self.panel(5.9, 2.05, fill=WHITE, stroke=DARK, sw=1.5)
+        right = self.panel(5.9, 2.05, fill=WHITE, stroke=DARK, sw=1.5)
+        a1 = self.t("Student A", 28, BOLD); a2 = self.m(r"P_{80}", 50); a3 = self.t("80th percentile on Test A", 23, NORMAL, color=MID)
+        b1 = self.t("Student B", 28, BOLD); b2 = self.m(r"P_{65}", 50); b3 = self.t("65th percentile on Test B", 23, NORMAL, color=MID)
