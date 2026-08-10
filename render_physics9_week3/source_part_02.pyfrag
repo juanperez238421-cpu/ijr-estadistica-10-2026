@@ -1,0 +1,120 @@
+        self.play(FadeIn(ramp_panel.box), FadeIn(ramp_panel.title), Create(ramp), Create(ground), FadeIn(marks[0]), FadeIn(labels[0]), FadeIn(ball), run_time=RUN_NORMAL)
+        self.play(FadeIn(vt_panel.box), FadeIn(vt_panel.title), Create(vt_group), run_time=RUN_NORMAL)
+        for i in range(1, len(pts)):
+            duration = RUN_NORMAL * (1.45 - 0.12 * i)
+            self.play(ball.animate.move_to(pts[i]), run_time=max(RUN_QUICK, duration), rate_func=linear)
+            self.play(FadeIn(marks[i]), FadeIn(labels[i]), GrowFromCenter(v_dots[i - 1]), run_time=RUN_QUICK)
+            self.wait(PAUSE_SHORT)
+        self.play(Create(fit_line), run_time=RUN_SLOW * 1.2)
+        tri = self.slope_triangle(vt, 0.5, 3.5, 0.25, 1.75)
+        self.play(FadeIn(tri), run_time=RUN_NORMAL)
+        self.play(TransformFromCopy(tri, eq), FadeIn(vt_panel.caption), FadeIn(ramp_panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_08_motion_cases(self) -> None:
+        self.set_header(
+            8,
+            "SAME FORMULA — DIFFERENT MOTION STORIES",
+            "Use both signs. A positive acceleration can speed up or slow down; so can a negative acceleration.",
+        )
+        track = Line(LEFT * 5.6, RIGHT * 5.6, color=LIGHT_GRAY, stroke_width=2.2)
+        track_panel = self.figure_panel(
+            track, width=12.95, height=4.55,
+            title="VELOCITY ARROW + ACCELERATION ARROW",
+            caption="Compare arrow directions first. Then decide whether |v| is growing or shrinking.",
+            title_size=31, caption_size=24,
+        )
+        cases = [
+            (+6, +2, "same direction → speeding up"),
+            (+6, -2, "opposite directions → slowing down"),
+            (-6, -2, "same direction → speeding up"),
+            (-6, +2, "opposite directions → slowing down"),
+        ]
+        layout = self.split_layout(track_panel.group, VGroup(), left_width=13.0, right_width=0.05, max_height=4.8, center_y=-0.48, gap=0.10)
+        self.assert_content_safe(track_panel.group, "motion cases")
+        self.play(FadeIn(track_panel.box), FadeIn(track_panel.title), Create(track), run_time=RUN_NORMAL)
+        origin = track.get_center()
+        current = None
+        for idx, (v, a, phrase) in enumerate(cases, start=1):
+            car = self.motion_object(0.92).move_to(origin + DOWN * 0.15)
+            varr = self.velocity_arrow(origin + UP * 0.35, v, scale=0.24)
+            aarr = self.acceleration_arrow(origin + DOWN * 0.50, a, scale=0.55)
+            phrase_t = self.text(phrase, 30, BOLD).move_to(origin + DOWN * 1.45)
+            case_t = self.text(f"CASE {idx}", 27, BOLD).move_to(origin + UP * 1.55)
+            new = VGroup(car, varr, aarr, phrase_t, case_t)
+            if current is None:
+                self.play(FadeIn(new), run_time=RUN_NORMAL)
+            else:
+                self.play(FadeOut(current), run_time=RUN_QUICK)
+                self.play(FadeIn(new), run_time=RUN_NORMAL)
+            current = new
+            self.play(Circumscribe(phrase_t, color=MID_GRAY, time_width=0.6), run_time=RUN_NORMAL)
+            self.wait(PAUSE_READ)
+        self.play(FadeIn(track_panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_09_summary(self) -> None:
+        self.set_header(
+            9,
+            "WEEK 3 RECIPE: ANALYZE ACCELERATION",
+            "Read the velocity change, time interval, sign and graph slope before deciding what happens to speed.",
+        )
+        process = self.process_map(
+            [
+                ("1", "READ v_i AND v_f"),
+                ("2", "COMPUTE Δv = v_f − v_i"),
+                ("3", "DIVIDE BY Δt"),
+                ("4", "KEEP THE SIGN"),
+                ("5", "COMPARE sign(v) AND sign(a)"),
+            ],
+            box_width=2.45,
+            box_height=1.15,
+            font_size=23,
+            gap=0.18,
+        )
+        self.fit(process, 13.3, 1.65)
+        formula = self.formula_panel(r"a=\frac{\Delta v}{\Delta t}=\text{slope of a v–t graph}", width=8.7, height=1.45, font_size=43)
+        key = self.note_panel(
+            "KEY IDEA",
+            ["Acceleration describes velocity change; its sign alone does not tell you whether speed increases or decreases."],
+            width=11.7, title_size=30, body_size=28,
+        )
+        group = VGroup(process, formula, key).arrange(DOWN, buff=0.42).move_to(DOWN * 0.50)
+        self.assert_content_safe(group, "week3 summary")
+        self.play(FadeIn(process, lag_ratio=0.10), run_time=RUN_SLOW * 1.4)
+        self.play(FadeIn(formula, shift=UP * 0.05), run_time=RUN_NORMAL)
+        self.play(FadeIn(key), run_time=RUN_NORMAL)
+        self.wait(PAUSE_FINAL)
+        self.standard_closing("Next: use acceleration graphs and connect position, velocity and acceleration as one motion system.")
+
+
+# =============================================================================
+# WORKED PROBLEMS VIDEO
+# =============================================================================
+class Physics9Week3AccelerationProblems(Physics9Week3Base):
+    """Week 3 worked problems with progressive visual reasoning."""
+
+    def construct(self) -> None:
+        self.scene_00_opening()
+        self.scene_01_positive_acceleration()
+        self.scene_02_braking()
+        self.scene_03_negative_speeding_up()
+        self.scene_04_negative_slowing_down()
+        self.scene_05_piecewise_vt_slopes()
+        self.scene_06_velocity_cards_lab()
+        self.scene_07_galileo_problem()
+        self.scene_08_final_checklist()
+
+    def scene_00_opening(self) -> None:
+        self.standard_opening(
+            "GRADE 9 · PHYSICS · WEEK 3",
+            "ACCELERATION · WORKED PROBLEMS",
+            "Calculate, interpret signs, read v–t slopes and prepare the velocity-card lab",
+            "Every solution follows the same chain: identify vi and vf → compute Δv → divide by Δt → interpret the sign.",
+        )
+
+    def problem_layout(self, title: str, track_content: Mobject, equations: VGroup, note: VGroup | None = None) -> VGroup:
+        panel = self.figure_panel(track_content, width=7.55, height=4.85, title=title, caption="Track the velocity change visually before substituting numbers.", title_size=31, caption_size=24)
+        right = VGroup(equations) if note is None else VGroup(equations, note).arrange(DOWN, buff=0.25)
