@@ -1,0 +1,165 @@
+name: Render Physics 9 Motion V4 Senior FINAL PQH
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct audited final V4 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p library tools delivery
+          echo 'b87de70c2d518faf94822c9eab40f5271bb86fd4ea71ae8ef85a6d55d0b63c50  render_motion_v4/source_v4.part01' | sha256sum -c -
+          echo 'da5a1ee37c2b321aa7432b8f5914bb788ead8873e73bd5152bf5d6ebe134f3ec  render_motion_v4/source_v4.part02' | sha256sum -c -
+          echo '9b23aa84df462e030a1a3a9a227a519812ed658d1a3b4ee80a753f99ff1d6086  render_motion_v4/source_v4.part03' | sha256sum -c -
+          echo '9442462b562ceb38bd994a1e8d5158f27ff2d484da74d3ede37b1293e62a88c0  render_motion_v4/source_v4.part04' | sha256sum -c -
+          echo '3afff039a7793ce746c77bb326234ddc4d9da85123b4acb04cef34c5542c25d4  render_motion_v4/source_v4.part05' | sha256sum -c -
+          cat render_motion_v4/source_v4.part0{1,2,3,4,5} > /tmp/v4.b64
+          echo 'cee2bab40b7114aa986d91505334183b102ffee703a1dce171e945f72800b586  /tmp/v4.b64' | sha256sum -c -
+          base64 -d /tmp/v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
+          echo 'fa062f56872a807dc2add7e46183290651910945134981a4dad465808810e2a9  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          patch -p0 < render_motion_v4/deep_zoom_final.patch
+          echo 'c93ee486ad0471d3fcaf278b3b00e49b17aef86cabf3ac1839383d2cc8fd19ef  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+
+          base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          touch library/__init__.py
+          echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
+          echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
+          cp physics9_motion_achilles_v4_senior.py delivery/
+          cp library/jp_classroom_style.py delivery/
+          cp tools/check_manim_style.py delivery/
+
+      - name: Static source validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile physics9_motion_achilles_v4_senior.py
+          python tools/check_manim_style.py physics9_motion_achilles_v4_senior.py | tee delivery/STYLE_QA.txt
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
+          grep -q '^class Physics9MotionAchillesFull' physics9_motion_achilles_v4_senior.py
+
+      - name: Prepare real ManimCE 0.20.1 environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run numerical lesson assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python physics9_motion_achilles_v4_senior.py' | tee delivery/MOTION_ASSERTIONS.txt
+          grep -q 'Motion lesson assertions passed.' delivery/MOTION_ASSERTIONS.txt
+
+      - name: Render complete literal pql preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+            set -euo pipefail
+            mkdir -p /tmp/manim-home /tmp/manim-bin
+            printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+            chmod +x /tmp/manim-bin/xdg-open
+            export PATH="/tmp/manim-bin:$PATH"
+            manim -pql --fps 15 -r 854,480 physics9_motion_achilles_v4_senior.py Physics9MotionAchillesFull --format=mp4 --disable_caching --media_dir media_preview
+          '
+          V=$(find media_preview -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
+          test -n "$V" && test -s "$V"
+          cp "$V" delivery/Physics9_Motion_Achilles_V4_FINAL_pql.mp4
+          ffmpeg -v error -i delivery/Physics9_Motion_Achilles_V4_FINAL_pql.mp4 -f null -
+
+      - name: Render final literal pqh
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+            set -euo pipefail
+            mkdir -p /tmp/manim-home /tmp/manim-bin
+            printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+            chmod +x /tmp/manim-bin/xdg-open
+            export PATH="/tmp/manim-bin:$PATH"
+            manim -pqh --fps 30 -r 1920,1080 physics9_motion_achilles_v4_senior.py Physics9MotionAchillesFull --format=mp4 --disable_caching --media_dir media_final
+          '
+          V=$(find media_final -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
+          test -n "$V" && test -s "$V"
+          cp "$V" delivery/Physics9_Motion_Achilles_V4_SENIOR_REAL_PQH.mp4
+
+      - name: Verify final video technically
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Physics9_Motion_Achilles_V4_SENIOR_REAL_PQH.mp4
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames -show_entries format=duration,size -of default=noprint_wrappers=1 "$V" | tee delivery/FFPROBE.txt
+          grep -qx 'codec_name=h264' delivery/FFPROBE.txt
+          grep -qx 'width=1920' delivery/FFPROBE.txt
+          grep -qx 'height=1080' delivery/FFPROBE.txt
+          grep -qx 'r_frame_rate=30/1' delivery/FFPROBE.txt
+          grep -qx 'pix_fmt=yuv420p' delivery/FFPROBE.txt
+          ffmpeg -v error -i "$V" -f null -
+          echo 'Full FFmpeg decode: PASS' > delivery/DECODE_VERIFICATION.txt
+
+      - name: Create full visual QA package
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Physics9_Motion_Achilles_V4_SENIOR_REAL_PQH.mp4
+          mkdir -p delivery/qa_frames delivery/targeted_scene01
+          D=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$V")
+          python - "$D" <<'PY'
+          import subprocess, sys
+          v='delivery/Physics9_Motion_Achilles_V4_SENIOR_REAL_PQH.mp4'; d=float(sys.argv[1])
+          fracs=[.02,.06,.10,.14,.18,.22,.26,.30,.34,.38,.42,.46,.50,.54,.58,.62,.66,.70,.74,.78,.82,.86,.90,.94,.98]
+          for i,f in enumerate(fracs,1):
+              t=max(0,min(d-.15,d*f))
+              subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_frames/frame_{i:02d}.png'],check=True)
+          # Scene 01 is approximately the first 24% of the lesson; sample densely there.
+          for j,f in enumerate([.010,.020,.030,.040,.050,.060,.070,.080,.090,.100,.110,.120,.130,.140,.150,.160,.170,.180,.190,.200],1):
+              t=max(0,min(d-.15,d*f))
+              subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/targeted_scene01/scene01_{j:02d}.png'],check=True)
+          PY
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' -vf 'scale=420:-1,tile=5x5:padding=8:margin=8:color=white' -frames:v 1 delivery/QA_CONTACT_SHEET.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/targeted_scene01/scene01_*.png' -vf 'scale=520:-1,tile=5x4:padding=8:margin=8:color=white' -frames:v 1 delivery/SCENE01_QA_CONTACT_SHEET.png
+
+      - name: Create render report and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          Lesson: Physics 9 — Motion Theory: Achilles and the Tortoise V4 Senior Review
+          Scene: Physics9MotionAchillesFull
+          Initial lead: 10 m
+          Speeds: Achilles 10 m/s; Tortoise 1 m/s
+          Catch time: 10/9 s ≈ 1.111... s
+          Catch position: 100/9 m ≈ 11.111... m
+          Zeno checkpoints: 10, 11, 11.1, 11.11 m
+          Remaining gaps: 1, 0.1, 0.01, 0.001 m
+          Final source SHA-256: c93ee486ad0471d3fcaf278b3b00e49b17aef86cabf3ac1839383d2cc8fd19ef
+          ManimCE: 0.20.1 official Docker image
+          Preview: literal -pql 854x480 15 fps; full lesson
+          Final: literal -pqh 1920x1080 30 fps; LESSON_TIME_SCALE=1.00
+          EOF
+          sha256sum delivery/Physics9_Motion_Achilles_V4_SENIOR_REAL_PQH.mp4 delivery/Physics9_Motion_Achilles_V4_FINAL_pql.mp4 delivery/physics9_motion_achilles_v4_senior.py delivery/QA_CONTACT_SHEET.png delivery/SCENE01_QA_CONTACT_SHEET.png > delivery/SHA256SUMS.txt
+          cat delivery/FFPROBE.txt delivery/DECODE_VERIFICATION.txt delivery/SHA256SUMS.txt > delivery/TECHNICAL_VERIFICATION.txt
+
+      - name: Upload complete final delivery
+        uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Motion-Achilles-V4-SENIOR-FINAL-pqh
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
