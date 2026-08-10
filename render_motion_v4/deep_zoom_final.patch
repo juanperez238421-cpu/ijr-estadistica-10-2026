@@ -9,14 +9,14 @@
              [
                  "Achilles arrives at x = 11.11 m.",
                  "Tortoise is already at x = 11.111 m.",
-@@ -465,16 +465,16 @@
+@@ -465,21 +465,21 @@
          self.play(
              FadeOut(gap3), FadeOut(gap3_lab),
              Transform(track_0, track_3),
 -            achilles.animate.move_to(map_3(11.1) + r_off),
 -            tortoise.animate.move_to(map_3(11.11) + t_off),
-+            achilles.animate.scale(0.72).move_to(map_3(11.1) + r_off * 0.72),
-+            tortoise.animate.scale(0.72).move_to(map_3(11.11) + t_off * 0.72),
++            achilles.animate.scale(0.52).move_to(map_3(11.1) + r_off * 0.52),
++            tortoise.animate.scale(0.52).move_to(map_3(11.11) + t_off * 0.52),
              ReplacementTransform(step3, step4),
              run_time=RUN_SLOW * 1.4,
          )
@@ -25,8 +25,13 @@
              time_tracker.animate.set_value(1.111),
 -            achilles.animate.move_to(map_3(11.11) + r_off),
 -            tortoise.animate.move_to(map_3(11.111) + t_off),
-+            achilles.animate.move_to(map_3(11.11) + r_off * 0.72),
-+            tortoise.animate.move_to(map_3(11.111) + t_off * 0.72),
++            achilles.animate.move_to(map_3(11.11) + r_off * 0.52),
++            tortoise.animate.move_to(map_3(11.111) + t_off * 0.52),
              rate_func=linear,
              run_time=RUN_SLOW * 1.55,
          )
+         gap4 = DoubleArrow(map_3(11.11) + DOWN * 0.40, map_3(11.111) + DOWN * 0.40, buff=0, color=BLACK_LINE, stroke_width=2.5)
+-        gap4_lab = self.math(r"\text{gap}=0.001\,\mathrm{m}", 28).next_to(gap4, DOWN, buff=0.07)
++        gap4_lab = self.math(r"\text{gap}=0.001\,\mathrm{m}", 28).next_to(gap4, RIGHT, buff=0.12)
+         self.play(GrowArrow(gap4), FadeIn(gap4_lab), run_time=RUN_NORMAL)
+         self.wait(PAUSE_EXPLAIN)
