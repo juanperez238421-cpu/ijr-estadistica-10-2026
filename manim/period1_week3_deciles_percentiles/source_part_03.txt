@@ -1,0 +1,153 @@
+        self.play(Write(calc), run_time=RUN_SLOW)
+        self.play(FadeIn(expl), run_time=RUN)
+
+        self.set_step(7)
+        result_text = f"{decile_name} = P{int(k)} = {fmt(sol.value)}" if decile_name else f"P{int(k)} = {fmt(sol.value)}"
+        result = self.note(result_text, 7.8, 0.74, 27).move_to([0, -2.82, 0])
+        self.play(FadeIn(result), run_time=RUN)
+
+        self.set_step(8)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_steps=False)
+        self.step_strip = None
+
+    def lineup_game(self):
+        self.set_header("7 · PERCENTILE LINE-UP GAME", "Turn ordered position into a physical classroom decision")
+        raw = list(self.DATA_A)
+        icons = VGroup(*[self.person_icon(v) for v in raw]).arrange(RIGHT, buff=0.30)
+        self.fit(icons, w=14.0, h=2.3)
+        icons.move_to(UP * 0.92)
+        prompt = self.note("ROUND 1: everyone receives one score card. First mission: line up from smallest to largest.", 13.1, 0.82, 23)
+        prompt.move_to([0, 2.62, 0])
+        self.play(FadeIn(prompt), FadeIn(icons), run_time=RUN_SLOW)
+        self.wait(PAUSE_WORK)
+
+        ordered_vals = sorted(raw)
+        sorted_icons = VGroup(*[self.person_icon(v) for v in ordered_vals]).arrange(RIGHT, buff=0.30)
+        self.fit(sorted_icons, w=14.0, h=2.3)
+        sorted_icons.move_to(UP * 0.92)
+        self.play(Transform(icons, sorted_icons), run_time=RUN_SLOW)
+        indices = VGroup()
+        for i, icon in enumerate(icons, start=1):
+            indices.add(self.t(str(i), 18, NORMAL, color=MID).next_to(icon, DOWN, buff=0.08))
+        self.play(FadeIn(indices), run_time=RUN)
+
+        target = self.m(r"\text{Target: }P_{60}", 42).move_to([0, -1.05, 0])
+        loc = self.m(r"L=\frac{60}{100}(9+1)=6", 39).next_to(target, DOWN, buff=0.25)
+        self.play(Write(target), Write(loc), run_time=RUN_SLOW)
+        self.wait(PAUSE_WORK)
+
+        sixth = icons[5]
+        self.play(Indicate(sixth, color=DARK, scale_factor=1.10), run_time=RUN)
+        self.play(FadeOut(loc), run_time=RUN_FAST)
+        result = self.note("Position 6 holds 29, so P60 = 29 using the Week 3 course convention.", 11.6, 0.80, 24)
+        result.move_to([0, -2.34, 0])
+        self.play(FadeIn(result), run_time=RUN)
+        rule = self.note("Game rule: ORDER → LOCATE → POINT → JUSTIFY. The formula is useless until the line is ordered.", 12.8, 0.78, 22)
+        rule.move_to([0, -3.10, 0])
+        self.play(FadeIn(rule), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage()
+
+    def challenge(self):
+        sol = percentile_course(self.DATA_B, 55)
+        self.set_header("8 · CHALLENGE", "Can you locate a percentile that falls between two observations?")
+        self.set_step(1)
+        raw = self.data_row(sol.raw, 1.78, "RAW")
+        task = self.note("Find P55. Show the ordered data, locator, neighbors and interpolation.", 11.7, 0.82, 24).move_to([0, 0.62, 0])
+        self.play(FadeIn(raw), FadeIn(task), run_time=RUN)
+        self.wait(PAUSE_WORK)
+
+        ordered = self.data_row(sol.ordered, 1.00, "ORDERED")
+        self.play(FadeOut(task), Transform(raw, ordered), run_time=RUN_SLOW)
+        self.set_step(2)
+        n = self.m(r"n=9", 37).move_to([0, 0.05, 0])
+        self.play(Write(n), run_time=RUN_FAST)
+        self.set_step(3)
+        k = self.m(r"k=55", 37).move_to([0, -0.55, 0])
+        self.play(Write(k), run_time=RUN_FAST)
+        self.set_step(4)
+        loc = self.m(r"L=\frac{55}{100}(9+1)=5.5", 40).move_to([0, -1.18, 0])
+        self.play(Write(loc), run_time=RUN)
+        self.set_step(5)
+        neighbors = self.m(r"x_5=36,\qquad x_6=40", 39).move_to([0, -1.82, 0])
+        self.play(Write(neighbors), run_time=RUN)
+        self.set_step(6)
+        calc = self.m(r"P_{55}=36+0.5(40-36)=38", 43).move_to([0, -2.48, 0])
+        self.play(Write(calc), run_time=RUN_SLOW)
+        self.set_step(7)
+        ans = self.note("P55 = 38", 6.5, 0.68, 27).move_to([0, -3.06, 0])
+        self.play(FadeIn(ans), run_time=RUN)
+        self.set_step(8)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_steps=False)
+        self.step_strip = None
+
+    def convention_checkpoint(self):
+        self.set_header("9 · METHOD CHECKPOINT", "Do not mix sample conventions")
+        left = self.panel(6.4, 3.35)
+        lt = self.t("WEEK 2 · QUARTILES", 26, BOLD).move_to(left).shift(UP * 1.15)
+        l1 = self.t("Median of the ordered list", 24).move_to(left).shift(UP * 0.42)
+        l2 = self.t("Split lower / upper halves", 24).move_to(left).shift(DOWN * 0.15)
+        l3 = self.t("Median of each half", 24).move_to(left).shift(DOWN * 0.72)
+        lg = VGroup(left, lt, l1, l2, l3)
+
+        right = self.panel(6.4, 3.35)
+        rt = self.t("WEEK 3 · PERCENTILES", 26, BOLD).move_to(right).shift(UP * 1.15)
+        r1 = self.m(r"L=\frac{k}{100}(n+1)", 36).move_to(right).shift(UP * 0.35)
+        r2 = self.t("Use the ordered positions", 24).move_to(right).shift(DOWN * 0.30)
+        r3 = self.t("Interpolate when L is decimal", 24).move_to(right).shift(DOWN * 0.88)
+        rg = VGroup(right, rt, r1, r2, r3)
+
+        pair = VGroup(lg, rg).arrange(RIGHT, buff=0.55).move_to(UP * 0.52)
+        self.play(FadeIn(pair), run_time=RUN_SLOW)
+        note = self.note("Professional rule: state the convention. Different calculators may return slightly different sample percentiles.", 13.4, 0.84, 23)
+        note.move_to([0, -2.18, 0])
+        self.play(FadeIn(note), run_time=RUN)
+        takeaway = self.note("The concept is stable: percentiles describe relative position in an ordered distribution.", 12.6, 0.82, 24)
+        takeaway.move_to([0, -3.05, 0])
+        self.play(FadeIn(takeaway), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage()
+
+    def final_recipe(self):
+        self.set_header("10 · FINAL RECIPE", "Use the same route every time")
+        rows = VGroup()
+        descriptions = (
+            "Sort from smallest to largest.",
+            "Count the observations.",
+            "Convert decile to percentile if needed.",
+            "Compute L = (k/100)(n+1).",
+            "Identify the ordered position(s).",
+            "Interpolate only when L is decimal.",
+            "Write Pk or Dj with its value.",
+            "Explain the relative position in words.",
+        )
+        for i, (name, desc) in enumerate(zip(self.STEP_NAMES, descriptions), start=1):
+            num = Circle(radius=0.22, stroke_color=DARK, stroke_width=1.5, fill_color=VERY_LIGHT, fill_opacity=1)
+            ntx = self.t(str(i), 18, BOLD).move_to(num)
+            title = self.t(name, 22, BOLD, color=DARK)
+            body = self.t(desc, 21, NORMAL, color=MID)
+            line = VGroup(VGroup(num, ntx), title, body).arrange(RIGHT, buff=0.28)
+            rows.add(line)
+        rows.arrange(DOWN, aligned_edge=LEFT, buff=0.22)
+        self.fit(rows, w=13.6, h=5.15)
+        rows.move_to([0, 0.18, 0])
+        self.play(LaggedStart(*[FadeIn(r, shift=RIGHT * 0.18) for r in rows], lag_ratio=0.11), run_time=2.4)
+        closing = self.note("NEXT: Week 4 — interpret percentiles in sports, academic and real-data contexts.", 12.1, 0.80, 24)
+        closing.move_to([0, -3.16, 0])
+        self.play(FadeIn(closing), run_time=RUN)
+        self.wait(PAUSE_SUMMARY)
+
+    def construct(self):
+        self.opening()
+        self.bridge_and_meaning()
+        self.deciles()
+        self.method()
+        self.worked_percentile(30, "4 · WORKED EXAMPLE A", "P30 with an integer location")
+        self.worked_percentile(40, "5 · WORKED EXAMPLE B", "D4 becomes P40", decile_name="D_4")
+        self.worked_percentile(65, "6 · WORKED EXAMPLE C", "P65 requires interpolation")
+        self.lineup_game()
+        self.challenge()
+        self.convention_checkpoint()
+        self.final_recipe()
