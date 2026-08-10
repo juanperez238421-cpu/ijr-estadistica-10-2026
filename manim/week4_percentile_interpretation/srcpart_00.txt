@@ -1,0 +1,50 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Period 1 · Week 4 — Percentile Interpretation.
+
+Senior classroom edition. Direct continuation of Week 3 Deciles & Percentiles.
+
+Week 3 answered:  WHERE is P_k and what value does it have?
+Week 4 answers:  WHAT DOES that percentile statement mean in context?
+
+Interpretation route used throughout:
+1. READ
+2. IDENTIFY k
+3. IDENTIFY VALUE
+4. BELOW / AT
+5. ABOVE / AT
+6. CONTEXT
+7. CHECK CLAIM
+8. COMMUNICATE
+
+Core classroom statement:
+    If P_k = x, then approximately k% of the ordered observations are at or
+    below x, and approximately (100-k)% are at or above x.
+
+Important qualification:
+- Percentiles describe relative position in an ordered distribution.
+- A percentile number is not a percent of the raw value.
+- When context changes, "higher percentile" does not automatically mean
+  "better" performance (for example, race time where lower is better).
+- Comparing percentile ranks across different groups/tests describes relative
+  standing, not necessarily a larger raw score.
+
+Target: Manim Community Edition 0.20.x, 1920x1080, 30 fps, white classroom
+style. Final render must use literal `-pqh`.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Iterable
+
+from manim import *
+
+# ---------------------------------------------------------------------------
+# Render configuration
+# ---------------------------------------------------------------------------
+config.pixel_width = 1920
+config.pixel_height = 1080
+config.frame_width = 16
+config.frame_height = 9
+config.frame_rate = 30
+config.background_color = WHITE
