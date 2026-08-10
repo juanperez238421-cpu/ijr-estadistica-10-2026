@@ -1,0 +1,59 @@
+--- physics9_motion_achilles_v5_2_frame_audited.py
++++ physics9_motion_achilles_v5_2_frame_audited.py
+@@ -392,13 +392,13 @@
+         )
+         step2.move_to(checkpoint)
+         self.play(
+-            FadeOut(gap1), FadeOut(gap1_lab),
++            FadeOut(gap1), FadeOut(gap1_lab), FadeOut(checkpoint),
+             Transform(track_0, track_1),
+             achilles.animate.move_to(map_1(10.0) + r_off),
+             tortoise.animate.move_to(map_1(11.0) + t_off),
+-            ReplacementTransform(checkpoint, step2),
+             run_time=RUN_SLOW * 1.4,
+         )
++        self.play(FadeIn(step2), run_time=RUN_NORMAL)
+         self.wait(PAUSE_READ)
+         self.play(
+             time_tracker.animate.set_value(1.1),
+@@ -426,13 +426,13 @@
+         )
+         step3.move_to(step2)
+         self.play(
+-            FadeOut(gap2), FadeOut(gap2_lab),
++            FadeOut(gap2), FadeOut(gap2_lab), FadeOut(step2),
+             Transform(track_0, track_2),
+             achilles.animate.move_to(map_2(11.0) + r_off),
+             tortoise.animate.move_to(map_2(11.1) + t_off),
+-            ReplacementTransform(step2, step3),
+             run_time=RUN_SLOW * 1.4,
+         )
++        self.play(FadeIn(step3), run_time=RUN_NORMAL)
+         self.wait(PAUSE_READ)
+         self.play(
+             time_tracker.animate.set_value(1.11),
+@@ -460,13 +460,13 @@
+         )
+         step4.move_to(step3)
+         self.play(
+-            FadeOut(gap3), FadeOut(gap3_lab),
++            FadeOut(gap3), FadeOut(gap3_lab), FadeOut(step3),
+             Transform(track_0, track_3),
+             achilles.animate.scale(0.52).move_to(map_3(11.1) + r_off * 0.52),
+             tortoise.animate.scale(0.52).move_to(map_3(11.11) + t_off * 0.52),
+-            ReplacementTransform(step3, step4),
+             run_time=RUN_SLOW * 1.4,
+         )
++        self.play(FadeIn(step4), run_time=RUN_NORMAL)
+         self.wait(PAUSE_READ)
+         self.play(
+             time_tracker.animate.set_value(1.111),
+@@ -497,7 +497,8 @@
+             max_text_height=2.25,
+         )
+         question.move_to(step4)
+-        self.play(FadeOut(gap4), FadeOut(gap4_lab), ReplacementTransform(step4, question), run_time=RUN_NORMAL)
++        self.play(FadeOut(gap4), FadeOut(gap4_lab), FadeOut(step4), run_time=RUN_NORMAL)
++        self.play(FadeIn(question), run_time=RUN_NORMAL)
+         self.wait(PAUSE_SUMMARY)
+         self.clear_stage()
