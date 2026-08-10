@@ -21,15 +21,15 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          echo '4eabc71ec68ccb3322d684daff415feb68e915d1177a83eaa9c2d38e4ffe7214  render_motion_v4/source_v4.part01' | sha256sum -c -
-          echo 'c906988e3ff50af497e34cf7a963e08b78cca1446f4742b017035cb091079264  render_motion_v4/source_v4.part02' | sha256sum -c -
-          echo '82525f348e8c566ca6cec19317a8865b5409dff2d6b0e149f59fe052cfb67e5c  render_motion_v4/source_v4.part03' | sha256sum -c -
-          echo '557553be52e58b671fe676014aa72616d2e07c74355825590125f39d772211d3  render_motion_v4/source_v4.part04' | sha256sum -c -
-          echo 'dcceb8c144d47fb4ecfbf2c6b04b9aac77134e7efa0c0bb15e3586d95e34831e  render_motion_v4/source_v4.part05' | sha256sum -c -
+          echo 'b87de70c2d518faf94822c9eab40f5271bb86fd4ea71ae8ef85a6d55d0b63c50  render_motion_v4/source_v4.part01' | sha256sum -c -
+          echo 'da5a1ee37c2b321aa7432b8f5914bb788ead8873e73bd5152bf5d6ebe134f3ec  render_motion_v4/source_v4.part02' | sha256sum -c -
+          echo '9b23aa84df462e030a1a3a9a227a519812ed658d1a3b4ee80a753f99ff1d6086  render_motion_v4/source_v4.part03' | sha256sum -c -
+          echo '9442462b562ceb38bd994a1e8d5158f27ff2d484da74d3ede37b1293e62a88c0  render_motion_v4/source_v4.part04' | sha256sum -c -
+          echo '3afff039a7793ce746c77bb326234ddc4d9da85123b4acb04cef34c5542c25d4  render_motion_v4/source_v4.part05' | sha256sum -c -
           cat render_motion_v4/source_v4.part01 render_motion_v4/source_v4.part02 render_motion_v4/source_v4.part03 render_motion_v4/source_v4.part04 render_motion_v4/source_v4.part05 > /tmp/v4.b64
-          echo 'b67b37ef8321731dbe54938d67b408fabc276b2ee78102a8b75c0953c9422df6  /tmp/v4.b64' | sha256sum -c -
+          echo 'cee2bab40b7114aa986d91505334183b102ffee703a1dce171e945f72800b586  /tmp/v4.b64' | sha256sum -c -
           base64 -d /tmp/v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
-          echo '939a5dc5cfe931d23a79407cd9df7ba70047bbe1054b746882b3bc894d70b9c0  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          echo 'fa062f56872a807dc2add7e46183290651910945134981a4dad465808810e2a9  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
 
           base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
           base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
