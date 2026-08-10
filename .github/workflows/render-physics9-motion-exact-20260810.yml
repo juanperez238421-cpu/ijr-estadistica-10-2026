@@ -12,56 +12,52 @@ jobs:
   render:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore exact user source and JP style
+      - name: Rebuild exact source and JP dependencies
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
 
-          echo "30cf9cf98953767027e270620241b5881698f39eac432b8c7f1fdbe675926a13  render_motion_exact_20260810/source_exact.b64" | sha256sum -c -
+          echo "eaee50e95dead2b251a8750c4bdba840f68a36fcef4694c5c6cfd36bb6ee3162  render_motion_exact_20260810/source_chunk_01.txt" | sha256sum -c -
+          echo "af0cab930270cfd641ddb341f02b3264ce24c0dd9134eaacb197e222b0022bc5  render_motion_exact_20260810/source_chunk_02.txt" | sha256sum -c -
+          echo "835517626c49440ba06216fe2efea55b81c96555fae9dbdbbe565fb930feb611  render_motion_exact_20260810/source_chunk_03.txt" | sha256sum -c -
+          echo "2d8b08ceda9c57e7550b6a28cdd623553bd4aa9d0794f22600960d5f32c2aa9f  render_motion_exact_20260810/source_chunk_04.txt" | sha256sum -c -
+          echo "0e2a2510c557fd4b408435e186bad69fd894e129a4d4c4a3cdeeaf8d62abcca2  render_motion_exact_20260810/source_chunk_05.txt" | sha256sum -c -
+          cat render_motion_exact_20260810/source_chunk_*.txt > source_exact_rebuilt.b64
+          echo "30cf9cf98953767027e270620241b5881698f39eac432b8c7f1fdbe675926a13  source_exact_rebuilt.b64" | sha256sum -c -
+          base64 -d source_exact_rebuilt.b64 | gzip -d > physics9_motion_exact_user_v3.py
+          echo "addb0a92bbf8410cbe9dc7930bfa662250e760f3b578e11c4d78c7ba25af8ad3  physics9_motion_exact_user_v3.py" | sha256sum -c -
+
           echo "0b1fb11f14ac42d150e44231aece022b12e82109949a735744f72aac630a1d8d  render_motion_exact_20260810/style_exact.b64" | sha256sum -c -
           echo "2b8ad2b10d3a2a1deb342ca87d60ba8ea8c1fd28c5ac2b54aa4ca33983e89fd0  render_motion_exact_20260810/checker_exact.b64" | sha256sum -c -
-
-          base64 -d render_motion_exact_20260810/source_exact.b64 | gzip -d > physics9_motion_exact_user_v3.py
           base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
           base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
           cp render_motion_exact_20260810/render_driver.py render_driver.py
+          sed -i 's/physics9_motion_exact_user/physics9_motion_exact_user_v3/g' render_driver.py
           touch library/__init__.py
 
-          echo "addb0a92bbf8410cbe9dc7930bfa662250e760f3b578e11c4d78c7ba25af8ad3  physics9_motion_exact_user_v3.py" | sha256sum -c -
           echo "3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py" | sha256sum -c -
           echo "d2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py" | sha256sum -c -
+          cp physics9_motion_exact_user_v3.py library/jp_classroom_style.py tools/check_manim_style.py render_driver.py delivery/
 
-          cp physics9_motion_exact_user_v3.py delivery/
-          cp library/jp_classroom_style.py delivery/
-          cp tools/check_manim_style.py delivery/
-          cp render_driver.py delivery/
-
-      - name: Point compatibility driver to exact V3 source
+      - name: Static validation
         shell: bash
         run: |
           set -euo pipefail
-          sed -i 's/physics9_motion_exact_user/physics9_motion_exact_user_v3/g' render_driver.py
           python -m py_compile physics9_motion_exact_user_v3.py render_driver.py
-
-      - name: Static source validation
-        shell: bash
-        run: |
-          set -euo pipefail
           python tools/check_manim_style.py physics9_motion_exact_user_v3.py | tee delivery/STYLE_QA.txt
-          grep -q '^class Physics9MotionAchillesFull' physics9_motion_exact_user_v3.py
           grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
+          grep -q '^class Physics9MotionAchillesFull' physics9_motion_exact_user_v3.py
           grep -q 'config.pixel_width = 1920' library/jp_classroom_style.py
           grep -q 'config.pixel_height = 1080' library/jp_classroom_style.py
           grep -q 'config.frame_rate = 30' library/jp_classroom_style.py
           grep -q 'config.background_color = WHITE' library/jp_classroom_style.py
 
-      - name: Prepare real ManimCE 0.20.1 environment
+      - name: Prepare ManimCE 0.20.1
         shell: bash
         run: |
           set -euo pipefail
@@ -69,85 +65,52 @@ jobs:
           sudo apt-get install -y -qq ffmpeg python3-pil
           docker pull manimcommunity/manim:v0.20.1
 
-      - name: Run numerical lesson assertions
+      - name: Numerical assertions
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -e HOME=/tmp/manim-home \
-            -v "$PWD:/manim" \
-            -w /manim \
-            --entrypoint bash \
-            manimcommunity/manim:v0.20.1 \
-            -c 'python physics9_motion_exact_user_v3.py' \
-            | tee delivery/MOTION_ASSERTIONS.txt
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 \
+            -c 'python physics9_motion_exact_user_v3.py' | tee delivery/MOTION_ASSERTIONS.txt
           grep -q 'Motion lesson assertions passed.' delivery/MOTION_ASSERTIONS.txt
 
-      - name: Render complete literal pql preview through compatibility driver
+      - name: Full pql protocol render
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -e HOME=/tmp/manim-home \
-            -e LESSON_TIME_SCALE=0.10 \
-            -v "$PWD:/manim" \
-            -w /manim \
-            --entrypoint bash \
-            manimcommunity/manim:v0.20.1 \
-            -c '
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
               set -euo pipefail
               mkdir -p /tmp/manim-home /tmp/manim-bin delivery
               printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
-              chmod +x /tmp/manim-bin/xdg-open
-              export PATH="/tmp/manim-bin:$PATH"
-              manim -pql --fps 15 -r 854,480 \
-                render_driver.py Physics9MotionAchillesFull \
-                --format=mp4 --disable_caching --media_dir media_preview
-              V=$(find media_preview -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
-              test -n "$V"
-              test -s "$V"
+              chmod +x /tmp/manim-bin/xdg-open; export PATH="/tmp/manim-bin:$PATH"
+              manim -pql --fps 15 -r 854,480 render_driver.py Physics9MotionAchillesFull --format=mp4 --disable_caching --media_dir media_preview
+              V=$(find media_preview -type f -name Physics9MotionAchillesFull.mp4 -print -quit); test -s "$V"
               cp "$V" delivery/Physics9_Motion_Exact_V3_pql.mp4
             '
           ffmpeg -v error -i delivery/Physics9_Motion_Exact_V3_pql.mp4 -f null -
 
-      - name: Render exact final literal pqh through compatibility driver
+      - name: Final literal pqh render
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -e HOME=/tmp/manim-home \
-            -e LESSON_TIME_SCALE=1.00 \
-            -v "$PWD:/manim" \
-            -w /manim \
-            --entrypoint bash \
-            manimcommunity/manim:v0.20.1 \
-            -c '
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
               set -euo pipefail
               mkdir -p /tmp/manim-home /tmp/manim-bin delivery
               printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
-              chmod +x /tmp/manim-bin/xdg-open
-              export PATH="/tmp/manim-bin:$PATH"
-              manim -pqh --fps 30 -r 1920,1080 \
-                render_driver.py Physics9MotionAchillesFull \
-                --format=mp4 --disable_caching --media_dir media_final
-              V=$(find media_final -type f -name Physics9MotionAchillesFull.mp4 -print -quit)
-              test -n "$V"
-              test -s "$V"
+              chmod +x /tmp/manim-bin/xdg-open; export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh --fps 30 -r 1920,1080 render_driver.py Physics9MotionAchillesFull --format=mp4 --disable_caching --media_dir media_final
+              V=$(find media_final -type f -name Physics9MotionAchillesFull.mp4 -print -quit); test -s "$V"
               cp "$V" delivery/Physics9_Motion_Exact_V3_FINAL_pqh.mp4
             '
 
-      - name: Verify final video technically
+      - name: Technical verification
         shell: bash
         run: |
           set -euo pipefail
           V=delivery/Physics9_Motion_Exact_V3_FINAL_pqh.mp4
-          ffprobe -v error -select_streams v:0 \
-            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames \
-            -show_entries format=duration,size \
-            -of default=noprint_wrappers=1 "$V" | tee delivery/FFPROBE.txt
+          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames -show_entries format=duration,size -of default=noprint_wrappers=1 "$V" | tee delivery/FFPROBE.txt
           grep -qx 'codec_name=h264' delivery/FFPROBE.txt
           grep -qx 'width=1920' delivery/FFPROBE.txt
           grep -qx 'height=1080' delivery/FFPROBE.txt
@@ -155,7 +118,7 @@ jobs:
           grep -qx 'pix_fmt=yuv420p' delivery/FFPROBE.txt
           ffmpeg -v error -i "$V" -f null -
 
-      - name: Create visual QA frames
+      - name: Visual QA contact sheet
         shell: bash
         run: |
           set -euo pipefail
@@ -164,43 +127,31 @@ jobs:
           D=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$V")
           python - "$D" <<'PY'
           import subprocess, sys
-          v='delivery/Physics9_Motion_Exact_V3_FINAL_pqh.mp4'
-          d=float(sys.argv[1])
-          fractions=[.02,.06,.10,.14,.18,.22,.26,.30,.34,.38,.42,.46,.50,.54,.58,.62,.66,.70,.74,.78,.82,.86,.90,.94,.98]
-          for i,f in enumerate(fractions,1):
+          v='delivery/Physics9_Motion_Exact_V3_FINAL_pqh.mp4'; d=float(sys.argv[1])
+          for i,f in enumerate([.02,.06,.10,.14,.18,.22,.26,.30,.34,.38,.42,.46,.50,.54,.58,.62,.66,.70,.74,.78,.82,.86,.90,.94,.98],1):
               t=max(0,min(d-.15,d*f))
               subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_frames/frame_{i:02d}.png'],check=True)
           PY
-          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' \
-            -vf 'scale=420:-1,tile=5x5:padding=8:margin=8:color=white' \
-            -frames:v 1 delivery/QA_CONTACT_SHEET.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' -vf 'scale=420:-1,tile=5x5:padding=8:margin=8:color=white' -frames:v 1 delivery/QA_CONTACT_SHEET.png
 
-      - name: Create render report and hashes
+      - name: Report and hashes
         shell: bash
         run: |
           set -euo pipefail
           cat > delivery/RENDER_INFO.txt <<'EOF'
           Lesson: Physics 9 — Motion Theory: Achilles and the Tortoise V3
           Scene: Physics9MotionAchillesFull
-          Source: exact user attachment; no source edits
+          Source: exact user attachment; byte-identical
           Source SHA-256: addb0a92bbf8410cbe9dc7930bfa662250e760f3b578e11c4d78c7ba25af8ad3
-          Runtime compatibility: external render_driver.py only unwraps structured JP helper `.group` values passed to source-module VGroup; the lesson source remains byte-identical.
-          Style: JP Classroom Manim Standard
+          Runtime compatibility: external driver only unwraps structured JP helper .group values passed into source-module VGroup.
           ManimCE: 0.20.1 official Docker image
-          Preview: literal -pql, 854x480, 15 fps, LESSON_TIME_SCALE=0.10
-          Final: literal -pqh, 1920x1080, 30 fps, LESSON_TIME_SCALE=1.00
+          Preview: literal -pql, 854x480, 15 fps
+          Final: literal -pqh, 1920x1080, 30 fps
           EOF
-          sha256sum \
-            delivery/Physics9_Motion_Exact_V3_FINAL_pqh.mp4 \
-            delivery/Physics9_Motion_Exact_V3_pql.mp4 \
-            delivery/physics9_motion_exact_user_v3.py \
-            delivery/jp_classroom_style.py \
-            delivery/render_driver.py \
-            delivery/QA_CONTACT_SHEET.png \
-            > delivery/SHA256SUMS.txt
+          sha256sum delivery/Physics9_Motion_Exact_V3_FINAL_pqh.mp4 delivery/Physics9_Motion_Exact_V3_pql.mp4 delivery/physics9_motion_exact_user_v3.py delivery/jp_classroom_style.py delivery/render_driver.py delivery/QA_CONTACT_SHEET.png > delivery/SHA256SUMS.txt
           cat delivery/FFPROBE.txt delivery/SHA256SUMS.txt > delivery/TECHNICAL_VERIFICATION.txt
 
-      - name: Upload complete delivery artifact
+      - name: Upload delivery
         if: always()
         uses: actions/upload-artifact@v4
         with:
