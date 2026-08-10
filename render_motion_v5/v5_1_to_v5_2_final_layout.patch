@@ -1,0 +1,20 @@
+--- physics9_motion_achilles_v5_frame_audited.py
++++ physics9_motion_achilles_v5_frame_audited.py
+@@ -755,7 +755,7 @@
+ 
+         number_group, line = self.number_line_motion()
+         # Keep the axis descriptor away from the displacement annotation.
+-        number_group[1].align_to(line, LEFT).shift(RIGHT * 0.08)
++        number_group[1].move_to(line.n2p(8.25) + DOWN * 0.72)
+         runner = self.runner_icon(0.82)
+         
+         # Position runner on the track
+@@ -934,7 +934,7 @@
+         rest = Line(axes.c2p(0.7, 9.5), axes.c2p(4.8, 9.5), color=MID_GRAY, stroke_width=3.2)
+         negative = Line(axes.c2p(2.2, 9.0), axes.c2p(5.0, 3.0), color=DARK_GRAY, stroke_width=3.0)
+         # Keep each label in a dedicated open region; labels must never sit on the line intersections.
+-        lab_pos = self.text("+ slope", 26, BOLD).move_to(axes.c2p(2.35, 4.6))
++        lab_pos = self.text("+ slope", 26, BOLD).move_to(axes.c2p(1.35, 5.65))
+         lab_rest = self.text("zero slope", 26, BOLD).move_to(axes.c2p(2.80, 10.65))
+         lab_neg = self.text("− slope", 26, BOLD).move_to(axes.c2p(4.45, 2.05))
+         graph_group = VGroup(axes, xl, yl, positive, rest, negative, lab_pos, lab_rest, lab_neg)
