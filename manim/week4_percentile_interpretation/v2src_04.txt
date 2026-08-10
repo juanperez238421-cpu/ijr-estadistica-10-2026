@@ -1,0 +1,100 @@
+
+        self.set_step(4)
+        pair = self.meaning_pair(st, y=-1.08)
+        self.play(FadeIn(pair[0]), run_time=RUN)
+
+        self.set_step(5)
+        self.play(FadeIn(pair[1]), run_time=RUN)
+
+        self.set_step(6)
+        cnote = self.note(context_note, 12.2, 0.84, 23.2).move_to([0, -2.30, 0])
+        self.play(FadeIn(cnote), run_time=RUN)
+        if performance_note:
+            perf = self.note(performance_note, 12.2, 0.84, 22.5).move_to([0, -2.30, 0])
+            self.play(Transform(cnote, perf), run_time=RUN)
+
+        self.set_step(7)
+        check = self.note(
+            f"CHECK: {st.k} is the percentile rank; it is not {st.k}% of {fmt(st.value)} {st.unit}.",
+            11.5, 0.82, 22.5
+        ).move_to([0, -2.30, 0])
+        self.play(Transform(cnote, check), run_time=RUN)
+
+        self.set_step(8)
+        if communication_note is None:
+            communication_note = (
+                f"About {st.k}% of {st.context}s are at or below "
+                f"{fmt(st.value)} {st.unit}; about {st.above}% are above it."
+            )
+        final = self.note(
+            communication_note, 12.4, 0.88, 21.8
+        ).move_to([0, -2.30, 0])
+        self.play(Transform(cnote, final), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False, keep_steps=False)
+        self.step_strip = None
+
+    def comparison_scene(self):
+        self.set_header("COMPARE PERCENTILE RANKS", "Relative standing can be compared — raw values may not be comparable")
+        left = self.panel(5.9, 2.05, fill=WHITE, stroke=DARK, sw=1.5)
+        right = self.panel(5.9, 2.05, fill=WHITE, stroke=DARK, sw=1.5)
+        a1 = self.t("Student A", 28, BOLD)
+        a2 = self.t("Percentile rank = 80", 31, BOLD)
+        a3 = self.t("80th percentile on Test A", 23, NORMAL, color=MID)
+        b1 = self.t("Student B", 28, BOLD)
+        b2 = self.t("Percentile rank = 65", 31, BOLD)
+        b3 = self.t("65th percentile on Test B", 23, NORMAL, color=MID)
+        ag = VGroup(a1, a2, a3).arrange(DOWN, buff=0.13); self.fit(ag, w=5.3, h=1.5); ag.move_to(left)
+        bg = VGroup(b1, b2, b3).arrange(DOWN, buff=0.13); self.fit(bg, w=5.3, h=1.5); bg.move_to(right)
+        cards = VGroup(VGroup(left, ag), VGroup(right, bg)).arrange(RIGHT, buff=0.55).move_to([0, 1.25, 0])
+        self.play(FadeIn(cards), run_time=RUN_SLOW)
+        rel = self.note("Student A has the higher RELATIVE POSITION within their own comparison group.", 12.2, 0.84, 24).move_to([0, -0.40, 0])
+        raw = self.note("You cannot conclude that Student A has the higher RAW SCORE unless the tests/scales are comparable.", 12.2, 0.84, 23.2).move_to([0, -1.40, 0])
+        self.play(FadeIn(rel), run_time=RUN)
+        self.play(FadeIn(raw), run_time=RUN)
+        context = self.note(
+            "Notation check: P80 names a percentile cutoff/value; “80th percentile” describes a person's percentile rank.",
+            12.2, 0.80, 22.5
+        ).move_to([0, -2.35, 0])
+        self.play(FadeIn(context), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def claim_clinic(self):
+        self.set_header("CLAIM CLINIC", "For P70 = 82, decide whether each statement is valid")
+        prompt = self.formula_panel(r"P_{70}=82", 4.7, 1.02, 48).move_to([0, 2.45, 0])
+        self.play(FadeIn(prompt), run_time=RUN)
+        claims = (
+            self.claim_card("About 70% are at or below 82.", "TRUE", "This is the direct percentile interpretation.", 1.05),
+            self.claim_card("82 is 70% of the maximum score.", "FALSE", "A percentile rank is not a percent of the raw score.", -0.18),
+            self.claim_card("About 30% are above 82.", "TRUE", "This is the approximate complementary side: 100 − 70 = 30.", -1.41),
+            self.claim_card("Every student below P70 scored exactly the same.", "FALSE", "Percentiles describe relative position, not equal values.", -2.64),
+        )
+        for c in claims:
+            self.play(FadeIn(c, shift=UP * 0.06), run_time=RUN)
+            self.wait(0.45)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def reverse_reading(self):
+        st = self.REVERSE
+        self.set_header("REVERSE READING", "Translate a contextual sentence back into percentile notation")
+        sentence = self.note(
+            "About 85% of students scored at or below 88 points on the final test.",
+            12.3, 1.00, 26, fill=WHITE
+        ).move_to([0, 2.05, 0])
+        self.play(FadeIn(sentence), run_time=RUN)
+        k = self.note("percentile rank → 85", 4.8, 0.80, 24).move_to([-2.65, 0.70, 0])
+        v = self.note("percentile value → 88", 4.8, 0.80, 24).move_to([2.65, 0.70, 0])
+        self.play(FadeIn(k), FadeIn(v), run_time=RUN)
+        notation = self.formula_panel(r"P_{85}=88", 5.2, 1.15, 50).move_to([0, -0.75, 0])
+        self.play(FadeIn(notation), run_time=RUN_SLOW)
+        check = self.note("Check: about 15% are above 88 because 100 − 85 = 15.", 10.8, 0.82, 24).move_to([0, -2.13, 0])
+        self.play(FadeIn(check), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def challenge(self):
+        st = self.CHALLENGE
+        self.set_header("FINAL CHALLENGE", "Interpret P35 = 14.2 ms without using the calculation algorithm")
+        self.set_step(1)

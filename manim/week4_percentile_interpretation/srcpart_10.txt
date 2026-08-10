@@ -1,0 +1,38 @@
+            self.fit(g, w=3.85, h=0.82); g.move_to(box)
+            cards.add(VGroup(box, g))
+        rows = VGroup(
+            VGroup(*cards[:3]).arrange(RIGHT, buff=0.30),
+            VGroup(*cards[3:]).arrange(RIGHT, buff=0.30),
+        ).arrange(DOWN, buff=0.34).move_to([0, 0.60, 0])
+        self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.05) for c in cards], lag_ratio=0.08), run_time=1.8)
+        key = self.formula_panel(
+            r"P_k=x\;\Longrightarrow\;\approx k\%\text{ at/below }x,\quad\approx(100-k)\%\text{ at/above }x",
+            12.7, 1.05, 34
+        ).move_to([0, -2.10, 0])
+        self.play(FadeIn(key), run_time=RUN)
+        next_topic = self.note("Next: Five-number summary and the road back to box-and-whisker plots.", 11.4, 0.80, 23.5).move_to([0, -3.02, 0])
+        self.play(FadeIn(next_topic), run_time=RUN)
+        self.wait(PAUSE_SUMMARY)
+
+    def construct(self):
+        self.opening()
+        self.bridge_week3()
+        self.interpretation_template()
+        self.worked_context(
+            1, self.EXAM, "EXAM SCORE · P70 = 82",
+            "Meaning: about 70% of scores are at or below 82 points; about 30% are at or above 82.",
+        )
+        self.worked_context(
+            2, self.RACE, "100 m TIME · P25 = 12.4 s",
+            "Numerical meaning stays the same: about 25% of times are at or below 12.4 s.",
+            "Performance meaning changes with context: for race time, LOWER values can represent faster performance.",
+        )
+        self.worked_context(
+            3, self.HEIGHT, "HEIGHT · P90 = 175 cm",
+            "About 90% of observed heights are at or below 175 cm; about 10% are at or above 175 cm.",
+        )
+        self.comparison_scene()
+        self.claim_clinic()
+        self.reverse_reading()
+        self.challenge()
+        self.final_recipe()

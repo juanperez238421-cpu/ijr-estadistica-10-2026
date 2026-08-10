@@ -1,0 +1,100 @@
+        self.fit(content, w=width - 0.48, h=0.82)
+        content.move_to(box)
+        return VGroup(box, content).move_to([0, y, 0])
+
+    # ------------------------------------------------------------------
+    # Scene sequence
+    # ------------------------------------------------------------------
+    def opening(self):
+        title = self.t("STATISTICS 10 · WEEK 4", 31, BOLD, color=DARK)
+        subtitle = self.t("PERCENTILE INTERPRETATION", 44, BOLD)
+        line = self.t("A percentile is a relative-position statement — not a percentage of the raw value.", 27, NORMAL, color=MID)
+        group = VGroup(title, subtitle, line).arrange(DOWN, buff=0.32).move_to(UP * 0.55)
+        self.play(FadeIn(title), Write(subtitle), run_time=RUN_SLOW)
+        self.play(FadeIn(line), run_time=RUN)
+        bridge = self.note("Week 3 found percentile values. Week 4 explains what those values mean.", 12.0, 0.86, 25).move_to([0, -1.58, 0])
+        self.play(FadeIn(bridge), run_time=RUN)
+        self.wait(PAUSE_READ)
+        self.play(FadeOut(group), FadeOut(bridge), run_time=RUN_FAST)
+
+    def bridge_week3(self):
+        self.set_header("BRIDGE FROM WEEK 3", "Calculation gives the value; interpretation gives the meaning")
+        calc = self.formula_panel(r"P_{60}=29", 4.6, 1.18, 50).move_to([-3.35, 1.65, 0])
+        q = self.t("What does 29 mean?", 35, BOLD).move_to([3.15, 1.65, 0])
+        arrow = Arrow([-1.05, 1.65, 0], [1.28, 1.65, 0], buff=0.10, color=DARK, stroke_width=3)
+        self.play(FadeIn(calc), GrowArrow(arrow), FadeIn(q), run_time=RUN_SLOW)
+        bar = self.percentile_bar(60, "29", width=11.2, y=0.25)
+        self.play(Create(bar[0]), Create(bar[1]), FadeIn(bar[2]), FadeIn(bar[3]), FadeIn(bar[4]), run_time=RUN_SLOW)
+        meaning = self.note("Interpretation: about 60% of the ordered observations are at or below 29; about 40% are above 29.", 12.4, 0.86, 25).move_to([0, -1.46, 0])
+        self.play(FadeIn(meaning), run_time=RUN)
+        anti = self.note("It does NOT mean 60% of 29, and it does NOT mean that 29 is a 60% score.", 12.4, 0.86, 24).move_to([0, -2.42, 0])
+        self.play(FadeIn(anti), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def interpretation_template(self):
+        self.set_header("THE INTERPRETATION TEMPLATE", "Translate symbols into two relative-position statements")
+        self.set_step(1)
+        card = self.formula_panel(r"P_k=x", 4.8, 1.18, 52).move_to([0, 2.18, 0])
+        self.play(FadeIn(card), run_time=RUN)
+        self.set_step(2)
+        k_box = self.note("k = percentile rank", 4.2, 0.82, 24, fill=WHITE).move_to([-2.35, 1.05, 0])
+        self.set_step(3)
+        x_box = self.note("x = percentile value", 4.2, 0.82, 24, fill=WHITE).move_to([2.35, 1.05, 0])
+        self.play(FadeIn(k_box), FadeIn(x_box), run_time=RUN)
+        self.set_step(4)
+        left = self.formula_panel(r"\approx k\%\ \text{at or below }x", 6.2, 1.05, 38).move_to([-3.25, -0.35, 0])
+        self.play(FadeIn(left), run_time=RUN)
+        self.set_step(5)
+        right = self.formula_panel(r"\approx(100-k)\%\ \text{above }x", 6.5, 1.05, 38).move_to([3.05, -0.35, 0])
+        self.play(FadeIn(right), run_time=RUN)
+        self.set_step(6)
+        context = self.note("Attach the variable and units: score, height, time, income, distance, etc.", 12.2, 0.84, 24).move_to([0, -1.62, 0])
+        self.play(FadeIn(context), run_time=RUN)
+        self.set_step(7)
+        check = self.note("CHECK: k is a rank, not k% of x. Use “approximately” because ties may affect exact counts.", 11.4, 0.80, 22.5).move_to([0, -2.46, 0])
+        self.play(FadeIn(check), run_time=RUN)
+        self.set_step(8)
+        communicate = self.note(
+            "COMMUNICATE: “About k% of the observations are at or below x; about (100-k)% are above x.”",
+            12.3, 0.84, 22.0
+        ).move_to([0, -2.46, 0])
+        self.play(Transform(check, communicate), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False, keep_steps=False)
+        self.step_strip = None
+
+    def worked_context(
+        self,
+        number,
+        st,
+        title,
+        context_note,
+        performance_note=None,
+        communication_note=None,
+    ):
+        """Run all eight interpretation states with visible evidence for each step."""
+        self.set_header(f"EXAMPLE {number}", title)
+        self.set_step(1)
+        card = self.statement_card(st)
+        self.play(FadeIn(card), run_time=RUN)
+        self.wait(0.5)
+
+        self.set_step(2)
+        k_card = self.note(f"k = {st.k}", 3.2, 0.76, 25, fill=WHITE).move_to([-2.05, 1.12, 0])
+        self.play(FadeIn(k_card), run_time=RUN_FAST)
+
+        self.set_step(3)
+        v_card = self.note(
+            f"value = {fmt(st.value)} {st.unit}".strip(),
+            4.6, 0.76, 25, fill=WHITE
+        ).move_to([2.05, 1.12, 0])
+        self.play(FadeIn(v_card), run_time=RUN_FAST)
+
+        bar = self.percentile_bar(
+            st.k, f"{fmt(st.value)} {st.unit}".strip(), width=11.2, y=0.14
+        )
+        self.play(
+            Create(bar[0]), Create(bar[1]), FadeIn(bar[2]),
+            FadeIn(bar[3]), FadeIn(bar[4]), run_time=RUN_SLOW
+        )
