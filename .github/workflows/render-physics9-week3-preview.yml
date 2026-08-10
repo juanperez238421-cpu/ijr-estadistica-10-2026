@@ -1,0 +1,130 @@
+name: Physics 9 Week 3 Acceleration PREVIEW QA
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact Week 3 source and JP dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p library tools delivery
+          cat render_physics9_week3/source_part_00.pyfrag \
+              render_physics9_week3/source_part_01.pyfrag \
+              render_physics9_week3/source_part_02.pyfrag \
+              render_physics9_week3/source_part_03.pyfrag \
+              render_physics9_week3/source_part_04.pyfrag \
+              > physics9_week3_acceleration_galileo.py
+          echo '539627bb7f00f3e8f192e0cc0040dec2895a200af8df812ebfa096093b1b0e96  physics9_week3_acceleration_galileo.py' | sha256sum -c -
+
+          git fetch --depth=1 origin render/physics9-week2-vt-cinematic-v2-2026-08-10
+          git show FETCH_HEAD:render_physics9_week2/style_exact.b64 > /tmp/style_exact.b64
+          git show FETCH_HEAD:render_physics9_week2/checker_exact.b64 > /tmp/checker_exact.b64
+          echo '4a5c21279f5c7ae1b4daffa3928bf1eb0dbdde6873ae688161c87e9987663a74  /tmp/style_exact.b64' | sha256sum -c -
+          echo 'da1d43b8499b4613090d88689af8fadaa39a7280f65403e965aee8f96032a605  /tmp/checker_exact.b64' | sha256sum -c -
+          base64 -d /tmp/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d /tmp/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          touch library/__init__.py
+          echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
+          echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
+          cp physics9_week3_acceleration_galileo.py delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V1.py
+          cp library/jp_classroom_style.py delivery/jp_classroom_style.py
+
+      - name: Static and style validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile physics9_week3_acceleration_galileo.py
+          python tools/check_manim_style.py physics9_week3_acceleration_galileo.py | tee delivery/STYLE_QA.txt
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
+          grep -q 'class Physics9Week3AccelerationTheory' physics9_week3_acceleration_galileo.py
+          grep -q 'class Physics9Week3AccelerationProblems' physics9_week3_acceleration_galileo.py
+
+      - name: Prepare official ManimCE 0.20.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Numerical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python physics9_week3_acceleration_galileo.py' | tee delivery/ASSERTIONS.txt
+          grep -q 'Physics 9 Week 3 acceleration lesson assertions passed.' delivery/ASSERTIONS.txt
+
+      - name: Full literal pql previews
+        shell: bash
+        run: |
+          set -euo pipefail
+          for S in Physics9Week3AccelerationTheory Physics9Week3AccelerationProblems; do
+            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c "
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf '#!/usr/bin/env bash\nexit 0\n' > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH=\"/tmp/manim-bin:\$PATH\"
+              manim -pql --fps 15 -r 854,480 physics9_week3_acceleration_galileo.py $S --format=mp4 --disable_caching --media_dir media_$S
+            "
+            V=$(find "media_$S" -type f -name "$S.mp4" -print -quit)
+            test -n "$V" && test -s "$V"
+            cp "$V" "delivery/${S}_PREVIEW_pql.mp4"
+            ffmpeg -v error -i "delivery/${S}_PREVIEW_pql.mp4" -f null -
+          done
+
+      - name: Dense temporal QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery/qa_theory delivery/qa_problems delivery/qa_targeted
+          python - <<'PY'
+          import subprocess
+          specs=[
+              ('delivery/Physics9Week3AccelerationTheory_PREVIEW_pql.mp4',110,'delivery/qa_theory'),
+              ('delivery/Physics9Week3AccelerationProblems_PREVIEW_pql.mp4',96,'delivery/qa_problems'),
+          ]
+          for v,n,out in specs:
+              d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v],text=True))
+              for i in range(n):
+                  t=max(0,min(d-.03,d*(i+.5)/n))
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'{out}/frame_{i+1:03d}.png'],check=True)
+
+          targets=[
+              ('delivery/Physics9Week3AccelerationTheory_PREVIEW_pql.mp4','signs',.30,.47,36),
+              ('delivery/Physics9Week3AccelerationTheory_PREVIEW_pql.mp4','galileo',.62,.79,40),
+              ('delivery/Physics9Week3AccelerationProblems_PREVIEW_pql.mp4','piecewise',.52,.72,40),
+          ]
+          for v,name,f0,f1,n in targets:
+              d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v],text=True))
+              for i in range(n):
+                  t=d*(f0+(f1-f0)*(i+.5)/n)
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_targeted/{name}_{i+1:03d}.png'],check=True)
+          PY
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_theory/frame_*.png' -vf 'scale=300:-1,tile=10x11:padding=4:margin=4:color=white' -frames:v 1 delivery/THEORY_110_FRAME_PREVIEW_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_problems/frame_*.png' -vf 'scale=320:-1,tile=12x8:padding=4:margin=4:color=white' -frames:v 1 delivery/PROBLEMS_96_FRAME_PREVIEW_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/signs_*.png' -vf 'scale=480:-1,tile=6x6:padding=5:margin=5:color=white' -frames:v 1 delivery/SIGNS_36_FRAME_TARGETED_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/galileo_*.png' -vf 'scale=430:-1,tile=8x5:padding=5:margin=5:color=white' -frames:v 1 delivery/GALILEO_40_FRAME_TARGETED_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/piecewise_*.png' -vf 'scale=430:-1,tile=8x5:padding=5:margin=5:color=white' -frames:v 1 delivery/PIECEWISE_40_FRAME_TARGETED_QA.png
+          sha256sum delivery/*.mp4 delivery/*QA.png delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V1.py > delivery/PREVIEW_SHA256.txt
+
+      - name: Upload preview QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Week3-Acceleration-PREVIEW-QA
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
