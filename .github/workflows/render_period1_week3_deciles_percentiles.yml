@@ -16,12 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Restore and validate exact Week 3 source
+      - name: Restore, validate and use visually corrected Week 3 source
         run: |
           set -euo pipefail
           SRC_DIR="manim/period1_week3_deciles_percentiles"
           base64 -d "$SRC_DIR/source.gz.b64" | gzip -d > "$SRC_DIR/statistics10_period1_week3_deciles_percentiles.py"
-          echo "a551fa665544978aa6634ce699b5aaa8885fab2d2f5e15cad237aa3e0991e17f  $SRC_DIR/statistics10_period1_week3_deciles_percentiles.py" | sha256sum -c -
+          echo "7aa9428807e1cd74e8d48a402fdc6c26d18d445e397e4e758febed17a5b90c7e  $SRC_DIR/statistics10_period1_week3_deciles_percentiles.py" | sha256sum -c -
           python -m py_compile "$SRC_DIR/statistics10_period1_week3_deciles_percentiles.py"
 
       - name: Pull fixed ManimCE image
