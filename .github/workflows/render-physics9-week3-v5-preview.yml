@@ -1,0 +1,133 @@
+name: Physics 9 Week 3 V5 SCALEFIX PREVIEW QA
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact V5 source and JP dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p library tools delivery
+          echo '2d205ad18561f17342bda4ac83775c3b847ce526a532b1ab1a5791e9ac6a6f16  render_physics9_week3_v5/style_exact.b64' | sha256sum -c -
+          echo 'f2ff78c354aa62a2ec523c306174f507b39880baec343bf855bf9cc47af7ec95  render_physics9_week3_v5/checker_exact.b64' | sha256sum -c -
+          base64 -d render_physics9_week3_v5/source_v5.b64 | gzip -d > physics9_week3_acceleration_v5.py
+          base64 -d render_physics9_week3_v5/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d render_physics9_week3_v5/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          touch library/__init__.py
+          echo '90afebdf4fcd4a45168895eb2fbfdd5cb029ff58aa8f812bd812bf12f83ab100  physics9_week3_acceleration_v5.py' | sha256sum -c -
+          echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
+          echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
+          cp physics9_week3_acceleration_v5.py delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V5_1_SCALEFIX.py
+
+      - name: Static validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile physics9_week3_acceleration_v5.py
+          python tools/check_manim_style.py physics9_week3_acceleration_v5.py | tee delivery/STYLE_QA.txt
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
+          grep -q 'class Physics9Week3AccelerationTheory' physics9_week3_acceleration_v5.py
+          grep -q 'class Physics9Week3AccelerationProblems' physics9_week3_acceleration_v5.py
+          ! grep -nE '([A-Za-z]:\\|/Users/|/home/[^/]+/Desktop)' physics9_week3_acceleration_v5.py
+
+      - name: Prepare official ManimCE 0.20.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Numerical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python physics9_week3_acceleration_v5.py' | tee delivery/ASSERTIONS.txt
+          grep -q 'Physics 9 Week 3 acceleration lesson assertions passed.' delivery/ASSERTIONS.txt
+
+      - name: Literal pql renders
+        shell: bash
+        run: |
+          set -euo pipefail
+          for S in Physics9Week3AccelerationTheory Physics9Week3AccelerationProblems; do
+            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c "
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf '#!/usr/bin/env bash\nexit 0\n' > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH=\"/tmp/manim-bin:\$PATH\"
+              manim -pql --fps 15 -r 854,480 physics9_week3_acceleration_v5.py $S --format=mp4 --disable_caching --media_dir preview_$S
+            "
+            V=$(find "preview_$S" -type f -name "$S.mp4" -print -quit)
+            test -n "$V" && test -s "$V"
+            ffmpeg -v error -i "$V" -f null -
+            if [ "$S" = Physics9Week3AccelerationTheory ]; then cp "$V" delivery/THEORY_PREVIEW.mp4; else cp "$V" delivery/PROBLEMS_PREVIEW.mp4; fi
+          done
+
+      - name: Dense preview QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery/qa_theory delivery/qa_problems delivery/qa_targets
+          python - <<'PY'
+          import subprocess, os, glob
+          from PIL import Image
+          def duration(v):
+              return float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v], text=True))
+          def extract(v, out, n, f0=0.0, f1=1.0, prefix='frame'):
+              d=duration(v); os.makedirs(out, exist_ok=True)
+              for i in range(n):
+                  t=d*(f0+(f1-f0)*(i+.5)/n)
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'{out}/{prefix}_{i+1:03d}.png'],check=True)
+          def sheet(pattern, out, cols=10, thumb_w=300):
+              paths=sorted(glob.glob(pattern)); ims=[]
+              for p in paths:
+                  im=Image.open(p).convert('RGB'); h=round(im.height*thumb_w/im.width); ims.append(im.resize((thumb_w,h)))
+              rows=(len(ims)+cols-1)//cols; h=max(i.height for i in ims); canvas=Image.new('RGB',(cols*thumb_w,rows*h),'white')
+              for k,im in enumerate(ims): canvas.paste(im,((k%cols)*thumb_w,(k//cols)*h))
+              canvas.save(out)
+          T='delivery/THEORY_PREVIEW.mp4'; P='delivery/PROBLEMS_PREVIEW.mp4'
+          extract(T,'delivery/qa_theory',100); extract(P,'delivery/qa_problems',90)
+          extract(T,'delivery/qa_targets',48,.055,.19,'scene01')
+          extract(T,'delivery/qa_targets',56,.20,.36,'scene03')
+          extract(P,'delivery/qa_targets',64,.64,.83,'problem06')
+          sheet('delivery/qa_theory/frame_*.png','delivery/THEORY_100_FRAME_PREVIEW_QA.png',10,280)
+          sheet('delivery/qa_problems/frame_*.png','delivery/PROBLEMS_90_FRAME_PREVIEW_QA.png',10,280)
+          sheet('delivery/qa_targets/scene01_*.png','delivery/SCENE01_48_FRAME_PREVIEW_QA.png',8,360)
+          sheet('delivery/qa_targets/scene03_*.png','delivery/SCENE03_56_FRAME_PREVIEW_QA.png',8,360)
+          sheet('delivery/qa_targets/problem06_*.png','delivery/PROBLEM06_64_FRAME_PREVIEW_QA.png',8,360)
+          PY
+
+      - name: Preview report
+        shell: bash
+        run: |
+          set -euo pipefail
+          sha256sum delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V5_1_SCALEFIX.py delivery/*PREVIEW.mp4 delivery/*PREVIEW_QA.png > delivery/SHA256SUMS_PREVIEW.txt
+          {
+            echo 'Physics 9 Week 3 V5.1 SCALEFIX PREVIEW QA'
+            echo 'Source SHA-256: 90afebdf4fcd4a45168895eb2fbfdd5cb029ff58aa8f812bd812bf12f83ab100'
+            echo 'Transport payload is accepted only if it decompresses to the exact source SHA above.'
+            echo 'Renderer: manimcommunity/manim:v0.20.1'
+            echo 'Protocol stage: literal -pql + decode + 358 temporal QA samples.'
+          } > delivery/PREVIEW_REPORT.txt
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Week3-V5-1-SCALEFIX-PREVIEW-QA
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
