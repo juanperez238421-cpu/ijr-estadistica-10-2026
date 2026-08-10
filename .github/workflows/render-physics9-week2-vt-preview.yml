@@ -22,7 +22,7 @@ jobs:
           set -euo pipefail
           mkdir -p library tools delivery
           cp render_physics9_week2/physics9_week2_velocity_time_galileo.py physics9_week2_velocity_time_galileo.py
-          patch -p0 < render_physics9_week2/problem4_layout_v2.patch
+          python render_physics9_week2/apply_problem4_layout_v2.py
           echo '4a5c21279f5c7ae1b4daffa3928bf1eb0dbdde6873ae688161c87e9987663a74  render_physics9_week2/style_exact.b64' | sha256sum -c -
           echo 'da1d43b8499b4613090d88689af8fadaa39a7280f65403e965aee8f96032a605  render_physics9_week2/checker_exact.b64' | sha256sum -c -
           base64 -d render_physics9_week2/style_exact.b64 | gzip -d > library/jp_classroom_style.py
@@ -96,7 +96,7 @@ jobs:
       - name: Upload preview QA
         uses: actions/upload-artifact@v4
         with:
-          name: Physics9-Week2-vt-Galileo-PREVIEW-QA-V2
+          name: Physics9-Week2-vt-Galileo-PREVIEW-QA-V3
           path: delivery/
           if-no-files-found: error
           retention-days: 7
