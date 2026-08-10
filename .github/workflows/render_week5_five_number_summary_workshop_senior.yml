@@ -21,6 +21,7 @@ jobs:
           set -euo pipefail
           SRC="manim/week5_five_number_summary_workshop/statistics10_week5_five_number_summary_workshop_senior.py"
           python manim/week5_five_number_summary_workshop/fix_float_validation.py
+          python manim/week5_five_number_summary_workshop/fix_helper_collision.py
           python -m py_compile "$SRC"
           sha256sum "$SRC" | tee /tmp/SOURCE_PRE_RENDER_SHA256.txt
 
