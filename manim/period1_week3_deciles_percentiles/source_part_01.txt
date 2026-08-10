@@ -1,0 +1,180 @@
+            weight=weight,
+            line_spacing=0.92,
+            **kwargs,
+        )
+
+    def m(self, expr, size=40, color=INK, **kwargs):
+        return MathTex(expr, font_size=size, color=color, **kwargs)
+
+    def fit(self, mob, w=SAFE_W, h=5.75):
+        if mob.width > w:
+            mob.scale_to_fit_width(w)
+        if mob.height > h:
+            mob.scale_to_fit_height(h)
+        return mob
+
+    def panel(self, width, height, fill=PAPER, stroke=LIGHT, sw=1.5):
+        return RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.12,
+            stroke_color=stroke,
+            stroke_width=sw,
+            fill_color=fill,
+            fill_opacity=1,
+        )
+
+    def note(self, text, width=11.0, height=0.82, size=25):
+        box = self.panel(width, height, fill=VERY_LIGHT)
+        tx = self.t(text, size, NORMAL, color=DARK)
+        self.fit(tx, w=width - 0.45, h=height - 0.18)
+        tx.move_to(box)
+        return VGroup(box, tx)
+
+    def set_header(self, section, subtitle):
+        if self.header is not None:
+            self.remove(self.header)
+        label = self.t(section, 23, BOLD, color=DARK).to_edge(UL, buff=0.42)
+        sub = self.t(subtitle, 24, NORMAL, color=MID).next_to(label, RIGHT, buff=0.34)
+        line = Line(LEFT * 7.55, RIGHT * 7.55, color=LIGHT, stroke_width=1.6)
+        line.next_to(label, DOWN, buff=0.20).align_to(label, LEFT)
+        self.header = VGroup(label, sub, line)
+        self.add(self.header)
+
+    def clear_stage(self, keep_header=True, keep_steps=False):
+        keep = set()
+        if keep_header and self.header is not None:
+            keep.add(self.header)
+        if keep_steps and self.step_strip is not None:
+            keep.add(self.step_strip)
+        removable = [mob for mob in self.mobjects if mob not in keep]
+        if removable:
+            self.play(*[FadeOut(mob) for mob in removable], run_time=RUN_FAST)
+        if keep_header and self.header is not None and self.header not in self.mobjects:
+            self.add(self.header)
+        if keep_steps and self.step_strip is not None and self.step_strip not in self.mobjects:
+            self.add(self.step_strip)
+
+    def value_card(self, value, width=0.88, height=0.70, fill=WHITE):
+        box = RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.09,
+            stroke_color=DARK,
+            stroke_width=1.5,
+            fill_color=fill,
+            fill_opacity=1,
+        )
+        tx = self.t(fmt(float(value)), 27, BOLD).move_to(box)
+        return VGroup(box, tx)
+
+    def data_row(self, values, y, label=None, max_width=12.8):
+        cards = VGroup(*[self.value_card(v) for v in values]).arrange(RIGHT, buff=0.13)
+        if cards.width > max_width:
+            cards.scale_to_fit_width(max_width)
+        cards.move_to([0.65 if label else 0, y, 0])
+        if label:
+            lab = self.t(label, 23, BOLD, color=MID).next_to(cards, LEFT, buff=0.28)
+            return VGroup(lab, cards)
+        return cards
+
+    def indexed_row(self, values, y=0.18):
+        cards = VGroup(*[self.value_card(v, width=0.90, height=0.68) for v in values]).arrange(RIGHT, buff=0.12)
+        if cards.width > 12.0:
+            cards.scale_to_fit_width(12.0)
+        cards.move_to([0, y, 0])
+        indices = VGroup()
+        for i, card in enumerate(cards, start=1):
+            idx = self.t(str(i), 19, NORMAL, color=MID).next_to(card, DOWN, buff=0.10)
+            indices.add(idx)
+        return VGroup(cards, indices)
+
+    def build_step_strip(self, active=1):
+        cells = VGroup()
+        for i, name in enumerate(self.STEP_NAMES, start=1):
+            fill = VERY_LIGHT if i == active else WHITE
+            sw = 2.2 if i == active else 1.1
+            box = RoundedRectangle(
+                width=1.73,
+                height=0.62,
+                corner_radius=0.07,
+                stroke_color=DARK if i == active else LIGHT,
+                stroke_width=sw,
+                fill_color=fill,
+                fill_opacity=1,
+            )
+            num = self.t(str(i), 17, BOLD, color=DARK)
+            lab = self.t(name, 13.5, BOLD if i == active else NORMAL, color=DARK if i == active else MID)
+            content = VGroup(num, lab).arrange(RIGHT, buff=0.10)
+            self.fit(content, w=1.48, h=0.36)
+            content.move_to(box)
+            cells.add(VGroup(box, content))
+        strip = cells.arrange(RIGHT, buff=0.08)
+        strip.move_to([0, -3.72, 0])
+        return strip
+
+    def set_step(self, active):
+        new = self.build_step_strip(active)
+        if self.step_strip is None or self.step_strip not in self.mobjects:
+            self.step_strip = new
+            self.play(FadeIn(new), run_time=RUN_FAST)
+        else:
+            self.play(Transform(self.step_strip, new), run_time=RUN_FAST)
+
+    def locator_formula(self, k_tex="k"):
+        box = self.panel(5.4, 1.35)
+        eq = self.m(r"L=\frac{%s}{100}(n+1)" % k_tex, 47).move_to(box)
+        return VGroup(box, eq)
+
+    def interpolation_formula(self):
+        box = self.panel(8.4, 1.45)
+        eq = self.m(r"P_k=x_j+d\left(x_{j+1}-x_j\right)", 43).move_to(box).shift(UP * 0.18)
+        sub = self.t("when L = j + d, with 0 < d < 1", 22, NORMAL, color=MID).next_to(eq, DOWN, buff=0.15)
+        return VGroup(box, eq, sub)
+
+    def percent_bar(self, k=60, width=11.5):
+        total_h = 0.76
+        left_w = width * (k / 100)
+        right_w = width - left_w
+        left = Rectangle(
+            width=left_w,
+            height=total_h,
+            stroke_color=DARK,
+            stroke_width=1.4,
+            fill_color=VERY_LIGHT,
+            fill_opacity=1,
+        )
+        right = Rectangle(
+            width=right_w,
+            height=total_h,
+            stroke_color=DARK,
+            stroke_width=1.4,
+            fill_color=WHITE,
+            fill_opacity=1,
+        )
+        group = VGroup(left, right).arrange(RIGHT, buff=0)
+        marker = Line(UP * 0.58, DOWN * 0.58, color=INK, stroke_width=3).move_to(left.get_right())
+        plab = self.m(rf"P_{{{k}}}", 34).next_to(marker, UP, buff=0.10)
+        lower = self.t(f"lower {k}%", 22, BOLD, color=DARK).move_to(left)
+        upper = self.t(f"upper {100-k}%", 22, NORMAL, color=MID).move_to(right)
+        return VGroup(group, marker, plab, lower, upper)
+
+    def decile_ruler(self):
+        segs = VGroup()
+        for i in range(10):
+            rect = Rectangle(
+                width=1.08,
+                height=0.72,
+                stroke_color=DARK,
+                stroke_width=1.2,
+                fill_color=VERY_LIGHT if i % 2 == 0 else WHITE,
+                fill_opacity=1,
+            )
+            txt = self.t(f"{10*i}-{10*(i+1)}%", 15, NORMAL, color=MID).move_to(rect)
+            segs.add(VGroup(rect, txt))
+        segs.arrange(RIGHT, buff=0)
+        labels = VGroup()
+        for j in range(1, 10):
+            x = segs[0].get_left()[0] + 1.08 * j
+            tick = Line([x, -0.47, 0], [x, -0.74, 0], color=DARK, stroke_width=1.5)
+            lab = self.m(rf"D_{{{j}}}", 25).next_to(tick, DOWN, buff=0.05)
