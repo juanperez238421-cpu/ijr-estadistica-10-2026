@@ -1,0 +1,203 @@
+name: Physics 9 Week 3 Workshop + Week 4 Senior FINAL PQH
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact sources and JP style
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery preview final qa
+          base64 -d render_physics9_week4/w3_source.b64 | gzip -d > Physics9_Week3_Acceleration_Workshop_Solutions.py
+          base64 -d render_physics9_week4/w4_source.b64 | gzip -d > Physics9_Week4_AccelerationTime_CINEMATIC.py
+          base64 -d render_physics9_week4/style.b64 | gzip -d > jp_classroom_style.py
+          base64 -d render_physics9_week4/checker.b64 | gzip -d > check_manim_style.py
+          echo 'fe9b9ee11c2803720078abd300b0b6e88e61bb2311e9942f91aaa2de981a0373  Physics9_Week3_Acceleration_Workshop_Solutions.py' | sha256sum -c -
+          echo '0e55bc4c1aec37d16f13d5288dfefd17073b51b1c3b9acd7b9132b6e0002c52c  Physics9_Week4_AccelerationTime_CINEMATIC.py' | sha256sum -c -
+          echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  jp_classroom_style.py' | sha256sum -c -
+          echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  check_manim_style.py' | sha256sum -c -
+
+      - name: Static validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile Physics9_Week3_Acceleration_Workshop_Solutions.py Physics9_Week4_AccelerationTime_CINEMATIC.py jp_classroom_style.py
+          python check_manim_style.py Physics9_Week3_Acceleration_Workshop_Solutions.py | tee delivery/STYLE_QA_WEEK3.txt
+          python check_manim_style.py Physics9_Week4_AccelerationTime_CINEMATIC.py | tee delivery/STYLE_QA_WEEK4.txt
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA_WEEK3.txt
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA_WEEK4.txt
+          grep -q 'class Physics9Week3AccelerationWorkshopSolutions' Physics9_Week3_Acceleration_Workshop_Solutions.py
+          grep -q 'class Physics9Week4AccelerationTimeTheory' Physics9_Week4_AccelerationTime_CINEMATIC.py
+          grep -q 'class Physics9Week4AccelerationTimeProblems' Physics9_Week4_AccelerationTime_CINEMATIC.py
+
+      - name: Prepare official ManimCE 0.20.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Numerical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python Physics9_Week3_Acceleration_Workshop_Solutions.py'
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python Physics9_Week4_AccelerationTime_CINEMATIC.py'
+
+      - name: Literal pql protocol renders
+        shell: bash
+        run: |
+          set -euo pipefail
+          render_preview () {
+            FILE="$1"; SCENE="$2"; OUT="$3"
+            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c "
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf '#!/usr/bin/env bash\nexit 0\n' > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH=\"/tmp/manim-bin:\$PATH\"
+              manim -pql --fps 15 -r 854,480 '$FILE' '$SCENE' --format=mp4 --disable_caching --media_dir preview_media
+            "
+            V=$(find preview_media -type f -name "$SCENE.mp4" -print | tail -1)
+            test -n "$V" && test -s "$V"
+            ffmpeg -v error -i "$V" -f null -
+            cp "$V" "preview/$OUT"
+            rm -rf preview_media
+          }
+          render_preview Physics9_Week3_Acceleration_Workshop_Solutions.py Physics9Week3AccelerationWorkshopSolutions Week3_Workshop_PREVIEW.mp4
+          render_preview Physics9_Week4_AccelerationTime_CINEMATIC.py Physics9Week4AccelerationTimeTheory Week4_Theory_PREVIEW.mp4
+          render_preview Physics9_Week4_AccelerationTime_CINEMATIC.py Physics9Week4AccelerationTimeProblems Week4_Problems_PREVIEW.mp4
+
+      - name: Preview temporal QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa/preview
+          python - <<'PY'
+          import subprocess
+          from PIL import Image
+          vids=[('preview/Week3_Workshop_PREVIEW.mp4','W3',50),('preview/Week4_Theory_PREVIEW.mp4','W4T',70),('preview/Week4_Problems_PREVIEW.mp4','W4P',60)]
+          for video,prefix,n in vids:
+              d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',video],text=True))
+              paths=[]
+              for i in range(n):
+                  t=d*(i+.5)/n; p=f'qa/preview/{prefix}_{i+1:03d}.png'; paths.append(p)
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',video,'-frames:v','1',p],check=True)
+              ims=[]
+              for p in paths:
+                  im=Image.open(p).convert('RGB'); w=260; h=round(im.height*w/im.width); ims.append(im.resize((w,h)))
+              cols=10; rows=(len(ims)+cols-1)//cols; th=max(im.height for im in ims)
+              sheet=Image.new('RGB',(cols*260,rows*th),'white')
+              for k,im in enumerate(ims): sheet.paste(im,((k%cols)*260,(k//cols)*th))
+              sheet.save(f'delivery/{prefix}_PREVIEW_QA.png')
+          PY
+
+      - name: Literal final pqh renders
+        shell: bash
+        run: |
+          set -euo pipefail
+          render_final () {
+            FILE="$1"; SCENE="$2"; OUT="$3"
+            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c "
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf '#!/usr/bin/env bash\nexit 0\n' > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH=\"/tmp/manim-bin:\$PATH\"
+              manim -pqh --fps 30 -r 1920,1080 '$FILE' '$SCENE' --format=mp4 --disable_caching --media_dir final_media
+            "
+            V=$(find final_media -type f -name "$SCENE.mp4" -print | tail -1)
+            test -n "$V" && test -s "$V"
+            cp "$V" "final/$OUT"
+            rm -rf final_media
+          }
+          render_final Physics9_Week3_Acceleration_Workshop_Solutions.py Physics9Week3AccelerationWorkshopSolutions Physics9_Week3_Acceleration_Workshop_SOLUTIONS_FINAL_PQH.mp4
+          render_final Physics9_Week4_AccelerationTime_CINEMATIC.py Physics9Week4AccelerationTimeTheory Physics9_Week4_AccelerationTime_THEORY_FINAL_PQH.mp4
+          render_final Physics9_Week4_AccelerationTime_CINEMATIC.py Physics9Week4AccelerationTimeProblems Physics9_Week4_AccelerationTime_WORKED_PROBLEMS_FINAL_PQH.mp4
+
+      - name: Technical verification and full decode
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > delivery/VIDEO_VERIFICATION.txt
+          for V in final/*.mp4; do
+            echo "===== $V =====" | tee -a delivery/VIDEO_VERIFICATION.txt
+            ffprobe -v error -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -show_entries format=duration,size -of default=noprint_wrappers=1 "$V" | tee -a delivery/VIDEO_VERIFICATION.txt
+            W=$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of csv=p=0 "$V")
+            H=$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "$V")
+            FPS=$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of csv=p=0 "$V")
+            PIX=$(ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of csv=p=0 "$V")
+            CODEC=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$V")
+            test "$W" = 1920; test "$H" = 1080; test "$FPS" = 30/1; test "$PIX" = yuv420p; test "$CODEC" = h264
+            ffmpeg -v error -i "$V" -f null -
+          done
+
+      - name: Dense final visual QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p qa/final
+          python - <<'PY'
+          import subprocess
+          from PIL import Image
+          vids=[
+            ('final/Physics9_Week3_Acceleration_Workshop_SOLUTIONS_FINAL_PQH.mp4','W3_FINAL',90),
+            ('final/Physics9_Week4_AccelerationTime_THEORY_FINAL_PQH.mp4','W4_THEORY_FINAL',130),
+            ('final/Physics9_Week4_AccelerationTime_WORKED_PROBLEMS_FINAL_PQH.mp4','W4_PROBLEMS_FINAL',110),
+          ]
+          for video,prefix,n in vids:
+              d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',video],text=True))
+              ims=[]
+              for i in range(n):
+                  t=d*(i+.5)/n; p=f'qa/final/{prefix}_{i+1:03d}.png'
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',video,'-frames:v','1',p],check=True)
+                  im=Image.open(p).convert('RGB'); w=300; h=round(im.height*w/im.width); ims.append(im.resize((w,h)))
+              cols=10; rows=(len(ims)+cols-1)//cols; th=max(im.height for im in ims)
+              sheet=Image.new('RGB',(cols*300,rows*th),'white')
+              for k,im in enumerate(ims): sheet.paste(im,((k%cols)*300,(k//cols)*th))
+              sheet.save(f'delivery/{prefix}_QA.png')
+          PY
+
+      - name: Stage delivery and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp final/*.mp4 delivery/
+          cp Physics9_Week3_Acceleration_Workshop_Solutions.py delivery/
+          cp Physics9_Week4_AccelerationTime_CINEMATIC.py delivery/
+          cp jp_classroom_style.py delivery/
+          cp check_manim_style.py delivery/
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          ManimCE: 0.20.1
+          Renderer: manimcommunity/manim:v0.20.1
+          Week 3 workshop command:
+          manim -pqh --fps 30 -r 1920,1080 Physics9_Week3_Acceleration_Workshop_Solutions.py Physics9Week3AccelerationWorkshopSolutions --format=mp4 --disable_caching
+          Week 4 theory command:
+          manim -pqh --fps 30 -r 1920,1080 Physics9_Week4_AccelerationTime_CINEMATIC.py Physics9Week4AccelerationTimeTheory --format=mp4 --disable_caching
+          Week 4 problems command:
+          manim -pqh --fps 30 -r 1920,1080 Physics9_Week4_AccelerationTime_CINEMATIC.py Physics9Week4AccelerationTimeProblems --format=mp4 --disable_caching
+          Final QA temporal samples: Week3 90 + Week4 theory 130 + Week4 problems 110 = 330 frames.
+          EOF
+          sha256sum delivery/* > delivery/SHA256SUMS.txt
+
+      - name: Upload final artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Week3-Workshop-Week4-SENIOR-FINAL-PQH
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7
