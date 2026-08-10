@@ -1,0 +1,91 @@
+        at_panel = self.figure_panel(VGroup(at_group, a_lines), width=5.75, height=3.65, title="a–t RESULT", caption="Constant slope becomes a horizontal acceleration level.", title_size=29, caption_size=23)
+        eqs = self.equation_stack([
+            r"a_A=\frac{8-2}{3-0}=+2",
+            r"a_B=\frac{8-8}{5-3}=0",
+            r"a_C=\frac{0-8}{9-5}=-2",
+        ], sizes=[31, 31, 31], buff=0.18, max_width=5.55, max_height=1.55)
+        right = VGroup(eqs, at_panel.group).arrange(DOWN, buff=0.20)
+        layout = self.split_layout(vt_panel.group, right, left_width=7.35, right_width=5.8, max_height=5.25, center_y=-0.48, gap=0.37)
+        self.assert_content_safe(layout.group, "piecewise slope problem")
+        self.play(FadeIn(vt_panel.box), FadeIn(vt_panel.title), Create(vt_group), run_time=RUN_NORMAL)
+        for i, seg in enumerate(segs):
+            self.play(Create(seg), run_time=RUN_SLOW * 1.1)
+            tri = self.slope_triangle(vt, PIECEWISE_VT[i][0], PIECEWISE_VT[i][1], PIECEWISE_VT[i][2], PIECEWISE_VT[i][3])
+            self.play(FadeIn(tri), TransformFromCopy(seg, eqs[i]), run_time=RUN_NORMAL)
+            self.wait(PAUSE_READ)
+            self.play(FadeOut(tri), run_time=RUN_QUICK)
+        self.play(FadeIn(at_panel.box), FadeIn(at_panel.title), Create(at_group), run_time=RUN_NORMAL)
+        for line in a_lines:
+            self.play(Create(line), run_time=RUN_NORMAL)
+        self.play(FadeIn(vt_panel.caption), FadeIn(at_panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY); self.clear_stage()
+
+    def scene_06_velocity_cards_lab(self) -> None:
+        self.set_header(6, "PROBLEM 6 · VELOCITY CARDS / LAB PREP", "Cards are recorded every 1 s: 2, 5, 8, 11 m/s. Decide whether acceleration is constant and find its value.")
+        cards = VGroup(*[self.velocity_card(t, v, width=2.75, height=1.65) for t, v in zip(CARDS_T, CARDS_V)]).arrange(RIGHT, buff=0.30)
+        self.fit(cards, 12.0, 1.75)
+        arrows = VGroup(*[Arrow(cards[i].get_right(), cards[i + 1].get_left(), buff=0.08, color=MID_GRAY, stroke_width=2.2) for i in range(3)])
+        dv_labels = VGroup(*[self.math(r"+3\,m/s", 27).next_to(arrows[i], UP, buff=0.08) for i in range(3)])
+        card_panel = self.figure_panel(VGroup(cards, arrows, dv_labels), width=13.0, height=3.15, title="FOUR EQUAL-TIME SNAPSHOTS", caption="Equal Δv during equal Δt means constant acceleration.", title_size=31, caption_size=24)
+        calc = self.formula_panel(r"a=\frac{\Delta v}{\Delta t}=\frac{+3\,m/s}{1\,s}=+3\,\mathrm{m/s^2}", width=8.5, height=1.42, font_size=39)
+        lab = self.note_panel("LAB HABIT", ["Record time first. Record velocity second. Compare consecutive cards — do not skip intervals."], width=11.0, title_size=29, body_size=27)
+        group = VGroup(card_panel.group, calc, lab).arrange(DOWN, buff=0.28).move_to(DOWN * 0.45)
+        self.assert_content_safe(group, "velocity cards lab")
+        self.play(FadeIn(card_panel.box), FadeIn(card_panel.title), FadeIn(cards[0]), run_time=RUN_NORMAL)
+        for i in range(3):
+            self.play(GrowArrow(arrows[i]), FadeIn(dv_labels[i]), TransformFromCopy(cards[i], cards[i + 1]), run_time=RUN_NORMAL)
+            self.wait(PAUSE_SHORT)
+        self.play(FadeIn(calc, shift=UP * 0.05), run_time=RUN_NORMAL)
+        self.play(FadeIn(lab), FadeIn(card_panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY); self.clear_stage()
+
+    def scene_07_galileo_problem(self) -> None:
+        self.set_header(7, "PROBLEM 7 · GALILEO DATA → ACCELERATION", "The schematic ramp gives interval velocities 0.25, 0.75, 1.25, 1.75 m/s at 1 s intervals. Find the acceleration.")
+        values = VGroup(*[
+            self.velocity_card(t, v, width=2.65, height=1.45)
+            for t, v in zip(GALILEO_INTERVAL_MID_T, GALILEO_INTERVAL_V)
+        ]).arrange(RIGHT, buff=0.22)
+        self.fit(values, 6.8, 1.55)
+        fig = self.figure_panel(values, width=7.25, height=4.45, title="INTERVAL VELOCITIES", caption="Each new interval is +0.50 m/s faster than the previous one.", title_size=31, caption_size=24)
+        eqs = self.equation_stack([
+            r"\Delta v=0.75-0.25=+0.50\,m/s",
+            r"\Delta t=1.50-0.50=1.00\,s",
+            r"a=\frac{+0.50}{1.00}=+0.50\,m/s^2",
+        ], sizes=[34, 34, 40], buff=0.31, max_width=5.75, max_height=2.85)
+        note = self.note_panel("CHECK", ["Using any neighboring pair gives the same acceleration."], width=5.75, title_size=29, body_size=27)
+        right = VGroup(eqs, note).arrange(DOWN, buff=0.25)
+        layout = self.split_layout(fig.group, right, left_width=7.25, right_width=5.8, max_height=5.0, center_y=-0.48, gap=0.36)
+        self.assert_content_safe(layout.group, "Galileo problem")
+        self.play(FadeIn(fig.box), FadeIn(fig.title), FadeIn(values[0]), run_time=RUN_NORMAL)
+        for i in range(1, len(values)):
+            self.play(TransformFromCopy(values[i-1], values[i]), run_time=RUN_NORMAL)
+            self.wait(PAUSE_SHORT)
+        for eq in eqs:
+            self.play(FadeIn(eq, shift=RIGHT * 0.05), run_time=RUN_NORMAL); self.wait(PAUSE_READ)
+        self.play(FadeIn(note), FadeIn(fig.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY); self.clear_stage()
+
+    def scene_08_final_checklist(self) -> None:
+        self.set_header(8, "WORKED-PROBLEM CHECKLIST", "Use this exact order when the numbers or graph look different.")
+        checklist = self.process_map([
+            ("1", "WRITE v_i, v_f, Δt"),
+            ("2", "CALCULATE Δv = v_f − v_i"),
+            ("3", "a = Δv / Δt"),
+            ("4", "WRITE m/s²"),
+            ("5", "INTERPRET v AND a SIGNS"),
+        ], box_width=2.5, box_height=1.18, font_size=23, gap=0.20)
+        self.fit(checklist, 13.35, 1.70)
+        warning = self.note_panel("DO NOT SKIP", ["A negative acceleration can mean speeding up when velocity is also negative."], width=10.4, title_size=30, body_size=28)
+        final = self.formula_panel(r"\boxed{a=\frac{v_f-v_i}{\Delta t}}", width=6.0, height=1.55, font_size=52)
+        group = VGroup(checklist, final, warning).arrange(DOWN, buff=0.45).move_to(DOWN * 0.45)
+        self.assert_content_safe(group, "problems final checklist")
+        self.play(FadeIn(checklist, lag_ratio=0.10), run_time=RUN_SLOW * 1.4)
+        self.play(FadeIn(final), run_time=RUN_NORMAL)
+        self.play(FadeIn(warning), run_time=RUN_NORMAL)
+        self.wait(PAUSE_FINAL)
+        self.standard_closing("Use the sign of velocity and acceleration together — never interpret acceleration sign alone.")
+
+
+if __name__ == "__main__":
+    validate_week3_data()
+    print("Physics 9 Week 3 acceleration lesson assertions passed.")
