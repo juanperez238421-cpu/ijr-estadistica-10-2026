@@ -1,0 +1,67 @@
+--- physics9_motion_achilles_v5_frame_audited.py
++++ physics9_motion_achilles_v5_frame_audited.py
+@@ -185,7 +185,7 @@
+             ticks.add(tick)
+             labels.add(lab)
+             
+-        unit_label = self.text("position x (m)", 25, MEDIUM).next_to(base, DOWN, buff=0.56)
++        unit_label = self.text("position x (m)", 25, MEDIUM).next_to(base, DOWN, buff=0.64).align_to(base, LEFT).shift(RIGHT * 0.08)
+         track_group = VGroup(base, ticks, labels, unit_label)
+         
+         def mapper(val: float) -> np.ndarray:
+@@ -407,8 +407,8 @@
+             rate_func=linear,
+             run_time=RUN_SLOW * 1.55,
+         )
+-        gap2 = DoubleArrow(map_1(11.0) + DOWN * 0.40, map_1(11.1) + DOWN * 0.40, buff=0, color=BLACK_LINE, stroke_width=2.5)
+-        gap2_lab = self.math(r"\text{gap}=0.1\,\mathrm{m}", 31).next_to(gap2, DOWN, buff=0.07)
++        gap2 = DoubleArrow(map_1(11.0) + DOWN * 0.48, map_1(11.1) + DOWN * 0.48, buff=0, color=BLACK_LINE, stroke_width=2.5)
++        gap2_lab = self.math(r"\text{gap}=0.1\,\mathrm{m}", 30).next_to(gap2, DOWN, buff=0.09)
+         self.play(GrowArrow(gap2), FadeIn(gap2_lab), run_time=RUN_NORMAL)
+         self.wait(PAUSE_EXPLAIN)
+ 
+@@ -441,8 +441,8 @@
+             rate_func=linear,
+             run_time=RUN_SLOW * 1.55,
+         )
+-        gap3 = DoubleArrow(map_2(11.1) + DOWN * 0.40, map_2(11.11) + DOWN * 0.40, buff=0, color=BLACK_LINE, stroke_width=2.5)
+-        gap3_lab = self.math(r"\text{gap}=0.01\,\mathrm{m}", 31).next_to(gap3, DOWN, buff=0.07)
++        gap3 = DoubleArrow(map_2(11.1) + DOWN * 0.48, map_2(11.11) + DOWN * 0.48, buff=0, color=BLACK_LINE, stroke_width=2.5)
++        gap3_lab = self.math(r"\text{gap}=0.01\,\mathrm{m}", 30).next_to(gap3, DOWN, buff=0.09)
+         self.play(GrowArrow(gap3), FadeIn(gap3_lab), run_time=RUN_NORMAL)
+         self.wait(PAUSE_EXPLAIN)
+ 
+@@ -754,6 +754,8 @@
+         )
+ 
+         number_group, line = self.number_line_motion()
++        # Keep the axis descriptor away from the displacement annotation.
++        number_group[1].align_to(line, LEFT).shift(RIGHT * 0.08)
+         runner = self.runner_icon(0.82)
+         
+         # Position runner on the track
+@@ -765,8 +767,8 @@
+         end_dot = Dot(line.n2p(PATH_END), radius=0.07, color=BLACK_LINE)
+         path_out = Arrow(line.n2p(PATH_START) + UP * 0.23, line.n2p(PATH_TURN) + UP * 0.23, buff=0.04, color=BLACK_LINE, stroke_width=2.6)
+         path_back = Arrow(line.n2p(PATH_TURN) + UP * 0.40, line.n2p(PATH_END) + UP * 0.40, buff=0.04, color=MID_GRAY, stroke_width=2.6)
+-        disp = DoubleArrow(line.n2p(PATH_START) + DOWN * 0.42, line.n2p(PATH_END) + DOWN * 0.42, buff=0.02, color=BLACK_LINE, stroke_width=2.4)
+-        disp_lab = self.math(r"\Delta x=+3\,\mathrm{m}", 32).next_to(disp, DOWN, buff=0.07)
++        disp = DoubleArrow(line.n2p(PATH_START) + DOWN * 0.50, line.n2p(PATH_END) + DOWN * 0.50, buff=0.02, color=BLACK_LINE, stroke_width=2.4)
++        disp_lab = self.math(r"\Delta x=+3\,\mathrm{m}", 32).next_to(disp, DOWN, buff=0.10)
+         fig = VGroup(number_group, runner, start_dot, turn_dot, end_dot, path_out, path_back, disp, disp_lab)
+         panel = self.figure_panel(
+             fig,
+@@ -931,9 +933,10 @@
+         positive = axes.plot(lambda t: 2 * t + 1, x_range=[0, 4.5], color=BLACK_LINE, stroke_width=3.5)
+         rest = Line(axes.c2p(0.7, 9.5), axes.c2p(4.8, 9.5), color=MID_GRAY, stroke_width=3.2)
+         negative = Line(axes.c2p(2.2, 9.0), axes.c2p(5.0, 3.0), color=DARK_GRAY, stroke_width=3.0)
+-        lab_pos = self.text("+ slope", 26, BOLD).move_to(axes.c2p(3.65, 6.0) + RIGHT * 0.28 + DOWN * 0.18)
+-        lab_rest = self.text("zero slope", 26, BOLD).move_to(axes.c2p(3.35, 10.45) + UP * 0.08)
+-        lab_neg = self.text("− slope", 26, BOLD).move_to(axes.c2p(4.55, 5.2) + RIGHT * 0.18 + DOWN * 0.18)
++        # Keep each label in a dedicated open region; labels must never sit on the line intersections.
++        lab_pos = self.text("+ slope", 26, BOLD).move_to(axes.c2p(2.35, 4.6))
++        lab_rest = self.text("zero slope", 26, BOLD).move_to(axes.c2p(2.80, 10.65))
++        lab_neg = self.text("− slope", 26, BOLD).move_to(axes.c2p(4.45, 2.05))
+         graph_group = VGroup(axes, xl, yl, positive, rest, negative, lab_pos, lab_rest, lab_neg)
+         panel = self.figure_panel(
+             graph_group,
