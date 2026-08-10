@@ -20,7 +20,7 @@ jobs:
         run: |
           set -euo pipefail
           SRC_DIR="manim/period1_week3_deciles_percentiles"
-          base64 -d "$SRC_DIR/source.gz.b64" | gzip -d > "$SRC_DIR/statistics10_period1_week3_deciles_percentiles.py"
+          cat "$SRC_DIR"/source_part_*.txt > "$SRC_DIR/statistics10_period1_week3_deciles_percentiles.py"
           echo "7aa9428807e1cd74e8d48a402fdc6c26d18d445e397e4e758febed17a5b90c7e  $SRC_DIR/statistics10_period1_week3_deciles_percentiles.py" | sha256sum -c -
           python -m py_compile "$SRC_DIR/statistics10_period1_week3_deciles_percentiles.py"
 
