@@ -1,0 +1,120 @@
+        self.set_step(2)
+        self.play(FadeOut(VGroup(raw_title,raw,ordered_title)), ordered.animate.move_to([0,1.95,0]), run_time=RUN_FAST)
+        five = self.five_number_row(self.a.five, y=0.82)
+        self.play(FadeIn(five), run_time=RUN)
+        rule = self.note("Five-number summary: (4, 8, 12, 17, 21)", 9.7, 0.82, 23).move_to([0,-0.15,0])
+        self.play(FadeIn(rule), run_time=RUN_FAST)
+        self.wait(PAUSE_READ)
+
+        self.set_step(3)
+        self.play(FadeOut(VGroup(ordered,five,rule)), run_time=RUN_FAST)
+        axis = self.scale_axis(2,22,y=-0.45,step=2)
+        scale_note = self.note("Use ONE numerical scale that covers the minimum through the maximum.", 11.3, 0.82, 22).move_to([0,1.65,0])
+        self.play(FadeIn(scale_note), Create(axis), run_time=RUN)
+        self.wait(PAUSE_READ)
+
+        self.set_step(4)
+        geom = self.box_geometry(self.a.five,2,22,y=-0.45)
+        xm,x1,x2,x3,xx = geom["coords"]
+        q1_mark = Line([x1,-1.05,0],[x1,0.15,0], color=DARK, stroke_width=2.2)
+        q3_mark = Line([x3,-1.05,0],[x3,0.15,0], color=DARK, stroke_width=2.2)
+        qlabels = VGroup(
+            self.t("Q1 = 8", 21, BOLD).move_to([x1,0.55,0]),
+            self.t("Q3 = 17", 21, BOLD).move_to([x3,0.55,0]),
+        )
+        self.play(FadeOut(scale_note), Create(q1_mark), Create(q3_mark), FadeIn(qlabels), run_time=RUN)
+        self.wait(PAUSE_READ)
+
+        self.set_step(5)
+        self.play(ReplacementTransform(VGroup(q1_mark,q3_mark), geom["q_marks"]), Create(geom["box"]), run_time=RUN)
+        box_formula = self.formula_panel(r"\mathrm{IQR}=Q_3-Q_1=17-8=9", 7.0, 0.92, 36).move_to([0,1.62,0])
+        self.play(FadeOut(qlabels), FadeIn(box_formula), run_time=RUN)
+        self.wait(PAUSE_READ)
+
+        self.set_step(6)
+        med_lab = self.t("Q2 = 12", 22, BOLD).move_to([x2,0.60,0])
+        self.play(Create(geom["median"]), FadeIn(med_lab), run_time=RUN)
+        self.wait(PAUSE_READ)
+
+        self.set_step(7)
+        minmax = VGroup(
+            self.t("min = 4", 19, BOLD, color=DARK).move_to([xm,0.55,0]),
+            self.t("max = 21", 19, BOLD, color=DARK).move_to([xx,0.55,0]),
+        )
+        self.play(Create(geom["left_whisker"]), Create(geom["right_whisker"]), FadeIn(minmax), run_time=RUN)
+        self.wait(PAUSE_READ)
+
+        self.set_step(8)
+        self.play(FadeOut(VGroup(box_formula,med_lab,minmax)), run_time=RUN_FAST)
+        result = self.note(
+            "Interpretation: the middle 50% lies from 8 to 17; the median is 12; the full observed range is 4 to 21.",
+            13.1, 0.96, 22
+        ).move_to([0,1.63,0])
+        iqr = self.note("The BOX width is 9 units because IQR = 9 — not because it contains 9 observations.", 11.9, 0.86, 21).move_to([0,-2.42,0])
+        self.play(FadeIn(result), FadeIn(iqr), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False, keep_steps=False)
+        self.step_strip = None
+
+    def quarters_meaning(self):
+        self.set_header("WHAT DO THE LENGTHS MEAN?", "Equal percentages do not require equal physical lengths")
+        axis = self.scale_axis(2,22,y=-0.45,step=2)
+        geom = self.box_geometry(self.a.five,2,22,y=-0.45)
+        self.add(axis, geom["box"], geom["median"], geom["left_whisker"], geom["right_whisker"])
+        xm,x1,x2,x3,xx = geom["coords"]
+        intervals = [
+            (xm,x1,"≈25%"), (x1,x2,"≈25%"), (x2,x3,"≈25%"), (x3,xx,"≈25%"),
+        ]
+        braces = VGroup()
+        labs = VGroup()
+        for xa,xb,lab in intervals:
+            ln = Line([xa,-1.42,0],[xb,-1.42,0],color=MID,stroke_width=3)
+            cap1 = Line([xa,-1.34,0],[xa,-1.50,0],color=MID,stroke_width=2)
+            cap2 = Line([xb,-1.34,0],[xb,-1.50,0],color=MID,stroke_width=2)
+            braces.add(VGroup(ln,cap1,cap2))
+            labs.add(self.t(lab,17,BOLD,color=MID).move_to([(xa+xb)/2,-1.78,0]))
+        top = self.note("Each quartile interval represents about one quarter of the ordered observations.", 11.8,0.84,22).move_to([0,1.70,0])
+        bottom = self.note("But a longer interval means those values are MORE SPREAD OUT on the measurement scale.", 12.2,0.84,22).move_to([0,-2.55,0])
+        self.play(FadeIn(top), run_time=RUN_FAST)
+        self.play(*[Create(b) for b in braces], FadeIn(labs), run_time=RUN)
+        self.play(FadeIn(bottom), run_time=RUN_FAST)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def comparison(self):
+        self.set_header("TWO BOX PLOTS · SAME MEDIAN", "A single center value does not describe the spread")
+        # Use common scale so visual comparison is mathematically legitimate.
+        lo, hi = 2, 22
+        axis_top = self.scale_axis(lo,hi,y=0.95,step=2)
+        axis_bot = self.scale_axis(lo,hi,y=-1.35,step=2)
+        ga = self.box_geometry(self.a.five,lo,hi,y=0.95,box_h=0.90)
+        gb = self.box_geometry(self.b.five,lo,hi,y=-1.35,box_h=0.90)
+        la = self.t("A",24,BOLD).move_to([-6.35,0.95,0])
+        lb = self.t("B",24,BOLD).move_to([-6.35,-1.35,0])
+        self.play(FadeIn(axis_top), FadeIn(axis_bot), FadeIn(la), FadeIn(lb), run_time=RUN)
+        self.play(Create(ga["box"]),Create(ga["median"]),Create(ga["left_whisker"]),Create(ga["right_whisker"]),run_time=RUN)
+        self.play(Create(gb["box"]),Create(gb["median"]),Create(gb["left_whisker"]),Create(gb["right_whisker"]),run_time=RUN)
+        stats = VGroup(
+            self.note("A: median = 12, IQR = 9, range = 17", 6.25,0.76,20),
+            self.note("B: median = 12, IQR = 11, range = 19", 6.25,0.76,20),
+        ).arrange(RIGHT,buff=0.25).move_to([0,2.05,0])
+        self.play(FadeIn(stats),run_time=RUN)
+        conclusion = self.note("Same median. Dataset B is more spread out in both its middle 50% and its full range.",12.6,0.90,22).move_to([0,-2.55,0])
+        self.play(FadeIn(conclusion),run_time=RUN_FAST)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def misconception_clinic(self):
+        self.set_header("MISCONCEPTION CLINIC", "Read geometry in scale units — not as counts")
+        rows = VGroup()
+        items = [
+            ("CLAIM 1", "The box always contains the middle 50% of the ordered data.", "TRUE"),
+            ("CLAIM 2", "A box twice as wide contains twice as many observations.", "FALSE"),
+            ("CLAIM 3", "A longer whisker means more spread in that quartile interval.", "TRUE"),
+            ("CLAIM 4", "A box plot shows every original observation exactly.", "FALSE"),
+        ]
+        for tag,statement,truth in items:
+            box = self.panel(13.2,0.86,fill=WHITE,stroke=LIGHT,sw=1.2)
+            t1 = self.t(tag,16,BOLD,color=MID).move_to(box.get_left()+RIGHT*0.72)
+            t2 = self.t(statement,20,NORMAL,color=DARK)
+            self.fit(t2,w=9.6,h=0.42)

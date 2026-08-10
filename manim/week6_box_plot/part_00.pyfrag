@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Period 1 · Week 6 — Box-and-Whisker Plot.
+
+Senior classroom edition.
+
+Pedagogical purpose
+-------------------
+Transform the five-number summary from Week 5 into a box-and-whisker plot,
+constructing every geometric component progressively and interpreting what the
+lengths mean on the measurement scale.
+
+Classroom quartile convention (preserved from Weeks 1–2 and Week 5)
+------------------------------------------------------------------
+- ORDER the data first.
+- Odd n: Q2 is the middle observation and is excluded from both halves.
+- Even n: Q2 is the mean of the two central observations; split evenly.
+- Q1 and Q3 are the medians of the lower and upper halves.
+
+Persistent construction route
+-----------------------------
+1. ORDER
+2. 5-NUM
+3. SCALE
+4. MARK Q1 / Q3
+5. DRAW BOX
+6. MEDIAN
+7. WHISKERS
+8. INTERPRET
+
+Target: Manim Community Edition 0.20.1, 1920x1080, 30 fps, literal -pqh.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from statistics import median
+from manim import *
+
+
+# =============================================================================
+# RENDER + STYLE CONTRACT
+# =============================================================================
+config.pixel_width = 1920
+config.pixel_height = 1080
+config.frame_width = 16
+config.frame_height = 9
+config.frame_rate = 30
+config.background_color = WHITE
+
+INK = BLACK
+DARK = "#303030"
+MID = "#777777"
+LIGHT = "#D6D6D6"
+VERY_LIGHT = "#EEEEEE"
+PAPER = "#F8F8F8"
+SAFE_W = 14.65
+
+RUN_FAST = 0.34
+RUN = 0.62
+RUN_SLOW = 0.90
+PAUSE_SHORT = 0.85
+PAUSE_READ = 1.25
+PAUSE_EXPLAIN = 1.75
+PAUSE_WORK = 3.20
+PAUSE_FINAL = 3.10
+
+Y_STEPS = -3.58
+Y_PLOT = -0.25
+
+
+# =============================================================================
+# MATH MODEL
+# =============================================================================
+@dataclass(frozen=True)
+class FiveNumberResult:
+    ordered: tuple[float, ...]
+    lower: tuple[float, ...]
+    upper: tuple[float, ...]
+    minimum: float
+    q1: float
+    q2: float
+    q3: float
+    maximum: float
+
+    @property
+    def five(self) -> tuple[float, float, float, float, float]:
+        return (self.minimum, self.q1, self.q2, self.q3, self.maximum)
+
+    @property
+    def iqr(self) -> float:
+        return self.q3 - self.q1
+
+    @property
+    def data_range(self) -> float:
+        return self.maximum - self.minimum
+
+
+def five_number_summary(values: tuple[float, ...]) -> FiveNumberResult:
+    ordered = tuple(sorted(float(v) for v in values))
+    n = len(ordered)
+    if n < 5:
+        raise ValueError("At least five observations are required.")
+
+    if n % 2:
+        mid = n // 2
+        q2 = ordered[mid]
+        lower = ordered[:mid]
+        upper = ordered[mid + 1 :]
+    else:
+        mid = n // 2
+        q2 = (ordered[mid - 1] + ordered[mid]) / 2
+        lower = ordered[:mid]
+        upper = ordered[mid:]
+
+    q1 = float(median(lower))
+    q3 = float(median(upper))
+    return FiveNumberResult(
+        ordered=ordered,
+        lower=tuple(lower),
+        upper=tuple(upper),

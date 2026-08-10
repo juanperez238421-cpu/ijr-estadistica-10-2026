@@ -1,0 +1,109 @@
+            t2.move_to(box.get_center()+LEFT*0.25)
+            t3 = self.t(truth,18,BOLD,color=INK).move_to(box.get_right()+LEFT*0.72)
+            rows.add(VGroup(box,t1,t2,t3))
+        rows.arrange(DOWN,buff=0.16).move_to([0,0.20,0])
+        for row in rows:
+            self.play(FadeIn(row),run_time=RUN_FAST)
+            self.wait(0.55)
+        note = self.note("Box plots compress the dataset: excellent for center and spread, but they hide individual values.",12.6,0.86,21).move_to([0,-2.55,0])
+        self.play(FadeIn(note),run_time=RUN_FAST)
+        self.wait(PAUSE_READ)
+        self.clear_stage(keep_header=False)
+
+    def mini_challenge(self):
+        self.set_header("MINI CHALLENGE", "Construct a box plot when the five-number summary is already known")
+        self.step_strip = None
+        self.set_step(2)
+        five = self.five_number_row(self.CHALLENGE_FIVE,y=1.55)
+        prompt = self.note("Given: (2, 6, 9, 15, 19). Pause and sketch the box plot before the solution appears.",12.6,0.90,22).move_to([0,0.45,0])
+        self.play(FadeIn(five),FadeIn(prompt),run_time=RUN)
+        self.wait(PAUSE_WORK)
+
+        self.set_step(3)
+        self.play(FadeOut(prompt),five.animate.scale(0.78).move_to([0,2.00,0]),run_time=RUN_FAST)
+        axis = self.scale_axis(0,20,y=-0.55,step=2)
+        self.play(Create(axis),run_time=RUN)
+
+        self.set_step(4)
+        geom = self.box_geometry(self.CHALLENGE_FIVE,0,20,y=-0.55)
+        xm,x1,x2,x3,xx = geom["coords"]
+        m1 = Line([x1,-1.12,0],[x1,0.02,0],color=DARK,stroke_width=2.2)
+        m3 = Line([x3,-1.12,0],[x3,0.02,0],color=DARK,stroke_width=2.2)
+        self.play(Create(m1),Create(m3),run_time=RUN)
+
+        self.set_step(5)
+        self.play(ReplacementTransform(VGroup(m1,m3),geom["q_marks"]),Create(geom["box"]),run_time=RUN)
+
+        self.set_step(6)
+        self.play(Create(geom["median"]),run_time=RUN)
+
+        self.set_step(7)
+        self.play(Create(geom["left_whisker"]),Create(geom["right_whisker"]),run_time=RUN)
+        self.wait(PAUSE_READ)
+
+        self.set_step(8)
+        result = self.note("Middle 50%: 6 to 15  ·  median: 9  ·  IQR = 9  ·  observed range: 2 to 19",12.8,0.92,22).move_to([0,0.85,0])
+        self.play(FadeIn(result),run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False,keep_steps=False)
+        self.step_strip=None
+
+    def week7_bridge(self):
+        self.set_header("NEXT: WEEK 7 · OUTLIERS", "The basic box plot is ready; next we decide whether every extreme belongs to a whisker")
+        axis = self.scale_axis(0,30,y=-0.35,step=5)
+        five = (2,6,9,15,28)
+        geom = self.box_geometry(five,0,30,y=-0.35)
+        self.play(FadeIn(axis),Create(geom["box"]),Create(geom["median"]),Create(geom["left_whisker"]),Create(geom["right_whisker"]),run_time=RUN)
+        extreme = self.t("28",20,BOLD).move_to([self.xmap(28,0,30),0.45,0])
+        q = self.t("Should this extreme value remain a whisker endpoint?",25,BOLD,color=DARK).move_to([0,1.65,0])
+        rule = self.note("Week 7 answers this with the 1.5 × IQR outlier rule. We do not apply that rule yet.",11.9,0.88,22).move_to([0,-2.20,0])
+        self.play(FadeIn(extreme),FadeIn(q),run_time=RUN)
+        self.play(FadeIn(rule),run_time=RUN_FAST)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def final_recipe(self):
+        title = self.t("WEEK 6 · BOX PLOT RECIPE",38,BOLD).move_to([0,2.70,0])
+        subtitle = self.t("Build from statistics → draw on scale → interpret geometry",24,NORMAL,color=MID).move_to([0,2.05,0])
+        left_items = [
+            ("1", "ORDER the raw data"),
+            ("2", "Find min, Q1, Q2, Q3, max"),
+            ("3", "Draw one numerical SCALE"),
+            ("4", "MARK Q1 and Q3"),
+        ]
+        right_items = [
+            ("5", "DRAW the box Q1 → Q3"),
+            ("6", "Add the MEDIAN line at Q2"),
+            ("7", "Connect WHISKERS to min and max"),
+            ("8", "INTERPRET center and spread"),
+        ]
+        def recipe_col(items):
+            col=VGroup()
+            for num,text in items:
+                circ=Circle(radius=0.23,stroke_color=DARK,stroke_width=1.8,fill_color=PAPER,fill_opacity=1)
+                n=self.t(num,16,BOLD).move_to(circ)
+                tx=self.t(text,21,NORMAL,color=DARK)
+                row=VGroup(VGroup(circ,n),tx).arrange(RIGHT,buff=0.18)
+                col.add(row)
+            col.arrange(DOWN,aligned_edge=LEFT,buff=0.34)
+            return col
+        lc=recipe_col(left_items).move_to([-3.65,0.15,0])
+        rc=recipe_col(right_items).move_to([3.65,0.15,0])
+        key=self.note("KEY IDEA: the box plot preserves the five-number summary AND displays its distances on the variable's scale.",13.2,0.96,22).move_to([0,-2.55,0])
+        self.play(FadeIn(title),FadeIn(subtitle),run_time=RUN)
+        self.play(FadeIn(lc),FadeIn(rc),run_time=RUN)
+        self.play(FadeIn(key),run_time=RUN_FAST)
+        self.wait(PAUSE_FINAL)
+        self.play(FadeOut(VGroup(title,subtitle,lc,rc,key)),run_time=RUN_FAST)
+
+    def construct(self):
+        self.opening()
+        self.bridge()
+        self.anatomy()
+        self.full_construction_a()
+        self.quarters_meaning()
+        self.comparison()
+        self.misconception_clinic()
+        self.mini_challenge()
+        self.week7_bridge()
+        self.final_recipe()

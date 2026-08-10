@@ -1,0 +1,122 @@
+name: Render Week 6 Box Plot Senior
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct and validate exact source
+        run: |
+          set -euo pipefail
+          DIR="manim/week6_box_plot"
+          SRC="$DIR/statistics10_week6_box_plot_senior.py"
+          cat "$DIR"/part_*.pyfrag > "$SRC"
+          python -m py_compile "$SRC"
+          sha256sum "$SRC" | tee /tmp/SOURCE_PRE_RENDER_SHA256.txt
+
+      - name: Pull fixed ManimCE image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Low-quality protocol validation (-pql)
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql manim/week6_box_plot/statistics10_week6_box_plot_senior.py Statistics10Week6BoxPlotSenior --format=mp4 --disable_caching
+            '
+
+      - name: Final literal high-quality render (-pqh)
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh manim/week6_box_plot/statistics10_week6_box_plot_senior.py Statistics10Week6BoxPlotSenior --format=mp4 --disable_caching
+            '
+
+      - name: Verify, normalize Windows copy, decode-test, and package
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          SRC="manim/week6_box_plot/statistics10_week6_box_plot_senior.py"
+          FINAL="$(find media/videos -type f -path '*1080p*' -name 'Statistics10Week6BoxPlotSenior.mp4' | head -n 1)"
+          test -n "$FINAL"
+          cp "$FINAL" delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_pqh.mp4
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_pqh.mp4 | tee delivery/FFPROBE_PQH.txt
+          ffmpeg -y -loglevel error \
+            -i delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_pqh.mp4 \
+            -f lavfi -i anullsrc=r=48000:cl=stereo \
+            -map 0:v:0 -map 1:a:0 -shortest \
+            -vf "fps=30,format=yuv420p" \
+            -c:v libx264 -preset veryfast -crf 20 -profile:v main -level 4.0 \
+            -c:a aac -b:a 96k -movflags +faststart \
+            delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_WIN.mp4
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_WIN.mp4 | tee delivery/FFPROBE_WIN.txt
+          ffmpeg -v error -i delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_WIN.mp4 -f null - 2> delivery/DECODE_TEST.txt
+          test ! -s delivery/DECODE_TEST.txt
+          sha256sum delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_pqh.mp4 | tee delivery/SHA256_PQH.txt
+          sha256sum delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_WIN.mp4 | tee delivery/SHA256_WIN.txt
+          sha256sum "$SRC" | tee delivery/SOURCE_SHA256.txt
+          cmp <(sha256sum "$SRC") /tmp/SOURCE_PRE_RENDER_SHA256.txt
+          printf '%s\n' \
+            'manim -pql statistics10_week6_box_plot_senior.py Statistics10Week6BoxPlotSenior --format=mp4 --disable_caching' \
+            'manim -pqh statistics10_week6_box_plot_senior.py Statistics10Week6BoxPlotSenior --format=mp4 --disable_caching' \
+            > delivery/RENDER_COMMANDS.txt
+
+      - name: Upload Week 6 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-Week6-Box-Plot-Senior
+          path: |
+            delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_pqh.mp4
+            delivery/Statistics10_Week6_Box_And_Whisker_Plot_Senior_WIN.mp4
+            delivery/FFPROBE_PQH.txt
+            delivery/FFPROBE_WIN.txt
+            delivery/DECODE_TEST.txt
+            delivery/SHA256_PQH.txt
+            delivery/SHA256_WIN.txt
+            delivery/SOURCE_SHA256.txt
+            delivery/RENDER_COMMANDS.txt
+            manim/week6_box_plot/statistics10_week6_box_plot_senior.py
+          if-no-files-found: error
+          retention-days: 7

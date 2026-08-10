@@ -1,0 +1,119 @@
+            ticks.add(Line([x,y-0.11,0], [x,y+0.11,0], color=DARK, stroke_width=1.6))
+            lab = self.t(str(val), 16, NORMAL, color=MID).move_to([x,y-0.36,0])
+            labels.add(lab)
+        return VGroup(axis, ticks, labels)
+
+    def box_geometry(self, five, lo, hi, y=Y_PLOT, box_h=1.12, left=-5.75, right=5.75):
+        mn, q1, q2, q3, mx = five
+        xm = self.xmap(mn, lo, hi, left, right)
+        x1 = self.xmap(q1, lo, hi, left, right)
+        x2 = self.xmap(q2, lo, hi, left, right)
+        x3 = self.xmap(q3, lo, hi, left, right)
+        xx = self.xmap(mx, lo, hi, left, right)
+        top = y + box_h/2
+        bottom = y - box_h/2
+
+        box = Rectangle(
+            width=max(x3-x1, 0.01),
+            height=box_h,
+            stroke_color=DARK,
+            stroke_width=2.4,
+            fill_color=VERY_LIGHT,
+            fill_opacity=1,
+        ).move_to([(x1+x3)/2, y, 0])
+        median_line = Line([x2,bottom,0], [x2,top,0], color=INK, stroke_width=3.0)
+        left_whisk = VGroup(
+            Line([xm,y,0],[x1,y,0], color=DARK, stroke_width=2.2),
+            Line([xm,y-box_h*0.28,0],[xm,y+box_h*0.28,0], color=DARK, stroke_width=2.2),
+        )
+        right_whisk = VGroup(
+            Line([x3,y,0],[xx,y,0], color=DARK, stroke_width=2.2),
+            Line([xx,y-box_h*0.28,0],[xx,y+box_h*0.28,0], color=DARK, stroke_width=2.2),
+        )
+        q_marks = VGroup(
+            Line([x1,bottom,0],[x1,top,0], color=DARK, stroke_width=2.2),
+            Line([x3,bottom,0],[x3,top,0], color=DARK, stroke_width=2.2),
+        )
+        return {
+            "box": box,
+            "median": median_line,
+            "left_whisker": left_whisk,
+            "right_whisker": right_whisk,
+            "q_marks": q_marks,
+            "coords": (xm, x1, x2, x3, xx),
+        }
+
+    def landmark_labels(self, five, lo, hi, y=1.25, left=-5.75, right=5.75):
+        names = ("min", "Q1", "Q2", "Q3", "max")
+        g = VGroup()
+        for name, val in zip(names, five):
+            x = self.xmap(val, lo, hi, left, right)
+            nm = self.t(name, 15, BOLD, color=MID).move_to([x,y+0.25,0])
+            vl = self.t(fmt(val), 19, BOLD, color=INK).move_to([x,y-0.08,0])
+            g.add(VGroup(nm, vl))
+        return g
+
+    # -------------------------------------------------------------------------
+    # Lesson scenes
+    # -------------------------------------------------------------------------
+    def opening(self):
+        ey = self.t("STATISTICS 10 · WEEK 6", 22, BOLD, color=MID).move_to([0,2.65,0])
+        title = self.t("BOX-AND-WHISKER PLOT", 44, BOLD).move_to([0,1.72,0])
+        subtitle = self.t("Turn five numbers into a picture of center and spread", 26, NORMAL, color=MID).move_to([0,0.93,0])
+        route = self.t("ORDER → 5-NUM → SCALE → Q1/Q3 → BOX → MEDIAN → WHISKERS → INTERPRET", 20, BOLD, color=DARK).move_to([0,-0.02,0])
+        self.fit(route, w=13.7, h=0.45)
+        note = self.note(
+            "Week 5 gave us the five landmarks. Week 6 turns those landmarks into geometry.",
+            12.6, 0.96, 23
+        ).move_to([0,-1.35,0])
+        self.play(FadeIn(ey), FadeIn(title), run_time=RUN)
+        self.play(FadeIn(subtitle), FadeIn(route), run_time=RUN)
+        self.play(FadeIn(note), run_time=RUN_FAST)
+        self.wait(PAUSE_READ)
+        self.play(FadeOut(VGroup(ey,title,subtitle,route,note)), run_time=RUN_FAST)
+
+    def bridge(self):
+        self.set_header("FROM FIVE NUMBERS TO ONE PICTURE", "The plot is a scaled geometric encoding of the summary")
+        five = self.five_number_row(self.a.five, y=1.35)
+        arrow = Arrow([0,0.55,0],[0,-0.15,0], color=DARK, stroke_width=2.2, max_tip_length_to_length_ratio=0.12)
+        axis = self.scale_axis(2,22,y=-1.25,step=2)
+        geom = self.box_geometry(self.a.five,2,22,y=-1.25)
+        labels = self.landmark_labels(self.a.five,2,22,y=-0.08)
+        self.play(FadeIn(five), run_time=RUN)
+        self.play(GrowArrow(arrow), FadeIn(axis), run_time=RUN)
+        self.play(Create(geom["box"]), Create(geom["median"]), run_time=RUN)
+        self.play(Create(geom["left_whisker"]), Create(geom["right_whisker"]), FadeIn(labels), run_time=RUN)
+        msg = self.note("Same five values — now their distances are visible on one common scale.", 11.8, 0.82, 22).move_to([0,-2.62,0])
+        self.play(FadeIn(msg), run_time=RUN_FAST)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def anatomy(self):
+        self.set_header("ANATOMY OF A BOX PLOT", "Every component has a precise statistical meaning")
+        axis = self.scale_axis(2,22,y=-0.45,step=2)
+        geom = self.box_geometry(self.a.five,2,22,y=-0.45)
+        labels = self.landmark_labels(self.a.five,2,22,y=0.72)
+        self.add(axis)
+        self.play(Create(geom["box"]), run_time=RUN)
+        box_note = self.note("BOX = Q1 to Q3 = the middle 50% of the ordered data", 10.8, 0.82, 22).move_to([0,2.05,0])
+        self.play(FadeIn(box_note), run_time=RUN_FAST)
+        self.play(Create(geom["median"]), run_time=RUN_FAST)
+        med_note = self.note("MEDIAN LINE = Q2 = the central location", 8.2, 0.78, 21).move_to([0,1.16,0])
+        self.play(FadeIn(med_note), run_time=RUN_FAST)
+        self.play(Create(geom["left_whisker"]), Create(geom["right_whisker"]), run_time=RUN)
+        whisk_note = self.note("WHISKERS = from min to Q1 and from Q3 to max — before outlier rules are introduced", 12.5, 0.88, 20).move_to([0,-2.08,0])
+        self.play(FadeIn(labels), FadeIn(whisk_note), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False)
+
+    def full_construction_a(self):
+        self.set_header("WORKED EXAMPLE A", "Construct the box plot from raw data — one decision at a time")
+        self.set_step(1)
+        raw_title = self.t("RAW DATA", 18, BOLD, color=MID).move_to([0,2.18,0])
+        raw = self.data_cards(self.DATA_A, y=1.55, show_indices=False)
+        self.play(FadeIn(raw_title), FadeIn(raw), run_time=RUN)
+        self.wait(PAUSE_SHORT)
+        ordered_title = self.t("ORDERED DATA", 18, BOLD, color=MID).move_to([0,0.70,0])
+        ordered = self.data_cards(self.a.ordered, y=0.10, show_indices=True)
+        self.play(FadeIn(ordered_title), TransformFromCopy(raw, ordered), run_time=RUN)
+        self.wait(PAUSE_READ)

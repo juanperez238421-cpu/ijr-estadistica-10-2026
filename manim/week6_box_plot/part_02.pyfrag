@@ -1,0 +1,120 @@
+    def clear_stage(self, keep_header=True, keep_steps=False):
+        keep = set()
+        if keep_header and self.header is not None:
+            keep.add(self.header)
+        if keep_steps and self.step_strip is not None:
+            keep.add(self.step_strip)
+        removable = [mob for mob in self.mobjects if mob not in keep]
+        if removable:
+            self.play(*[FadeOut(mob) for mob in removable], run_time=RUN_FAST)
+        if keep_header and self.header is not None and self.header not in self.mobjects:
+            self.add(self.header)
+        if keep_steps and self.step_strip is not None and self.step_strip not in self.mobjects:
+            self.add(self.step_strip)
+
+    # -------------------------------------------------------------------------
+    # Persistent eight-step navigator
+    # -------------------------------------------------------------------------
+    def build_step_strip(self, active=1):
+        widths = (1.35, 1.35, 1.30, 1.82, 1.52, 1.35, 1.55, 1.68)
+        cells = VGroup()
+        for i, (name, width) in enumerate(zip(self.STEP_NAMES, widths), 1):
+            active_now = i == active
+            box = RoundedRectangle(
+                width=width,
+                height=0.72,
+                corner_radius=0.08,
+                stroke_color=DARK if active_now else LIGHT,
+                stroke_width=2.4 if active_now else 1.05,
+                fill_color="#EAEAEA" if active_now else WHITE,
+                fill_opacity=1,
+            )
+            num = self.t(str(i), 17.5, BOLD, color=DARK)
+            lab = self.t(name, 13.5, BOLD if active_now else NORMAL,
+                         color=DARK if active_now else MID)
+            row = VGroup(num, lab).arrange(RIGHT, buff=0.065)
+            self.fit(row, w=width-0.14, h=0.39)
+            row.move_to(box)
+            cells.add(VGroup(box, row))
+        strip = cells.arrange(RIGHT, buff=0.055)
+        if strip.width > 14.78:
+            strip.scale_to_fit_width(14.78)
+        strip.move_to([0, Y_STEPS, 0])
+        return strip
+
+    def set_step(self, active):
+        new = self.build_step_strip(active)
+        if self.step_strip is None or self.step_strip not in self.mobjects:
+            self.step_strip = new
+            self.play(FadeIn(new), run_time=RUN_FAST)
+        else:
+            old = self.step_strip
+            self.play(Transform(old, new), run_time=RUN_FAST)
+            self.step_strip = old
+
+    # -------------------------------------------------------------------------
+    # Data cards + five-number summary
+    # -------------------------------------------------------------------------
+    def data_cards(self, values, y=1.55, max_width=13.2, show_indices=False):
+        cards = VGroup()
+        for idx, val in enumerate(values, 1):
+            box = RoundedRectangle(
+                width=0.92,
+                height=0.72,
+                corner_radius=0.08,
+                stroke_color=DARK,
+                stroke_width=1.4,
+                fill_color=WHITE,
+                fill_opacity=1,
+            )
+            tx = self.t(fmt(float(val)), 22, BOLD).move_to(box)
+            item = VGroup(box, tx)
+            if show_indices:
+                ix = self.t(str(idx), 13, NORMAL, color=MID).next_to(box, DOWN, buff=0.07)
+                item = VGroup(box, tx, ix)
+            cards.add(item)
+        cards.arrange(RIGHT, buff=0.10)
+        if cards.width > max_width:
+            cards.scale_to_fit_width(max_width)
+        cards.move_to([0, y, 0])
+        return cards
+
+    def five_number_row(self, five, y=0.55, width=11.8):
+        names = ("MIN", "Q1", "Q2", "Q3", "MAX")
+        cells = VGroup()
+        for name, val in zip(names, five):
+            box = RoundedRectangle(
+                width=2.05,
+                height=1.05,
+                corner_radius=0.10,
+                stroke_color=DARK,
+                stroke_width=1.6,
+                fill_color=PAPER,
+                fill_opacity=1,
+            )
+            nm = self.t(name, 15, BOLD, color=MID).move_to(box.get_center()+UP*0.22)
+            vl = self.t(fmt(val), 25, BOLD, color=INK).move_to(box.get_center()+DOWN*0.18)
+            cells.add(VGroup(box, nm, vl))
+        cells.arrange(RIGHT, buff=0.12)
+        if cells.width > width:
+            cells.scale_to_fit_width(width)
+        cells.move_to([0, y, 0])
+        return cells
+
+    # -------------------------------------------------------------------------
+    # Scaled box-plot geometry
+    # -------------------------------------------------------------------------
+    def xmap(self, value, lo, hi, left=-5.75, right=5.75):
+        return left + (value-lo)/(hi-lo)*(right-left)
+
+    def scale_axis(self, lo, hi, y=Y_PLOT, step=2, left=-5.75, right=5.75):
+        axis = Line([left, y, 0], [right, y, 0], color=DARK, stroke_width=2)
+        ticks = VGroup()
+        labels = VGroup()
+        start = int(lo)
+        stop = int(hi)
+        vals = list(range(start, stop+1, step))
+        if vals[-1] != stop:
+            vals.append(stop)
+        for val in vals:
+            x = self.xmap(val, lo, hi, left, right)
