@@ -28,10 +28,12 @@ jobs:
           echo '0fb250855e6ea243a73d85233d27d3ac58338b0af9d1871c9b441642c5cf521f  /tmp/v5.patch' | sha256sum -c -
           patch -p0 < /tmp/v5.patch
           echo '1bcbc6b7060f5ecc4a74de2112d88789bdd331c01f148b503f6e066c629658eb  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
-          mv physics9_motion_achilles_v4_senior.py physics9_motion_achilles_v5_2_frame_audited.py
+          mv physics9_motion_achilles_v4_senior.py physics9_motion_achilles_v5_frame_audited.py
           patch -p0 < render_motion_v5/v5_to_v5_1_layout_fix.patch
-          echo '8353ea73568a89aa5e94954c7469ecca2e14f37de509c7b2d9c2292c206f8748  physics9_motion_achilles_v5_2_frame_audited.py' | sha256sum -c -
+          echo '8353ea73568a89aa5e94954c7469ecca2e14f37de509c7b2d9c2292c206f8748  physics9_motion_achilles_v5_frame_audited.py' | sha256sum -c -
           patch -p0 < render_motion_v5/v5_1_to_v5_2_final_layout.patch
+          echo 'd55d1d6f184b333a1cd2cdce7769fcb20b22d445fcd4ac0e93c902e32767c75f  physics9_motion_achilles_v5_frame_audited.py' | sha256sum -c -
+          mv physics9_motion_achilles_v5_frame_audited.py physics9_motion_achilles_v5_2_frame_audited.py
           echo 'd55d1d6f184b333a1cd2cdce7769fcb20b22d445fcd4ac0e93c902e32767c75f  physics9_motion_achilles_v5_2_frame_audited.py' | sha256sum -c -
 
           base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
@@ -121,11 +123,9 @@ jobs:
           import subprocess, sys, os
           v='delivery/Physics9_Motion_Achilles_V5_2_FRAME_AUDITED_FINAL_pqh.mp4'
           d=float(sys.argv[1])
-          # 90 uniformly distributed samples over the complete final video.
           for i in range(90):
               t=max(0,min(d-.05,d*(i+.5)/90))
               subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_global/frame_{i+1:03d}.png'],check=True)
-          # Scene ranges derived from the complete preview timeline; eight samples per scene.
           ranges=[(0,.035),(.035,.22),(.22,.38),(.38,.53),(.53,.60),(.60,.71),(.71,.79),(.79,.89),(.89,.995)]
           for s,(a,b) in enumerate(ranges):
               out=f'delivery/qa_scenes/s{s:02d}'; os.makedirs(out,exist_ok=True)
