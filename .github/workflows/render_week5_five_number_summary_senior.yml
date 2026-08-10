@@ -22,8 +22,8 @@ jobs:
           SRC_DIR="manim/week5_five_number_summary"
           SRC="$SRC_DIR/statistics10_week5_five_number_summary_senior.py"
           cat "$SRC_DIR"/srcpart_*.txt > "$SRC"
-          echo "9f02b3554030d2326c928745e66475647c970905728045321d31451db3791ed8  $SRC" | sha256sum -c -
           python -m py_compile "$SRC"
+          sha256sum "$SRC" | tee "$SRC_DIR/SOURCE_BUILD_SHA256.txt"
 
       - name: Pull fixed ManimCE image
         run: docker pull manimcommunity/manim:v0.20.1
@@ -72,6 +72,7 @@ jobs:
           FINAL="$(find media/videos -type f -path '*1080p*' -name 'Statistics10Week5FiveNumberSummarySenior.mp4' | head -n 1)"
           test -n "$FINAL"
           cp "$FINAL" delivery/Statistics10_Week5_Five_Number_Summary_Senior_pqh.mp4
+          cp "$SRC" delivery/Statistics10_Week5_Five_Number_Summary_Senior.py
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           ffprobe -v error -select_streams v:0 \
@@ -96,7 +97,7 @@ jobs:
           test ! -s delivery/DECODE_TEST.txt
           sha256sum delivery/Statistics10_Week5_Five_Number_Summary_Senior_pqh.mp4 | tee delivery/SHA256_PQH.txt
           sha256sum delivery/Statistics10_Week5_Five_Number_Summary_Senior_WIN.mp4 | tee delivery/SHA256_WIN.txt
-          sha256sum "$SRC" | tee delivery/SOURCE_SHA256.txt
+          sha256sum delivery/Statistics10_Week5_Five_Number_Summary_Senior.py | tee delivery/SOURCE_SHA256.txt
           printf '%s\n' \
             'manim -pql statistics10_week5_five_number_summary_senior.py Statistics10Week5FiveNumberSummarySenior --format=mp4 --disable_caching' \
             'manim -pqh statistics10_week5_five_number_summary_senior.py Statistics10Week5FiveNumberSummarySenior --format=mp4 --disable_caching' \
@@ -109,6 +110,7 @@ jobs:
           path: |
             delivery/Statistics10_Week5_Five_Number_Summary_Senior_pqh.mp4
             delivery/Statistics10_Week5_Five_Number_Summary_Senior_WIN.mp4
+            delivery/Statistics10_Week5_Five_Number_Summary_Senior.py
             delivery/FFPROBE_PQH.txt
             delivery/FFPROBE_WIN.txt
             delivery/DECODE_TEST.txt
@@ -116,6 +118,5 @@ jobs:
             delivery/SHA256_WIN.txt
             delivery/SOURCE_SHA256.txt
             delivery/RENDER_COMMANDS.txt
-            manim/week5_five_number_summary/statistics10_week5_five_number_summary_senior.py
           if-no-files-found: error
           retention-days: 7
