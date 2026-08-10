@@ -1,4 +1,4 @@
-name: Render Week 4 Percentile Interpretation Senior
+name: Render Week 4 Percentile Interpretation Senior V2
 
 on:
   pull_request:
@@ -16,13 +16,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct and validate exact Week 4 source
+      - name: Reconstruct, patch, and validate exact Week 4 V2 source
         run: |
           set -euo pipefail
           SRC_DIR="manim/week4_percentile_interpretation"
           SRC="$SRC_DIR/statistics10_week4_percentile_interpretation_senior.py"
           cat "$SRC_DIR"/srcpart_*.txt > "$SRC"
           echo "44798a17c1dea77235f759ddb38c4ef33707d519d2f9c24d3e2cf14620050601  $SRC" | sha256sum -c -
+          python -m py_compile "$SRC"
+          python "$SRC_DIR/apply_week4_v2.py" "$SRC"
+          echo "60a0c496172e4084a49774e572b6fe9a2bee68a0ee9112cf6f07a8f89284c22a  $SRC" | sha256sum -c -
           python -m py_compile "$SRC"
 
       - name: Pull fixed ManimCE image
@@ -71,44 +74,44 @@ jobs:
           SRC="manim/week4_percentile_interpretation/statistics10_week4_percentile_interpretation_senior.py"
           FINAL="$(find media/videos -type f -path '*1080p*' -name 'Statistics10Week4PercentileInterpretationSenior.mp4' | head -n 1)"
           test -n "$FINAL"
-          cp "$FINAL" delivery/Statistics10_Week4_Percentile_Interpretation_Senior_pqh.mp4
+          cp "$FINAL" delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_pqh.mp4
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
           ffprobe -v error -select_streams v:0 \
             -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
             -show_entries format=duration \
             -of default=noprint_wrappers=1 \
-            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_pqh.mp4 | tee delivery/FFPROBE_PQH.txt
+            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_pqh.mp4 | tee delivery/FFPROBE_PQH.txt
           ffmpeg -y -loglevel error \
-            -i delivery/Statistics10_Week4_Percentile_Interpretation_Senior_pqh.mp4 \
+            -i delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_pqh.mp4 \
             -f lavfi -i anullsrc=r=48000:cl=stereo \
             -map 0:v:0 -map 1:a:0 -shortest \
             -vf "fps=30,format=yuv420p" \
             -c:v libx264 -preset veryfast -crf 20 -profile:v main -level 4.0 \
             -c:a aac -b:a 96k -movflags +faststart \
-            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_WIN.mp4
+            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_WIN.mp4
           ffprobe -v error -select_streams v:0 \
             -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
             -show_entries format=duration \
             -of default=noprint_wrappers=1 \
-            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_WIN.mp4 | tee delivery/FFPROBE_WIN.txt
-          ffmpeg -v error -i delivery/Statistics10_Week4_Percentile_Interpretation_Senior_WIN.mp4 -f null - 2> delivery/DECODE_TEST.txt
+            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_WIN.mp4 | tee delivery/FFPROBE_WIN.txt
+          ffmpeg -v error -i delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_WIN.mp4 -f null - 2> delivery/DECODE_TEST.txt
           test ! -s delivery/DECODE_TEST.txt
-          sha256sum delivery/Statistics10_Week4_Percentile_Interpretation_Senior_pqh.mp4 | tee delivery/SHA256_PQH.txt
-          sha256sum delivery/Statistics10_Week4_Percentile_Interpretation_Senior_WIN.mp4 | tee delivery/SHA256_WIN.txt
+          sha256sum delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_pqh.mp4 | tee delivery/SHA256_PQH.txt
+          sha256sum delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_WIN.mp4 | tee delivery/SHA256_WIN.txt
           sha256sum "$SRC" | tee delivery/SOURCE_SHA256.txt
           printf '%s\n' \
             'manim -pql statistics10_week4_percentile_interpretation_senior.py Statistics10Week4PercentileInterpretationSenior --format=mp4 --disable_caching' \
             'manim -pqh statistics10_week4_percentile_interpretation_senior.py Statistics10Week4PercentileInterpretationSenior --format=mp4 --disable_caching' \
             > delivery/RENDER_COMMANDS.txt
 
-      - name: Upload Week 4 artifact
+      - name: Upload Week 4 V2 artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Statistics10-Week4-Percentile-Interpretation-Senior
+          name: Statistics10-Week4-Percentile-Interpretation-Senior-V2
           path: |
-            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_pqh.mp4
-            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_WIN.mp4
+            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_pqh.mp4
+            delivery/Statistics10_Week4_Percentile_Interpretation_Senior_V2_WIN.mp4
             delivery/FFPROBE_PQH.txt
             delivery/FFPROBE_WIN.txt
             delivery/DECODE_TEST.txt
@@ -117,5 +120,6 @@ jobs:
             delivery/SOURCE_SHA256.txt
             delivery/RENDER_COMMANDS.txt
             manim/week4_percentile_interpretation/statistics10_week4_percentile_interpretation_senior.py
+            manim/week4_percentile_interpretation/apply_week4_v2.py
           if-no-files-found: error
           retention-days: 7
