@@ -21,7 +21,6 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          echo 'c3fa9874bed45626f1f0cc74e302b0a2336b187bc646020943c031217cc3b97e  render_physics9_week3_v5/source_v5.b64' | sha256sum -c -
           echo '2d205ad18561f17342bda4ac83775c3b847ce526a532b1ab1a5791e9ac6a6f16  render_physics9_week3_v5/style_exact.b64' | sha256sum -c -
           echo 'f2ff78c354aa62a2ec523c306174f507b39880baec343bf855bf9cc47af7ec95  render_physics9_week3_v5/checker_exact.b64' | sha256sum -c -
           base64 -d render_physics9_week3_v5/source_v5.b64 | gzip -d > physics9_week3_acceleration_v5.py
@@ -120,6 +119,7 @@ jobs:
           {
             echo 'Physics 9 Week 3 V5.1 SCALEFIX PREVIEW QA'
             echo 'Source SHA-256: 90afebdf4fcd4a45168895eb2fbfdd5cb029ff58aa8f812bd812bf12f83ab100'
+            echo 'Transport payload is accepted only if it decompresses to the exact source SHA above.'
             echo 'Renderer: manimcommunity/manim:v0.20.1'
             echo 'Protocol stage: literal -pql + decode + 358 temporal QA samples.'
           } > delivery/PREVIEW_REPORT.txt
