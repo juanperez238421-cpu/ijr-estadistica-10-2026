@@ -1,0 +1,122 @@
+eOut(prompt), run_time=RUN_FAST)
+
+        ordered = self.labeled_row("ORDERED", self.C.ordered, 0.72, max_width=10.9)
+        self.play(Transform(raw, ordered), run_time=RUN_SLOW)
+        calc = self.formula_panel(
+            r"Q_2=6,\qquad Q_1=\frac{4+5}{2}=4.5,\qquad Q_3=\frac{8+9}{2}=8.5",
+            12.2,
+            1.02,
+            35,
+        ).move_to([0, -0.55, 0])
+        self.play(FadeIn(calc), run_time=RUN_SLOW)
+        summary = self.five_summary_panel(self.C, y=-1.84, width=12.8)
+        self.play(FadeIn(summary), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage()
+
+    def week6_preview(self):
+        self.set_header("NEXT", "WEEK 6 · BOX-AND-WHISKER PLOT")
+        result = self.A
+        summary = self.five_summary_panel(result, y=2.18, width=12.5)
+        self.play(FadeIn(summary), run_time=RUN)
+
+        axis, pts = self.five_point_axis(result, y=0.45, width=11.2)
+        self.play(Create(axis[0]), LaggedStart(*[FadeIn(x) for x in axis[1:]], lag_ratio=0.08), run_time=RUN_SLOW)
+
+        q1x, q2x, q3x = pts[1][0], pts[2][0], pts[3][0]
+        minx, maxx = pts[0][0], pts[4][0]
+        box = Rectangle(
+            width=q3x - q1x,
+            height=0.82,
+            stroke_color=DARK,
+            stroke_width=2.2,
+            fill_opacity=0,
+        ).move_to([(q1x + q3x) / 2, 0.45, 0])
+        med = Line([q2x, 0.04, 0], [q2x, 0.86, 0], color=DARK, stroke_width=2.6)
+        wl = Line([minx, 0.45, 0], [q1x, 0.45, 0], color=DARK, stroke_width=2.2)
+        wr = Line([q3x, 0.45, 0], [maxx, 0.45, 0], color=DARK, stroke_width=2.2)
+        self.play(Create(box), Create(med), Create(wl), Create(wr), run_time=RUN_SLOW)
+
+        note = self.note(
+            "Week 6: these same five landmarks become the geometry of the box plot.",
+            12.6,
+            0.86,
+            24,
+        ).move_to([0, -1.55, 0])
+        caution = self.note(
+            "Today: understand the five numbers. Next week: construct the graph step by step.",
+            12.6,
+            0.82,
+            22,
+        ).move_to([0, -2.52, 0])
+        self.play(FadeIn(note), FadeIn(caution), run_time=RUN)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def final_recipe(self):
+        self.set_header("FINAL RECIPE", "FIVE NUMBERS, ONE CONSISTENT PROCESS")
+        left_items = (
+            ("1", "ORDER", "Smallest → largest"),
+            ("2", "MIN / MAX", "Read endpoints"),
+            ("3", "FIND Q2", "Find the median"),
+            ("4", "SPLIT", "Lower / upper halves"),
+        )
+        right_items = (
+            ("5", "FIND Q1", "Median of lower half"),
+            ("6", "FIND Q3", "Median of upper half"),
+            ("7", "WRITE 5-NUM", "(min,Q1,Q2,Q3,max)"),
+            ("8", "INTERPRET", "Center + middle spread + endpoints"),
+        )
+
+        def recipe_column(items):
+            col = VGroup()
+            for num, title, desc in items:
+                box = self.panel(6.55, 1.02, fill=WHITE)
+                n = self.t(num, 24, BOLD, color=DARK)
+                tt = self.t(title, 21, BOLD, color=DARK)
+                dd = self.t(desc, 18.5, NORMAL, color=MID)
+                row = VGroup(n, tt, dd).arrange(RIGHT, buff=0.22)
+                self.fit(row, w=6.10, h=0.60)
+                row.move_to(box)
+                col.add(VGroup(box, row))
+            return col.arrange(DOWN, buff=0.15)
+
+        left = recipe_column(left_items)
+        right = recipe_column(right_items)
+        group = VGroup(left, right).arrange(RIGHT, buff=0.42).move_to([0, 0.20, 0])
+        self.play(LaggedStart(*[FadeIn(x) for x in group], lag_ratio=0.07), run_time=RUN_SLOW)
+        end = self.note(
+            "If the data are not ordered first, every quartile decision after that is at risk.",
+            13.1,
+            0.86,
+            24,
+        ).move_to([0, -2.67, 0])
+        self.play(FadeIn(end), run_time=RUN)
+        self.wait(PAUSE_SUMMARY)
+
+    # ------------------------------------------------------------------
+    # Scene assembly
+    # ------------------------------------------------------------------
+    def construct(self):
+        self.opening()
+        self.bridge_from_week4()
+        self.anatomy()
+        self.method_map()
+        self.worked_example(
+            "EXAMPLE A · ODD n",
+            self.RAW_A,
+            self.A,
+            True,
+            "Exclude the median before building the two halves",
+        )
+        self.worked_example(
+            "EXAMPLE B · EVEN n",
+            self.RAW_B,
+            self.B,
+            False,
+            "Average the two center values, then split evenly",
+        )
+        self.compare_summaries()
+        self.mini_challenge()
+        self.week6_preview()
+        self.final_recipe()

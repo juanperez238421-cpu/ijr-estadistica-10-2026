@@ -1,0 +1,201 @@
+          corner_radius=0.08,
+                stroke_color=DARK if i == active else LIGHT,
+                stroke_width=sw,
+                fill_color=fill,
+                fill_opacity=1,
+            )
+            num = self.t(str(i), 18, BOLD, color=DARK)
+            lab = self.t(name, 14.4, BOLD if i == active else NORMAL,
+                         color=DARK if i == active else MID)
+            content = VGroup(num, lab).arrange(RIGHT, buff=0.08)
+            self.fit(content, w=width - 0.18, h=0.41)
+            content.move_to(box)
+            cells.add(VGroup(box, content))
+        strip = cells.arrange(RIGHT, buff=0.064)
+        if strip.width > 14.82:
+            strip.scale_to_fit_width(14.82)
+        strip.move_to([0, Y_STEPS, 0])
+        return strip
+
+    def set_step(self, active):
+        new = self.build_step_strip(active)
+        if self.step_strip is None or self.step_strip not in self.mobjects:
+            self.step_strip = new
+            self.play(FadeIn(new), run_time=RUN_FAST)
+        else:
+            self.play(Transform(self.step_strip, new), run_time=RUN_FAST)
+
+    # ------------------------------------------------------------------
+    # Reusable data visualizations
+    # ------------------------------------------------------------------
+    def data_cards(self, values, y=Y_DATA, max_width=13.4, show_indices=True):
+        values = tuple(values)
+        n = len(values)
+        card_w = min(1.00, (max_width - 0.12 * (n - 1)) / n)
+        card_h = 0.72
+        cards = VGroup()
+        for i, value in enumerate(values, start=1):
+            box = RoundedRectangle(
+                width=card_w,
+                height=card_h,
+                corner_radius=0.08,
+                stroke_color=DARK,
+                stroke_width=1.4,
+                fill_color=WHITE,
+                fill_opacity=1,
+            )
+            val = self.t(fmt(value), 24, BOLD, color=DARK)
+            val.move_to(box)
+            if show_indices:
+                idx = self.t(str(i), 13.5, NORMAL, color=MID)
+                idx.next_to(box, DOWN, buff=0.07)
+                cards.add(VGroup(box, val, idx))
+            else:
+                cards.add(VGroup(box, val))
+        cards.arrange(RIGHT, buff=0.12)
+        if cards.width > max_width:
+            cards.scale_to_fit_width(max_width)
+        cards.move_to([0, y, 0])
+        return cards
+
+    def labeled_row(self, label, values, y, max_width=11.8):
+        lab = self.t(label, 20, BOLD, color=MID)
+        row = self.data_cards(values, y=0, max_width=max_width, show_indices=False)
+        group = VGroup(lab, row).arrange(RIGHT, buff=0.30)
+        self.fit(group, w=14.2, h=0.90)
+        group.move_to([0, y, 0])
+        return group
+
+    def five_point_axis(self, result: FiveNumberResult, y=0.25, width=11.0, labels=True):
+        values = result.five
+        vmin, vmax = result.minimum, result.maximum
+        span = vmax - vmin
+        x0 = -width / 2
+        x1 = width / 2
+        base = Line([x0, y, 0], [x1, y, 0], color=DARK, stroke_width=3.2)
+
+        names = ("MIN", "Q1", "Q2", "Q3", "MAX")
+        group = VGroup(base)
+        points = []
+        for name, value in zip(names, values):
+            x = x0 + (value - vmin) / span * width if span else 0
+            tick = Line([x, y - 0.19, 0], [x, y + 0.19, 0], color=DARK, stroke_width=2.4)
+            dot = Dot([x, y, 0], radius=0.060, color=DARK)
+            points.append([x, y, 0])
+            group.add(tick, dot)
+            if labels:
+                nm = self.t(name, 17, BOLD, color=MID).next_to(dot, UP, buff=0.16)
+                vv = self.t(fmt(value), 20, BOLD, color=DARK).next_to(dot, DOWN, buff=0.17)
+                group.add(nm, vv)
+        return group, points
+
+    def five_summary_panel(self, result: FiveNumberResult, y=Y_RESULT, width=12.6):
+        expr = (
+            rf"\left(\,{fmt(result.minimum)},\ {fmt(result.q1)},\ "
+            rf"{fmt(result.q2)},\ {fmt(result.q3)},\ {fmt(result.maximum)}\,\right)"
+        )
+        box = self.panel(width, 1.03, fill=WHITE, stroke=DARK, sw=1.8)
+        lab = self.t("FIVE-NUMBER SUMMARY", 20, BOLD, color=MID)
+        eq = self.m(expr, 40)
+        content = VGroup(lab, eq).arrange(RIGHT, buff=0.35)
+        self.fit(content, w=width - 0.50, h=0.76)
+        content.move_to(box)
+        group = VGroup(box, content).move_to([0, y, 0])
+        return group
+
+    def quartile_calc(self, symbol, a, b, result, y=Y_CALC):
+        if abs(a - b) < 1e-9:
+            tex = rf"{symbol}={fmt(result)}"
+        else:
+            tex = rf"{symbol}=\frac{{{fmt(a)}+{fmt(b)}}}{{2}}={fmt(result)}"
+        return self.formula_panel(tex, width=6.2, height=0.94, size=38).move_to([0, y, 0])
+
+    # ------------------------------------------------------------------
+    # Opening / concept architecture
+    # ------------------------------------------------------------------
+    def opening(self):
+        title = self.t("STATISTICS 10 · WEEK 5", 31, BOLD, color=DARK)
+        subtitle = self.t("FIVE-NUMBER SUMMARY", 46, BOLD)
+        line = self.t(
+            "Five landmarks summarize center, middle spread, and overall extent.",
+            27,
+            NORMAL,
+            color=MID,
+        )
+        group = VGroup(title, subtitle, line).arrange(DOWN, buff=0.30).move_to(UP * 0.55)
+        self.play(FadeIn(title), Write(subtitle), run_time=RUN_SLOW)
+        self.play(FadeIn(line), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.play(FadeOut(group), run_time=RUN_FAST)
+
+    def bridge_from_week4(self):
+        self.set_header("WEEK 5 · BRIDGE", "FROM RELATIVE POSITION TO FIVE LANDMARKS")
+        top = self.note(
+            "Week 4: a percentile statement describes relative position in an ordered distribution.",
+            13.1,
+            0.88,
+            25,
+        ).move_to([0, 2.25, 0])
+        self.play(FadeIn(top), run_time=RUN)
+
+        qrow = VGroup(
+            self.formula_panel(r"Q_1", 2.35, 1.05, 45),
+            self.formula_panel(r"Q_2", 2.35, 1.05, 45),
+            self.formula_panel(r"Q_3", 2.35, 1.05, 45),
+        ).arrange(RIGHT, buff=0.45).move_to([0, 0.55, 0])
+        caption = self.t("Three quartile landmarks", 25, BOLD, color=DARK).next_to(qrow, UP, buff=0.25)
+        self.play(FadeIn(caption), LaggedStart(*[FadeIn(x) for x in qrow], lag_ratio=0.15), run_time=RUN_SLOW)
+
+        arrow = Arrow([0, -0.25, 0], [0, -1.02, 0], color=DARK, stroke_width=2.2, buff=0.05)
+        full = self.formula_panel(
+            r"\min,\;Q_1,\;Q_2,\;Q_3,\;\max",
+            10.1,
+            1.15,
+            46,
+        ).move_to([0, -1.66, 0])
+        self.play(GrowArrow(arrow), FadeIn(full), run_time=RUN_SLOW)
+        note = self.note(
+            "Add the two endpoints: now we can describe the whole ordered distribution with five numbers.",
+            13.2,
+            0.86,
+            24,
+        ).move_to([0, -2.75, 0])
+        self.play(FadeIn(note), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage()
+
+    def anatomy(self):
+        self.set_header("CONCEPT", "ANATOMY OF THE FIVE-NUMBER SUMMARY")
+        result = self.A
+        axis, pts = self.five_point_axis(result, y=0.55, width=11.4)
+        self.play(Create(axis[0]), run_time=RUN)
+        for i in range(1, len(axis)):
+            self.play(FadeIn(axis[i]), run_time=0.18)
+
+        summaries = VGroup(
+            self.note("MIN / MAX → overall endpoints", 4.30, 0.78, 22),
+            self.note("Q2 → center (median)", 4.30, 0.78, 22),
+            self.note("Q1 to Q3 → middle 50%", 4.30, 0.78, 22),
+        ).arrange(RIGHT, buff=0.32).move_to([0, -1.42, 0])
+        self.play(LaggedStart(*[FadeIn(x) for x in summaries], lag_ratio=0.18), run_time=RUN_SLOW)
+
+        # IQR bracket under Q1–Q3.
+        q1x = pts[1][0]
+        q3x = pts[3][0]
+        bracket = BraceBetweenPoints([q1x, -0.38, 0], [q3x, -0.38, 0], DOWN, color=DARK)
+        iqr = self.t("middle 50% · IQR region", 20, BOLD, color=DARK).next_to(bracket, DOWN, buff=0.10)
+        self.play(GrowFromCenter(bracket), FadeIn(iqr), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage()
+
+    def method_map(self):
+        self.set_header("METHOD", "THE REPEATABLE 8-STEP ROUTE")
+        self.step_strip = None
+        self.set_step(1)
+        cards = VGroup()
+        desc = (
+            "Sort smallest → largest",
+            "Read the two endpoints",
+            "Locate the median",
+            "Form lower / upper halves",
+            "Median of lower half",

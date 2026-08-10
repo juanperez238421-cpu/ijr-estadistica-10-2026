@@ -1,0 +1,270 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Period 1 · Week 5 — Five-Number Summary.
+
+Senior classroom edition. Direct continuation of Week 4 Percentile Interpretation.
+
+Week 4 emphasized meaning of percentile position in context.
+Week 5 consolidates the five structural landmarks of an ordered distribution:
+
+    Minimum, Q1, Q2 (Median), Q3, Maximum
+
+Classroom quartile convention used throughout:
+- Always order the data first.
+- If n is odd, Q2 is the middle observation and is excluded before forming
+  the lower and upper halves.
+- If n is even, Q2 is the mean of the two central observations and the data
+  split evenly into lower and upper halves.
+- Q1 and Q3 are the medians of those halves.
+
+This convention intentionally matches Weeks 1–2. The Week 3 percentile locator
+formula is NOT used to recompute quartiles in these small classroom datasets.
+
+Persistent construction route:
+1. ORDER
+2. MIN / MAX
+3. FIND Q2
+4. SPLIT
+5. FIND Q1
+6. FIND Q3
+7. WRITE 5-NUM
+8. INTERPRET
+
+Target: Manim Community Edition 0.20.x, 1920x1080, 30 fps, white classroom
+style. Final render must use literal `-pqh`.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from statistics import median
+from manim import *
+
+# ---------------------------------------------------------------------------
+# Render configuration
+# ---------------------------------------------------------------------------
+config.pixel_width = 1920
+config.pixel_height = 1080
+config.frame_width = 16
+config.frame_height = 9
+config.frame_rate = 30
+config.background_color = WHITE
+
+INK = BLACK
+DARK = "#303030"
+MID = "#777777"
+LIGHT = "#D6D6D6"
+VERY_LIGHT = "#EEEEEE"
+PAPER = "#F8F8F8"
+SAFE_W = 14.60
+
+RUN_FAST = 0.40
+RUN = 0.72
+RUN_SLOW = 1.00
+PAUSE_READ = 1.30
+PAUSE_EXPLAIN = 1.95
+PAUSE_WORK = 3.40
+PAUSE_SUMMARY = 3.00
+
+# Centralized safe vertical bands.
+Y_HEADER = 3.93
+Y_DATA = 2.28
+Y_META = 1.10
+Y_WORK = -0.10
+Y_CALC = -1.22
+Y_RESULT = -2.30
+Y_STEPS = -3.57
+STEP_SAFE_TOP = -3.14
+
+
+# ---------------------------------------------------------------------------
+# Data model and validated classroom quartile convention
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class FiveNumberResult:
+    ordered: tuple[float, ...]
+    lower: tuple[float, ...]
+    upper: tuple[float, ...]
+    minimum: float
+    q1: float
+    q2: float
+    q3: float
+    maximum: float
+
+    @property
+    def five(self) -> tuple[float, float, float, float, float]:
+        return (self.minimum, self.q1, self.q2, self.q3, self.maximum)
+
+    @property
+    def iqr(self) -> float:
+        return self.q3 - self.q1
+
+    @property
+    def data_range(self) -> float:
+        return self.maximum - self.minimum
+
+
+def five_number_summary(values: tuple[float, ...]) -> FiveNumberResult:
+    ordered = tuple(sorted(values))
+    n = len(ordered)
+    if n < 5:
+        raise ValueError("At least five observations are required for this lesson.")
+
+    if n % 2 == 1:
+        middle = n // 2
+        q2 = float(ordered[middle])
+        lower = ordered[:middle]
+        upper = ordered[middle + 1 :]
+    else:
+        middle = n // 2
+        q2 = (ordered[middle - 1] + ordered[middle]) / 2
+        lower = ordered[:middle]
+        upper = ordered[middle:]
+
+    q1 = float(median(lower))
+    q3 = float(median(upper))
+
+    return FiveNumberResult(
+        ordered=ordered,
+        lower=tuple(lower),
+        upper=tuple(upper),
+        minimum=float(ordered[0]),
+        q1=q1,
+        q2=q2,
+        q3=q3,
+        maximum=float(ordered[-1]),
+    )
+
+
+def fmt(v: float) -> str:
+    if abs(v - round(v)) < 1e-9:
+        return str(int(round(v)))
+    return f"{v:.2f}".rstrip("0").rstrip(".")
+
+
+class Statistics10Week5FiveNumberSummarySenior(Scene):
+    STEP_NAMES = (
+        "ORDER",
+        "MIN / MAX",
+        "FIND Q2",
+        "SPLIT",
+        "FIND Q1",
+        "FIND Q3",
+        "WRITE 5-NUM",
+        "INTERPRET",
+    )
+
+    RAW_A = (13, 4, 18, 9, 21, 12, 7, 16, 10)
+    RAW_B = (18, 3, 13, 22, 7, 11, 20, 8, 14, 5)
+    RAW_C = (6, 3, 6, 9, 4, 10, 6, 8, 5)
+
+    def setup(self):
+        super().setup()
+        self.camera.background_color = WHITE
+        self.header = None
+        self.step_strip = None
+        self.A = five_number_summary(self.RAW_A)
+        self.B = five_number_summary(self.RAW_B)
+        self.C = five_number_summary(self.RAW_C)
+        self._validate_lesson()
+
+    def _validate_lesson(self):
+        assert self.A.five == (4.0, 8.0, 12.0, 17.0, 21.0)
+        assert self.A.iqr == 9
+        assert self.A.data_range == 17
+        assert self.B.five == (3.0, 7.0, 12.0, 18.0, 22.0)
+        assert self.B.iqr == 11
+        assert self.B.data_range == 19
+        assert self.C.five == (3.0, 4.5, 6.0, 8.5, 10.0)
+        assert self.C.iqr == 4
+        assert self.C.data_range == 7
+        assert self.A.q2 == self.B.q2 == 12
+
+    # ------------------------------------------------------------------
+    # Typography and layout helpers
+    # ------------------------------------------------------------------
+    def t(self, content, size=29, weight=NORMAL, color=INK, **kwargs):
+        return Text(
+            content,
+            font_size=size,
+            color=color,
+            weight=weight,
+            line_spacing=0.92,
+            **kwargs,
+        )
+
+    def m(self, expr, size=40, color=INK, **kwargs):
+        return MathTex(expr, font_size=size, color=color, **kwargs)
+
+    def fit(self, mob, w=SAFE_W, h=5.65):
+        if mob.width > w:
+            mob.scale_to_fit_width(w)
+        if mob.height > h:
+            mob.scale_to_fit_height(h)
+        return mob
+
+    def panel(self, width, height, fill=PAPER, stroke=LIGHT, sw=1.5):
+        return RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.12,
+            stroke_color=stroke,
+            stroke_width=sw,
+            fill_color=fill,
+            fill_opacity=1,
+        )
+
+    def note(self, text, width=11.0, height=0.82, size=25, fill=VERY_LIGHT):
+        box = self.panel(width, height, fill=fill)
+        tx = self.t(text, size, NORMAL, color=DARK)
+        self.fit(tx, w=width - 0.45, h=height - 0.18)
+        tx.move_to(box)
+        return VGroup(box, tx)
+
+    def formula_panel(self, tex, width=8.4, height=1.05, size=43):
+        box = self.panel(width, height, fill=WHITE, stroke=DARK, sw=1.6)
+        eq = self.m(tex, size)
+        self.fit(eq, w=width - 0.55, h=height - 0.22)
+        eq.move_to(box)
+        return VGroup(box, eq)
+
+    def set_header(self, section, subtitle):
+        if self.header is not None and self.header in self.mobjects:
+            self.remove(self.header)
+        label = self.t(section, 23, BOLD, color=DARK).to_edge(UL, buff=0.42)
+        available = 14.85 - label.width - 0.38
+        sub = self.t(subtitle, 24, NORMAL, color=MID)
+        if sub.width > available:
+            sub.scale_to_fit_width(max(available, 4.0))
+        sub.next_to(label, RIGHT, buff=0.34)
+        line = Line(LEFT * 7.55, RIGHT * 7.55, color=LIGHT, stroke_width=1.6)
+        line.next_to(label, DOWN, buff=0.20).align_to(label, LEFT)
+        self.header = VGroup(label, sub, line)
+        self.add(self.header)
+
+    def clear_stage(self, keep_header=True, keep_steps=False):
+        keep = set()
+        if keep_header and self.header is not None:
+            keep.add(self.header)
+        if keep_steps and self.step_strip is not None:
+            keep.add(self.step_strip)
+        removable = [mob for mob in self.mobjects if mob not in keep]
+        if removable:
+            self.play(*[FadeOut(mob) for mob in removable], run_time=RUN_FAST)
+        if keep_header and self.header is not None and self.header not in self.mobjects:
+            self.add(self.header)
+        if keep_steps and self.step_strip is not None and self.step_strip not in self.mobjects:
+            self.add(self.step_strip)
+
+    # ------------------------------------------------------------------
+    # Persistent 8-step navigator
+    # ------------------------------------------------------------------
+    def build_step_strip(self, active=1):
+        cells = VGroup()
+        widths = (1.42, 1.72, 1.48, 1.32, 1.48, 1.48, 1.82, 1.70)
+        for i, (name, width) in enumerate(zip(self.STEP_NAMES, widths), start=1):
+            fill = "#EAEAEA" if i == active else WHITE
+            sw = 2.45 if i == active else 1.10
+            box = RoundedRectangle(
+                width=width,
+                height=0.72,
+       
