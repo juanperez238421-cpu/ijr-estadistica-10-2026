@@ -1,0 +1,164 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Period 1 · Week 4 — Percentile Interpretation Workshop.
+
+Senior worked-problems edition, aligned with the audited Week 4 theory.
+
+Interpretation route used throughout:
+1. READ
+2. IDENTIFY k
+3. VALUE
+4. BELOW / AT
+5. ABOVE
+6. CONTEXT
+7. CHECK CLAIM
+8. COMMUNICATE
+
+Classroom convention:
+    If P_k = x, then approximately k% of ordered observations are at or
+    below x, and approximately (100-k)% are above x.
+
+Notes:
+- Percentile rank is relative position, not k% of the raw value.
+- P_k denotes a percentile cutoff/value; a person's standing is described
+  as a percentile rank / nth percentile.
+- In contexts where lower values are better (race time, reaction time), the
+  numerical percentile statement remains the same, but performance meaning
+  must be interpreted separately.
+
+Target: ManimCE 0.20.x, 1920x1080, 30 fps, white classroom style.
+Final protocol render must use literal `-pqh`.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from manim import *
+
+# ---------------------------------------------------------------------------
+# Render configuration
+# ---------------------------------------------------------------------------
+config.pixel_width = 1920
+config.pixel_height = 1080
+config.frame_width = 16
+config.frame_height = 9
+config.frame_rate = 30
+config.background_color = WHITE
+
+INK = BLACK
+DARK = "#303030"
+MID = "#777777"
+LIGHT = "#D6D6D6"
+VERY_LIGHT = "#EEEEEE"
+PAPER = "#F8F8F8"
+SAFE_W = 14.60
+
+RUN_FAST = 0.38
+RUN = 0.70
+RUN_SLOW = 0.98
+PAUSE_READ = 1.20
+PAUSE_EXPLAIN = 1.85
+PAUSE_WORK = 3.30
+PAUSE_SUMMARY = 3.00
+
+# Safe vertical bands. The step navigator owns the lowest band.
+Y_MAIN = 2.28
+Y_META = 1.15
+Y_BAR = 0.12
+Y_PAIR = -1.05
+Y_RESULT = -2.28
+Y_STEPS = -3.57
+
+
+@dataclass(frozen=True)
+class PStatement:
+    k: int
+    value: float
+    context: str
+    unit: str = ""
+
+    @property
+    def above(self) -> int:
+        return 100 - self.k
+
+
+def fmt(v: float) -> str:
+    if abs(v - round(v)) < 1e-9:
+        return str(int(round(v)))
+    return f"{v:.2f}".rstrip("0").rstrip(".")
+
+
+class Statistics10Week4PercentileInterpretationWorkshopSenior(Scene):
+    STEP_NAMES = (
+        "READ", "IDENTIFY k", "VALUE", "BELOW / AT",
+        "ABOVE", "CONTEXT", "CHECK CLAIM", "COMMUNICATE",
+    )
+
+    P1 = PStatement(40, 68, "exam score", "points")
+    P2 = PStatement(85, 174, "height", "cm")
+    P3 = PStatement(20, 24.5, "5 km race time", "min")
+    P5 = PStatement(65, 74, "quiz score", "points")
+    P6 = PStatement(72, 91, "final-test score", "points")
+    P7 = PStatement(72, 56, "measurement", "units")
+    P8 = PStatement(35, 280, "reaction time", "ms")
+
+    def setup(self):
+        super().setup()
+        self.camera.background_color = WHITE
+        self.header = None
+        self.step_strip = None
+        self._validate_workshop()
+
+    def _validate_workshop(self):
+        for st in (self.P1, self.P2, self.P3, self.P5, self.P6, self.P7, self.P8):
+            assert 0 < st.k < 100
+            assert st.above == 100 - st.k
+        assert self.P1.above == 60
+        assert self.P2.above == 15
+        assert self.P3.above == 80
+        assert self.P5.above == 35
+        assert self.P6.above == 28
+        assert self.P7.above == 28
+        assert self.P8.above == 65
+
+    # ------------------------------------------------------------------
+    # Typography / layout
+    # ------------------------------------------------------------------
+    def t(self, content, size=29, weight=NORMAL, color=INK, **kwargs):
+        return Text(content, font_size=size, color=color, weight=weight,
+                    line_spacing=0.92, **kwargs)
+
+    def m(self, expr, size=40, color=INK, **kwargs):
+        return MathTex(expr, font_size=size, color=color, **kwargs)
+
+    def fit(self, mob, w=SAFE_W, h=5.65):
+        if mob.width > w:
+            mob.scale_to_fit_width(w)
+        if mob.height > h:
+            mob.scale_to_fit_height(h)
+        return mob
+
+    def panel(self, width, height, fill=PAPER, stroke=LIGHT, sw=1.5):
+        return RoundedRectangle(width=width, height=height, corner_radius=0.12,
+                                stroke_color=stroke, stroke_width=sw,
+                                fill_color=fill, fill_opacity=1)
+
+    def note(self, text, width=11.0, height=0.82, size=24.5, fill=VERY_LIGHT):
+        box = self.panel(width, height, fill=fill)
+        tx = self.t(text, size, NORMAL, color=DARK)
+        self.fit(tx, w=width - 0.45, h=height - 0.18)
+        tx.move_to(box)
+        return VGroup(box, tx)
+
+    def formula_panel(self, tex, width=8.4, height=1.05, size=43):
+        box = self.panel(width, height, fill=WHITE, stroke=DARK, sw=1.6)
+        eq = self.m(tex, size)
+        self.fit(eq, w=width - 0.55, h=height - 0.22)
+        eq.move_to(box)
+        return VGroup(box, eq)
+
+    def set_header(self, section, subtitle):
+        if self.header is not None and self.header in self.mobjects:
+            self.remove(self.header)
+        label = self.t(section, 23, BOLD, color=DARK).to_edge(UL, buff=0.42)
+        available = 14.85 - label.width - 0.38
+        sub = self.t(subtitle, 24, NORMAL, color=MID)
