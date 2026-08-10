@@ -1,0 +1,130 @@
+name: Render Period 1 Week 2 Quartiles Workshop
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore, apply visual QA fix, and validate exact workshop source
+        run: |
+          set -euo pipefail
+          SRC_DIR="manim/period1_week2_quartiles_workshop"
+          SRC="$SRC_DIR/statistics10_week2_quartiles_workshop.py"
+          cat "$SRC_DIR"/workshop_chunk_*.b64 > "$SRC_DIR/workshop.gz.b64"
+          base64 -d "$SRC_DIR/workshop.gz.b64" | gzip -d > "$SRC"
+          echo "c66d0c8b22b251063d3e19daf08957529e6a692495fb15a1039d39ccaeb8d61a  $SRC" | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          p = Path("manim/period1_week2_quartiles_workshop/statistics10_week2_quartiles_workshop.py")
+          s = p.read_text()
+          old1 = 'self.play(FadeOut(raw), FadeOut(dup_note), FadeOut(n_compare), FadeOut(change_note), FadeOut(q2), run_time=RUN_FAST)'
+          new1 = 'self.play(FadeOut(raw), FadeOut(dup_note), FadeOut(n_compare), FadeOut(change_note), FadeOut(q2), FadeOut(correction), run_time=RUN_FAST)'
+          old2 = 'self.play(FadeOut(lower), FadeOut(upper), FadeOut(q1), FadeOut(q3), FadeOut(correction), run_time=RUN_FAST)'
+          new2 = 'self.play(FadeOut(lower), FadeOut(upper), FadeOut(q1), FadeOut(q3), run_time=RUN_FAST)'
+          assert old1 in s and old2 in s
+          p.write_text(s.replace(old1, new1, 1).replace(old2, new2, 1))
+          PY
+          echo "1a54a2274cd59da6c3a8f39117372328b4da120c6267613a3fcca7a647dab810  $SRC" | sha256sum -c -
+          python -m py_compile "$SRC"
+
+      - name: Pull fixed ManimCE image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Low-quality protocol validation (-pql)
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql manim/period1_week2_quartiles_workshop/statistics10_week2_quartiles_workshop.py Statistics10Week2QuartilesWorkshop --format=mp4 --disable_caching
+            '
+
+      - name: Final high-quality render (-pqh)
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh manim/period1_week2_quartiles_workshop/statistics10_week2_quartiles_workshop.py Statistics10Week2QuartilesWorkshop --format=mp4 --disable_caching
+            '
+
+      - name: Verify, create Windows-safe copy, and package
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          FINAL="$(find media/videos -type f -path '*1080p*' -name 'Statistics10Week2QuartilesWorkshop.mp4' | head -n 1)"
+          test -n "$FINAL"
+          cp "$FINAL" delivery/Statistics10_Week2_Quartiles_Workshop_pqh.mp4
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10_Week2_Quartiles_Workshop_pqh.mp4 | tee delivery/FFPROBE_PQH.txt
+          ffmpeg -y -loglevel error \
+            -i delivery/Statistics10_Week2_Quartiles_Workshop_pqh.mp4 \
+            -f lavfi -i anullsrc=r=48000:cl=stereo \
+            -map 0:v:0 -map 1:a:0 -shortest \
+            -vf "fps=30,format=yuv420p" \
+            -c:v libx264 -preset veryfast -crf 20 -profile:v main -level 4.0 \
+            -c:a aac -b:a 96k -movflags +faststart \
+            delivery/Statistics10_Week2_Quartiles_Workshop_WIN.mp4
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10_Week2_Quartiles_Workshop_WIN.mp4 | tee delivery/FFPROBE_WIN.txt
+          sha256sum delivery/Statistics10_Week2_Quartiles_Workshop_pqh.mp4 | tee delivery/SHA256_PQH.txt
+          sha256sum delivery/Statistics10_Week2_Quartiles_Workshop_WIN.mp4 | tee delivery/SHA256_WIN.txt
+          sha256sum manim/period1_week2_quartiles_workshop/statistics10_week2_quartiles_workshop.py | tee delivery/SOURCE_SHA256.txt
+          printf '%s\n' \
+            'manim -pql statistics10_week2_quartiles_workshop.py Statistics10Week2QuartilesWorkshop --format=mp4 --disable_caching' \
+            'manim -pqh statistics10_week2_quartiles_workshop.py Statistics10Week2QuartilesWorkshop --format=mp4 --disable_caching' \
+            > delivery/RENDER_COMMANDS.txt
+
+      - name: Upload render artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-Week2-Quartiles-Workshop-pqh
+          path: |
+            delivery/Statistics10_Week2_Quartiles_Workshop_pqh.mp4
+            delivery/Statistics10_Week2_Quartiles_Workshop_WIN.mp4
+            delivery/FFPROBE_PQH.txt
+            delivery/FFPROBE_WIN.txt
+            delivery/SHA256_PQH.txt
+            delivery/SHA256_WIN.txt
+            delivery/SOURCE_SHA256.txt
+            delivery/RENDER_COMMANDS.txt
+            manim/period1_week2_quartiles_workshop/statistics10_week2_quartiles_workshop.py
+          if-no-files-found: error
+          retention-days: 7
