@@ -1,0 +1,330 @@
+            "Velocity can change — now we measure how quickly it changes",
+            "Acceleration is not simply 'going fast'. It describes how velocity changes with time.",
+        )
+
+    def scene_01_week2_bridge(self) -> None:
+        self.set_header(
+            1,
+            "FROM CHANGING VELOCITY TO ACCELERATION",
+            "Week 2 showed that velocity can vary. Week 3 asks a sharper question: how much does velocity change each second?",
+        )
+        vt_group, vt = self.vt_axes(x_max=6, y_min=0, y_max=12, width=6.6, height=3.9)
+        rising = Line(vt.c2p(0, 2), vt.c2p(4, 10), color=BLACK_LINE, stroke_width=3.5)
+        probe_t = ValueTracker(0.0)
+        probe = always_redraw(lambda: Dot(vt.c2p(probe_t.get_value(), 2 + 2 * probe_t.get_value()), radius=0.08, color=BLACK_LINE))
+        guide = always_redraw(lambda: DashedLine(vt.c2p(probe_t.get_value(), 0), vt.c2p(probe_t.get_value(), 2 + 2 * probe_t.get_value()), color=LIGHT_GRAY, stroke_width=1.6, dash_length=0.07))
+        v_num = DecimalNumber(2.0, num_decimal_places=1, font_size=32, color=BLACK_TEXT)
+        v_num.add_updater(lambda m: m.set_value(2 + 2 * probe_t.get_value()))
+        live = VGroup(self.math(r"v(t)=", 31), v_num, self.math(r"\mathrm{m/s}", 27)).arrange(RIGHT, buff=0.08)
+        live.move_to(vt.c2p(3.9, 11.0))
+        fig_panel = self.figure_panel(
+            VGroup(vt_group, rising),
+            width=7.45, height=5.05,
+            title="VELOCITY IS CHANGING",
+            caption="The graph is not horizontal: every later time has a different velocity.",
+            title_size=31, caption_size=24,
+        )
+        question = self.note_panel(
+            "NEW QUESTION",
+            [
+                "How much does velocity change?",
+                "How long does that change take?",
+                "Can we compare different motions with one number?",
+            ],
+            width=5.65, title_size=30, body_size=27,
+        )
+        formula = self.formula_panel(r"a=\frac{\Delta v}{\Delta t}", width=5.65, height=1.50, font_size=52)
+        right = VGroup(question, formula).arrange(DOWN, buff=0.28)
+        layout = self.split_layout(fig_panel.group, right, left_width=7.45, right_width=5.7, max_height=5.25, center_y=-0.47, gap=0.36)
+        self.assert_content_safe(layout.group, "week3 bridge")
+
+        self.play(FadeIn(fig_panel.box), FadeIn(fig_panel.title), Create(vt_group), Create(rising), run_time=RUN_NORMAL)
+        self.add(guide, probe)
+        self.play(FadeIn(live), FadeIn(question), run_time=RUN_NORMAL)
+        self.play(probe_t.animate.set_value(4.0), run_time=RUN_SLOW * 2.4, rate_func=linear)
+        probe.clear_updaters(); guide.clear_updaters(); v_num.clear_updaters()
+        self.wait(PAUSE_READ)
+        self.play(TransformFromCopy(VGroup(rising, live), formula), FadeIn(fig_panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_02_define_acceleration(self) -> None:
+        self.set_header(
+            2,
+            "ACCELERATION = CHANGE IN VELOCITY PER TIME",
+            "Compute the change first: Δv = vf − vi. Then divide by the elapsed time Δt.",
+        )
+        track_group, track = self.number_track(x_min=0, x_max=12, step=2, length=7.0)
+        vi_dot = Dot(track.n2p(2), radius=0.10, color=BLACK_LINE)
+        vf_dot = Dot(track.n2p(10), radius=0.10, color=BLACK_LINE)
+        vi_lab = self.math(r"v_i=2\,\mathrm{m/s}", 29).next_to(vi_dot, UP, buff=0.13)
+        vf_lab = self.math(r"v_f=10\,\mathrm{m/s}", 29).next_to(vf_dot, UP, buff=0.13)
+        change_arrow = DoubleArrow(track.n2p(2), track.n2p(10), buff=0.08, color=MID_GRAY, stroke_width=2.6)
+        dv_lab = self.math(r"\Delta v=+8\,\mathrm{m/s}", 31).next_to(change_arrow, DOWN, buff=0.16)
+        panel = self.figure_panel(
+            VGroup(track_group, vi_dot, vf_dot, vi_lab, vf_lab, change_arrow, dv_lab),
+            width=7.55, height=4.65,
+            title="VELOCITY CHANGE",
+            caption="Acceleration uses velocity change — not final velocity by itself.",
+            title_size=31, caption_size=24,
+        )
+        eqs = self.equation_stack(
+            [
+                r"\Delta v=v_f-v_i",
+                r"\Delta v=10-2=+8\,\mathrm{m/s}",
+                r"\Delta t=4\,\mathrm{s}",
+                r"a=\frac{+8}{4}=+2\,\mathrm{m/s^2}",
+            ],
+            sizes=[39, 36, 36, 42], buff=0.27, max_width=5.65, max_height=3.5,
+        )
+        meaning = self.note_panel(
+            "PHYSICAL MEANING",
+            ["Velocity increases by 2 m/s every second."],
+            width=5.65, title_size=29, body_size=28,
+        )
+        right = VGroup(eqs, meaning).arrange(DOWN, buff=0.25)
+        layout = self.split_layout(panel.group, right, left_width=7.55, right_width=5.7, max_height=5.20, center_y=-0.48, gap=0.35)
+        self.assert_content_safe(layout.group, "definition acceleration")
+
+        self.play(FadeIn(panel.box), FadeIn(panel.title), Create(track_group), run_time=RUN_NORMAL)
+        self.play(GrowFromCenter(vi_dot), FadeIn(vi_lab), run_time=RUN_QUICK)
+        moving = Dot(track.n2p(2), radius=0.10, color=BLACK_LINE)
+        self.add(moving)
+        self.play(moving.animate.move_to(track.n2p(10)), run_time=RUN_SLOW * 1.8, rate_func=linear)
+        self.play(ReplacementTransform(moving, vf_dot), FadeIn(vf_lab), Create(change_arrow), FadeIn(dv_lab), run_time=RUN_NORMAL)
+        for i, eq in enumerate(eqs):
+            source = dv_lab if i < 2 else (eqs[i - 1] if i > 0 else dv_lab)
+            self.play(TransformFromCopy(source, eq), run_time=RUN_NORMAL)
+            self.wait(PAUSE_READ)
+        self.play(FadeIn(meaning), FadeIn(panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_03_units_meaning(self) -> None:
+        self.set_header(
+            3,
+            "WHAT DOES m/s² ACTUALLY MEAN?",
+            "The unit is velocity-change per second: (m/s) divided by s. Read it as 'meters per second, each second'.",
+        )
+        unit_chain = self.equation_stack(
+            [
+                r"a=\frac{\Delta v}{\Delta t}",
+                r"[a]=\frac{\mathrm{m/s}}{\mathrm{s}}",
+                r"[a]=\mathrm{m/s^2}",
+            ],
+            sizes=[46, 46, 52], buff=0.36, max_width=6.1, max_height=3.1,
+        )
+        panel = self.figure_panel(
+            unit_chain, width=6.75, height=4.45,
+            title="UNIT CONSTRUCTION",
+            caption="The second 's' describes how frequently velocity changes.",
+            title_size=31, caption_size=24,
+        )
+
+        cards = VGroup(*[
+            self.velocity_card(t, THEORY_V0 + THEORY_A * t, width=2.60, height=1.42)
+            for t in [0, 1, 2, 3, 4]
+        ]).arrange(RIGHT, buff=0.16)
+        self.fit(cards, 6.25, 1.55)
+        arrows = VGroup(*[
+            Arrow(cards[i].get_right(), cards[i + 1].get_left(), buff=0.05, color=MID_GRAY, stroke_width=2.0)
+            for i in range(4)
+        ])
+        card_panel = self.figure_panel(
+            VGroup(cards, arrows), width=6.65, height=4.45,
+            title="+2 m/s EVERY 1 s",
+            caption="2 → 4 → 6 → 8 → 10 m/s: equal velocity increments in equal times.",
+            title_size=31, caption_size=24,
+        )
+        layout = self.split_layout(panel.group, card_panel.group, left_width=6.75, right_width=6.65, max_height=4.85, center_y=-0.52, gap=0.35)
+        self.assert_content_safe(layout.group, "acceleration units")
+
+        self.play(FadeIn(panel.box), FadeIn(panel.title), run_time=RUN_NORMAL)
+        self.play(FadeIn(unit_chain[0]), run_time=RUN_NORMAL)
+        self.play(TransformFromCopy(unit_chain[0], unit_chain[1]), run_time=RUN_NORMAL)
+        self.play(TransformFromCopy(unit_chain[1], unit_chain[2]), run_time=RUN_NORMAL)
+        self.play(FadeIn(card_panel.box), FadeIn(card_panel.title), run_time=RUN_NORMAL)
+        self.play(FadeIn(cards[0]), run_time=RUN_QUICK)
+        for i in range(4):
+            self.play(GrowArrow(arrows[i]), TransformFromCopy(cards[i], cards[i + 1]), run_time=RUN_NORMAL)
+            self.wait(PAUSE_SHORT)
+        self.play(FadeIn(panel.caption), FadeIn(card_panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_04_sign_logic(self) -> None:
+        self.set_header(
+            4,
+            "THE SIGN OF ACCELERATION DOES NOT MEAN 'FAST' OR 'SLOW'",
+            "Speed changes depend on whether velocity and acceleration point in the same direction or opposite directions.",
+        )
+        cards = VGroup(
+            self.state_card("CASE A", +6, +2, "SPEEDING UP"),
+            self.state_card("CASE B", +6, -2, "SLOWING DOWN"),
+            self.state_card("CASE C", -6, -2, "SPEEDING UP"),
+            self.state_card("CASE D", -6, +2, "SLOWING DOWN"),
+        ).arrange_in_grid(rows=2, cols=2, buff=(0.28, 0.28))
+        card_panel = self.figure_panel(
+            cards, width=7.25, height=5.05,
+            title="COMPARE SIGNS",
+            caption="Same sign → |v| grows. Opposite signs → |v| shrinks.",
+            title_size=31, caption_size=24,
+        )
+        rule1 = self.formula_panel(r"\operatorname{sign}(v)=\operatorname{sign}(a)\Rightarrow \text{speed increases}", width=5.85, height=1.48, font_size=32)
+        rule2 = self.formula_panel(r"\operatorname{sign}(v)\neq\operatorname{sign}(a)\Rightarrow \text{speed decreases}", width=5.85, height=1.48, font_size=32)
+        warning = self.note_panel(
+            "COMMON ERROR",
+            ["Negative acceleration does not automatically mean slowing down."],
+            width=5.85, title_size=29, body_size=27,
+        )
+        right = VGroup(rule1, rule2, warning).arrange(DOWN, buff=0.24)
+        layout = self.split_layout(card_panel.group, right, left_width=7.25, right_width=5.9, max_height=5.25, center_y=-0.48, gap=0.35)
+        self.assert_content_safe(layout.group, "sign logic")
+
+        self.play(FadeIn(card_panel.box), FadeIn(card_panel.title), run_time=RUN_NORMAL)
+        for i, card in enumerate(cards):
+            self.play(FadeIn(card, shift=UP * 0.06), run_time=RUN_QUICK * 1.2)
+            if i == 1:
+                self.play(FadeIn(rule1), run_time=RUN_NORMAL)
+            if i == 3:
+                self.play(FadeIn(rule2), run_time=RUN_NORMAL)
+            self.wait(PAUSE_SHORT)
+        self.play(FadeIn(warning), FadeIn(card_panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_05_vt_slope(self) -> None:
+        self.set_header(
+            5,
+            "ON A v–t GRAPH, SLOPE IS ACCELERATION",
+            "The vertical change is Δv and the horizontal change is Δt, so slope = Δv/Δt = a.",
+        )
+        vt_group, vt = self.vt_axes(x_max=6, y_min=0, y_max=12, width=6.8, height=4.0)
+        line = Line(vt.c2p(0, 2), vt.c2p(4, 10), color=BLACK_LINE, stroke_width=3.5)
+        tri = self.slope_triangle(vt, 1, 4, 4, 10)
+        panel = self.figure_panel(
+            VGroup(vt_group, line, tri), width=7.55, height=5.05,
+            title="RISE / RUN",
+            caption="A steeper v–t line means a larger magnitude of acceleration.",
+            title_size=31, caption_size=24,
+        )
+        eqs = self.equation_stack(
+            [
+                r"\text{slope}=\frac{\Delta v}{\Delta t}",
+                r"\text{slope}=\frac{10-4}{4-1}",
+                r"a=+2\,\mathrm{m/s^2}",
+            ],
+            sizes=[39, 39, 46], buff=0.35, max_width=5.65, max_height=2.85,
+        )
+        compare = self.note_panel(
+            "GRAPH LANGUAGE",
+            ["positive slope → a > 0", "zero slope → a = 0", "negative slope → a < 0"],
+            width=5.65, title_size=29, body_size=27,
+        )
+        right = VGroup(eqs, compare).arrange(DOWN, buff=0.28)
+        layout = self.split_layout(panel.group, right, left_width=7.55, right_width=5.7, max_height=5.25, center_y=-0.48, gap=0.35)
+        self.assert_content_safe(layout.group, "vt slope acceleration")
+
+        self.play(FadeIn(panel.box), FadeIn(panel.title), Create(vt_group), run_time=RUN_NORMAL)
+        line_t = ValueTracker(0.0)
+        dyn_line = always_redraw(lambda: Line(vt.c2p(0, 2), vt.c2p(line_t.get_value(), 2 + 2 * line_t.get_value()), color=BLACK_LINE, stroke_width=3.5))
+        dot = always_redraw(lambda: Dot(vt.c2p(line_t.get_value(), 2 + 2 * line_t.get_value()), radius=0.08, color=BLACK_LINE))
+        self.add(dyn_line, dot)
+        self.play(line_t.animate.set_value(4.0), run_time=RUN_SLOW * 2.2, rate_func=linear)
+        dyn_line.clear_updaters(); dot.clear_updaters()
+        self.play(FadeIn(tri), run_time=RUN_NORMAL)
+        for eq in eqs:
+            self.play(TransformFromCopy(tri, eq), run_time=RUN_NORMAL)
+            self.wait(PAUSE_READ)
+        self.play(FadeIn(compare), FadeIn(panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_06_constant_acceleration_model(self) -> None:
+        self.set_header(
+            6,
+            "CONSTANT ACCELERATION BUILDS A LINEAR v(t)",
+            "If acceleration is constant, equal time intervals add equal velocity changes: vf = vi + aΔt.",
+        )
+        vt_group, vt = self.vt_axes(x_max=5, y_min=0, y_max=12, width=6.55, height=3.85)
+        target_line = Line(vt.c2p(0, THEORY_V0), vt.c2p(THEORY_DT, THEORY_VF), color=BLACK_LINE, stroke_width=3.5)
+        panel = self.figure_panel(
+            VGroup(vt_group, target_line), width=7.25, height=4.95,
+            title="BUILD THE LINE FROM a",
+            caption="Start at vi; every second adds the same Δv = a·1 s.",
+            title_size=31, caption_size=24,
+        )
+        eqs = self.equation_stack(
+            [
+                r"a=\frac{v_f-v_i}{\Delta t}",
+                r"a\Delta t=v_f-v_i",
+                r"v_f=v_i+a\Delta t",
+                r"v_f=2+(2)(4)=10\,\mathrm{m/s}",
+            ],
+            sizes=[37, 37, 44, 38], buff=0.30, max_width=5.85, max_height=3.35,
+        )
+        right = VGroup(eqs)
+        layout = self.split_layout(panel.group, right, left_width=7.25, right_width=5.9, max_height=5.15, center_y=-0.48, gap=0.36)
+        self.assert_content_safe(layout.group, "constant acceleration model")
+
+        self.play(FadeIn(panel.box), FadeIn(panel.title), Create(vt_group), run_time=RUN_NORMAL)
+        tau = ValueTracker(0.0)
+        line = always_redraw(lambda: Line(vt.c2p(0, THEORY_V0), vt.c2p(tau.get_value(), THEORY_V0 + THEORY_A * tau.get_value()), color=BLACK_LINE, stroke_width=3.5))
+        dot = always_redraw(lambda: Dot(vt.c2p(tau.get_value(), THEORY_V0 + THEORY_A * tau.get_value()), radius=0.08, color=BLACK_LINE))
+        v_live = DecimalNumber(THEORY_V0, num_decimal_places=1, font_size=29, color=BLACK_TEXT)
+        v_live.add_updater(lambda m: m.set_value(THEORY_V0 + THEORY_A * tau.get_value()))
+        t_live = DecimalNumber(0, num_decimal_places=1, font_size=29, color=BLACK_TEXT)
+        t_live.add_updater(lambda m: m.set_value(tau.get_value()))
+        live = VGroup(self.math(r"t=", 27), t_live, self.math(r"s,\quad v=", 27), v_live, self.math(r"m/s", 25)).arrange(RIGHT, buff=0.06)
+        live.move_to(vt.c2p(2.9, 11.1))
+        self.add(line, dot)
+        self.play(FadeIn(live), run_time=RUN_QUICK)
+        self.play(tau.animate.set_value(4.0), run_time=RUN_SLOW * 2.6, rate_func=linear)
+        line.clear_updaters(); dot.clear_updaters(); v_live.clear_updaters(); t_live.clear_updaters()
+        self.play(FadeIn(eqs[0]), run_time=RUN_NORMAL)
+        for i in range(1, len(eqs)):
+            self.play(TransformFromCopy(eqs[i - 1], eqs[i]), run_time=RUN_NORMAL)
+            self.wait(PAUSE_READ)
+        self.play(FadeIn(panel.caption), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    def scene_07_galileo_quantified(self) -> None:
+        self.set_header(
+            7,
+            "GALILEO'S RAMP: FROM GROWING SPACING TO CONSTANT a",
+            "Using the same schematic x = 0.25t² model from Week 2, equal-time interval velocities grow by the same amount each second.",
+        )
+        ramp_start = LEFT * 2.60 + UP * 1.22
+        ramp_end = RIGHT * 2.45 + DOWN * 1.52
+        ramp = Line(ramp_start, ramp_end, color=BLACK_LINE, stroke_width=4)
+        ground = Line(LEFT * 3.00 + DOWN * 1.55, RIGHT * 3.00 + DOWN * 1.55, color=LIGHT_GRAY, stroke_width=2)
+        alphas = GALILEO_X / GALILEO_X[-1]
+        pts = [interpolate(ramp_start, ramp_end, float(a)) for a in alphas]
+        marks = VGroup(*[Dot(p, radius=0.07, color=BLACK_LINE) for p in pts])
+        labels = VGroup(*[self.math(fr"t_{i}", 22).next_to(p, UP + RIGHT, buff=0.05) for i, p in enumerate(pts)])
+        ball = Circle(radius=0.14, color=BLACK_LINE, stroke_width=2.3, fill_color=WHITE, fill_opacity=1).move_to(pts[0])
+        ramp_panel = self.figure_panel(
+            VGroup(ramp, ground, marks, labels, ball), width=7.15, height=4.95,
+            title="SAME Δt, LARGER Δx",
+            caption="This schematic reconstruction is a model for the idea, not Galileo's exact historical measurements.",
+            title_size=30, caption_size=23,
+        )
+
+        vt_group, vt = self.vt_axes(x_max=4, y_min=0, y_max=2, width=5.15, height=2.55)
+        v_dots = VGroup(*[
+            Dot(vt.c2p(float(t), float(v)), radius=0.075, color=BLACK_LINE)
+            for t, v in zip(GALILEO_INTERVAL_MID_T, GALILEO_INTERVAL_V)
+        ])
+        fit_line = Line(vt.c2p(0.5, 0.25), vt.c2p(3.5, 1.75), color=BLACK_LINE, stroke_width=3.0)
+        vt_panel = self.figure_panel(
+            VGroup(vt_group, v_dots, fit_line), width=5.75, height=3.45,
+            title="INTERVAL VELOCITIES",
+            caption="The v–t points form a straight line.",
+            title_size=29, caption_size=23,
+        )
+        eq = self.formula_panel(r"a=\frac{1.75-0.25}{3.5-0.5}=+0.50\,\mathrm{m/s^2}", width=5.75, height=1.25, font_size=34)
+        right = VGroup(vt_panel.group, eq).arrange(DOWN, buff=0.25)
+        layout = self.split_layout(ramp_panel.group, right, left_width=7.15, right_width=5.8, max_height=5.25, center_y=-0.48, gap=0.38)
+        self.assert_content_safe(layout.group, "Galileo quantified")
+
