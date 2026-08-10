@@ -1,0 +1,93 @@
+        prompt = self.statement_card(st, title=r"P35 = 14.2 ms", y=2.25)
+        self.play(FadeIn(prompt), run_time=RUN)
+        work = self.note("Pause: write one BELOW statement, one ABOVE statement, and one complete contextual sentence.", 12.2, 0.88, 23.5).move_to([0, 0.92, 0])
+        self.play(FadeIn(work), run_time=RUN)
+        self.wait(PAUSE_WORK)
+        self.play(FadeOut(work), run_time=RUN_FAST)
+
+        self.set_step(2)
+        k = self.note("k = 35", 3.1, 0.74, 24, fill=WHITE).move_to([-2.0, 1.00, 0])
+        self.play(FadeIn(k), run_time=RUN_FAST)
+        self.set_step(3)
+        v = self.note("value = 14.2 ms", 4.3, 0.74, 24, fill=WHITE).move_to([2.0, 1.00, 0])
+        self.play(FadeIn(v), run_time=RUN_FAST)
+
+        self.set_step(4)
+        below = self.note("≈ 35% at or below 14.2 ms", 5.8, 0.82, 24, fill=WHITE).move_to([-3.05, -0.12, 0])
+        self.play(FadeIn(below), run_time=RUN)
+        self.set_step(5)
+        above = self.note("≈ 65% above 14.2 ms", 5.8, 0.82, 24, fill=WHITE).move_to([3.05, -0.12, 0])
+        self.play(FadeIn(above), run_time=RUN)
+        self.set_step(6)
+        context = self.note("Context variable: reaction time. Lower time may be better performance.", 11.4, 0.82, 23.5).move_to([0, -1.15, 0])
+        self.play(FadeIn(context), run_time=RUN)
+        self.set_step(7)
+        check = self.note("Claim check: 35 is a rank; it is not 35% of 14.2 ms.", 10.6, 0.80, 23.5).move_to([0, -2.04, 0])
+        self.play(FadeIn(check), run_time=RUN)
+        self.set_step(8)
+        final = self.note(
+            "Communicate: about 35% of reaction times are at/below 14.2 ms and about 65% are above; lower time is faster.",
+            12.5, 0.88, 21.5
+        ).move_to([0, -2.72, 0])
+        self.play(Transform(check, final), run_time=RUN)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage(keep_header=False, keep_steps=False)
+        self.step_strip = None
+
+    def final_recipe(self):
+        self.set_header("WEEK 4 RECIPE", "Read a percentile as a relative-position statement")
+        cards = VGroup()
+        items = (
+            ("1 · READ", "What statement is given?"),
+            ("2–3 · IDENTIFY", "Find k and the percentile value."),
+            ("4–5 · SPLIT", "k% at/below · (100−k)% above"),
+            ("6 · CONTEXT", "Attach variable, units and meaning."),
+            ("7 · CHECK", "Reject percent-of-value misconceptions."),
+            ("8 · COMMUNICATE", "Write one complete sentence."),
+        )
+        for title, body in items:
+            box = self.panel(4.25, 1.20, fill=WHITE)
+            a = self.t(title, 23, BOLD, color=DARK)
+            b = self.t(body, 20.5, NORMAL, color=MID)
+            g = VGroup(a, b).arrange(DOWN, buff=0.08)
+            self.fit(g, w=3.85, h=0.82); g.move_to(box)
+            cards.add(VGroup(box, g))
+        rows = VGroup(
+            VGroup(*cards[:3]).arrange(RIGHT, buff=0.30),
+            VGroup(*cards[3:]).arrange(RIGHT, buff=0.30),
+        ).arrange(DOWN, buff=0.34).move_to([0, 0.60, 0])
+        self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.05) for c in cards], lag_ratio=0.08), run_time=1.8)
+        key = self.formula_panel(
+            r"P_k=x\;\Longrightarrow\;\approx k\%\text{ at/below }x,\quad\approx(100-k)\%\text{ above }x",
+            12.7, 1.05, 34
+        ).move_to([0, -2.10, 0])
+        self.play(FadeIn(key), run_time=RUN)
+        next_topic = self.note("Next: Five-number summary and the road back to box-and-whisker plots.", 11.4, 0.80, 23.5).move_to([0, -3.02, 0])
+        self.play(FadeIn(next_topic), run_time=RUN)
+        self.wait(PAUSE_SUMMARY)
+
+    def construct(self):
+        self.opening()
+        self.bridge_week3()
+        self.interpretation_template()
+        self.worked_context(
+            1, self.EXAM, "EXAM SCORE · P70 = 82",
+            "Meaning: about 70% of scores are at or below 82 points; about 30% are above 82.",
+            communication_note="P70 = 82 points: about 70% of exam scores are at/below 82; about 30% are above 82.",
+        )
+        self.worked_context(
+            2, self.RACE, "100 m TIME · P25 = 12.4 s",
+            "Numerical meaning: about 25% of times are at or below 12.4 s; about 75% are above 12.4 s.",
+            "Performance meaning: because LOWER time is faster, 12.4 s is faster than about 75% of observed times.",
+            communication_note="P25 = 12.4 s numerically marks 25% at/below; because lower is faster, it beats about 75% of observed times.",
+        )
+        self.worked_context(
+            3, self.HEIGHT, "HEIGHT · P90 = 175 cm",
+            "About 90% of observed heights are at or below 175 cm; about 10% are above 175 cm.",
+            communication_note="P90 = 175 cm: about 90% of observed heights are at/below 175 cm; about 10% are above 175 cm.",
+        )
+        self.comparison_scene()
+        self.claim_clinic()
+        self.reverse_reading()
+        self.challenge()
+        self.final_recipe()
