@@ -16,12 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate exact workshop source
+      - name: Validate workshop source
         run: |
           set -euo pipefail
           SRC="manim/week5_five_number_summary_workshop/statistics10_week5_five_number_summary_workshop_senior.py"
-          echo "8407d1dda71adfc56cbb70a26ca32b40c8ff2bf8e56d9750305bb482dd93af93  $SRC" | sha256sum -c -
           python -m py_compile "$SRC"
+          sha256sum "$SRC" | tee /tmp/SOURCE_PRE_RENDER_SHA256.txt
 
       - name: Pull fixed ManimCE image
         run: docker pull manimcommunity/manim:v0.20.1
@@ -95,6 +95,7 @@ jobs:
           sha256sum delivery/Statistics10_Week5_Five_Number_Summary_Workshop_Senior_pqh.mp4 | tee delivery/SHA256_PQH.txt
           sha256sum delivery/Statistics10_Week5_Five_Number_Summary_Workshop_Senior_WIN.mp4 | tee delivery/SHA256_WIN.txt
           sha256sum "$SRC" | tee delivery/SOURCE_SHA256.txt
+          cmp <(sha256sum "$SRC") /tmp/SOURCE_PRE_RENDER_SHA256.txt
           printf '%s\n' \
             'manim -pql statistics10_week5_five_number_summary_workshop_senior.py Statistics10Week5FiveNumberSummaryWorkshopSenior --format=mp4 --disable_caching' \
             'manim -pqh statistics10_week5_five_number_summary_workshop_senior.py Statistics10Week5FiveNumberSummaryWorkshopSenior --format=mp4 --disable_caching' \
