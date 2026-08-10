@@ -1,0 +1,119 @@
+        minimum=ordered[0],
+        q1=q1,
+        q2=float(q2),
+        q3=q3,
+        maximum=ordered[-1],
+    )
+
+
+def fmt(value: float) -> str:
+    if abs(value - round(value)) < 1e-9:
+        return str(int(round(value)))
+    return f"{value:.2f}".rstrip("0").rstrip(".")
+
+
+def close_tuple(a, b, tol=1e-9) -> bool:
+    return len(a) == len(b) and all(abs(x-y) < tol for x, y in zip(a, b))
+
+
+# =============================================================================
+# SCENE
+# =============================================================================
+class Statistics10Week6BoxPlotSenior(Scene):
+    STEP_NAMES = (
+        "ORDER", "5-NUM", "SCALE", "MARK Q1 / Q3",
+        "DRAW BOX", "MEDIAN", "WHISKERS", "INTERPRET",
+    )
+
+    # Example A: inherited conceptually from Week 5 theory.
+    DATA_A = (13, 4, 18, 9, 21, 12, 7, 16, 10)
+    # Example B: even n, broader spread.
+    DATA_B = (18, 3, 13, 22, 7, 11, 20, 8, 14, 5)
+    # Challenge given directly as a five-number summary.
+    CHALLENGE_FIVE = (2.0, 6.0, 9.0, 15.0, 19.0)
+
+    def setup(self):
+        super().setup()
+        self.camera.background_color = WHITE
+        self.header = None
+        self.step_strip = None
+        self.a = five_number_summary(self.DATA_A)
+        self.b = five_number_summary(self.DATA_B)
+        self._validate()
+
+    def _validate(self):
+        assert close_tuple(self.a.five, (4, 8, 12, 17, 21))
+        assert abs(self.a.iqr - 9) < 1e-9
+        assert abs(self.a.data_range - 17) < 1e-9
+        assert close_tuple(self.b.five, (3, 7, 12, 18, 22))
+        assert abs(self.b.iqr - 11) < 1e-9
+        assert abs(self.b.data_range - 19) < 1e-9
+        assert self.a.q2 == self.b.q2 == 12
+        c = self.CHALLENGE_FIVE
+        assert c[0] <= c[1] <= c[2] <= c[3] <= c[4]
+        assert abs((c[3] - c[1]) - 9) < 1e-9
+
+    # -------------------------------------------------------------------------
+    # Typography + layout helpers
+    # -------------------------------------------------------------------------
+    def t(self, content, size=28, weight=NORMAL, color=INK, **kwargs):
+        line_spacing = kwargs.pop("line_spacing", 0.92)
+        return Text(
+            content,
+            font_size=size,
+            weight=weight,
+            color=color,
+            line_spacing=line_spacing,
+            **kwargs,
+        )
+
+    def m(self, expr, size=40, color=INK, **kwargs):
+        return MathTex(expr, font_size=size, color=color, **kwargs)
+
+    def fit(self, mob, w=SAFE_W, h=5.70):
+        if mob.width > w:
+            mob.scale_to_fit_width(w)
+        if mob.height > h:
+            mob.scale_to_fit_height(h)
+        return mob
+
+    def panel(self, width, height, fill=PAPER, stroke=LIGHT, sw=1.5):
+        return RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.12,
+            stroke_color=stroke,
+            stroke_width=sw,
+            fill_color=fill,
+            fill_opacity=1,
+        )
+
+    def note(self, content, width=12.2, height=0.92, size=23, fill=VERY_LIGHT):
+        box = self.panel(width, height, fill=fill, stroke=LIGHT, sw=1.2)
+        tx = self.t(content, size, NORMAL, color=DARK)
+        self.fit(tx, w=width-0.48, h=height-0.18)
+        tx.move_to(box)
+        return VGroup(box, tx)
+
+    def formula_panel(self, tex, width=7.0, height=1.0, size=38):
+        box = self.panel(width, height, fill=WHITE, stroke=DARK, sw=1.6)
+        eq = self.m(tex, size)
+        self.fit(eq, w=width-0.52, h=height-0.20)
+        eq.move_to(box)
+        return VGroup(box, eq)
+
+    def set_header(self, title, subtitle, eyebrow="STATISTICS 10 · WEEK 6"):
+        if self.header is not None and self.header in self.mobjects:
+            self.remove(self.header)
+
+        ey = self.t(eyebrow, 19, BOLD, color=MID).to_edge(UP, buff=0.28).align_to(LEFT*7.2, LEFT)
+        title_m = self.t(title, 32, BOLD, color=INK).next_to(ey, DOWN, buff=0.14).align_to(ey, LEFT)
+        sub = self.t(subtitle, 22, NORMAL, color=MID)
+        available = 14.45 - title_m.width - 0.38
+        if sub.width > max(available, 4.0):
+            sub.scale_to_fit_width(max(available, 4.0))
+        sub.next_to(title_m, RIGHT, buff=0.34)
+        line = Line(LEFT*7.25, RIGHT*7.25, color=LIGHT, stroke_width=1.5)
+        line.next_to(title_m, DOWN, buff=0.18)
+        self.header = VGroup(ey, title_m, sub, line)
+        self.add(self.header)
