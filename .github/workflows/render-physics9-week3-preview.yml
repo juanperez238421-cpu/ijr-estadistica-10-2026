@@ -16,7 +16,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct exact Week 3 source and JP dependencies
+      - name: Reconstruct exact Week 3 V2 source and JP dependencies
         shell: bash
         run: |
           set -euo pipefail
@@ -28,6 +28,8 @@ jobs:
               render_physics9_week3/source_part_04.pyfrag \
               > physics9_week3_acceleration_galileo.py
           echo '539627bb7f00f3e8f192e0cc0040dec2895a200af8df812ebfa096093b1b0e96  physics9_week3_acceleration_galileo.py' | sha256sum -c -
+          python render_physics9_week3/apply_week3_v2_fixes.py
+          echo '4a26dccad452dec424a0fcf7f631680e7dfceb36c473ad3aef75de683d8972ad  physics9_week3_acceleration_galileo.py' | sha256sum -c -
 
           git fetch --depth=1 origin render/physics9-week2-vt-cinematic-v2-2026-08-10
           git show FETCH_HEAD:render_physics9_week2/style_exact.b64 > /tmp/style_exact.b64
@@ -39,7 +41,7 @@ jobs:
           touch library/__init__.py
           echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
           echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
-          cp physics9_week3_acceleration_galileo.py delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V1.py
+          cp physics9_week3_acceleration_galileo.py delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V2.py
           cp library/jp_classroom_style.py delivery/jp_classroom_style.py
 
       - name: Static and style validation
@@ -119,12 +121,12 @@ jobs:
           ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/signs_*.png' -vf 'scale=480:-1,tile=6x6:padding=5:margin=5:color=white' -frames:v 1 delivery/SIGNS_36_FRAME_TARGETED_QA.png
           ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/galileo_*.png' -vf 'scale=430:-1,tile=8x5:padding=5:margin=5:color=white' -frames:v 1 delivery/GALILEO_40_FRAME_TARGETED_QA.png
           ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/piecewise_*.png' -vf 'scale=430:-1,tile=8x5:padding=5:margin=5:color=white' -frames:v 1 delivery/PIECEWISE_40_FRAME_TARGETED_QA.png
-          sha256sum delivery/*.mp4 delivery/*QA.png delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V1.py > delivery/PREVIEW_SHA256.txt
+          sha256sum delivery/*.mp4 delivery/*QA.png delivery/Physics9_Week3_Acceleration_Galileo_CINEMATIC_V2.py > delivery/PREVIEW_SHA256.txt
 
       - name: Upload preview QA
         uses: actions/upload-artifact@v4
         with:
-          name: Physics9-Week3-Acceleration-PREVIEW-QA
+          name: Physics9-Week3-Acceleration-V2-PREVIEW-QA
           path: delivery/
           if-no-files-found: error
           retention-days: 7
