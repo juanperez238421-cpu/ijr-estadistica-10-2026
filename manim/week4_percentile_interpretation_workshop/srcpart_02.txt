@@ -1,0 +1,101 @@
+    def claim_card(self, claim, verdict, explanation, y, width=12.2):
+        box = self.panel(width, 1.05, fill=WHITE)
+        verdict_tx = self.t(verdict, 22.5, BOLD, color=DARK)
+        claim_tx = self.t(claim, 22.5, NORMAL, color=INK)
+        exp = self.t(explanation, 20, NORMAL, color=MID)
+        top = VGroup(verdict_tx, claim_tx).arrange(RIGHT, buff=0.24)
+        content = VGroup(top, exp).arrange(DOWN, buff=0.07, aligned_edge=LEFT)
+        self.fit(content, w=width - 0.48, h=0.77)
+        content.move_to(box)
+        return VGroup(box, content).move_to([0, y, 0])
+
+    # ------------------------------------------------------------------
+    # Workshop structure
+    # ------------------------------------------------------------------
+    def opening(self):
+        a = self.t("STATISTICS 10 · WEEK 4", 31, BOLD, color=DARK)
+        b = self.t("PERCENTILE INTERPRETATION · WORKSHOP", 42, BOLD)
+        c = self.t("Interpret. Check the claim. Communicate the meaning.", 27, NORMAL, color=MID)
+        g = VGroup(a, b, c).arrange(DOWN, buff=0.32).move_to(UP * 0.55)
+        self.play(FadeIn(a), Write(b), run_time=RUN_SLOW)
+        self.play(FadeIn(c), run_time=RUN)
+        n = self.note("Eight problems · different contexts · the same audited 8-step interpretation route.", 12.2, 0.86, 24.5).move_to([0, -1.58, 0])
+        self.play(FadeIn(n), run_time=RUN)
+        self.wait(PAUSE_READ)
+        self.play(FadeOut(g), FadeOut(n), run_time=RUN_FAST)
+
+    def workshop_map(self):
+        self.set_header("WORKSHOP MAP", "Each problem isolates a different interpretation decision")
+        items = (
+            ("P1", "Direct interpretation"),
+            ("P2", "High percentile"),
+            ("P3", "Lower is better"),
+            ("P4", "Compare ranks"),
+            ("P5", "Claim clinic"),
+            ("P6", "Reverse reading"),
+            ("P7", "Complement reasoning"),
+            ("P8", "Final challenge"),
+        )
+        cards = VGroup()
+        for tag, desc in items:
+            box = self.panel(3.18, 1.18, fill=WHITE)
+            g = VGroup(self.t(tag, 24, BOLD, color=DARK), self.t(desc, 21.5, NORMAL, color=MID)).arrange(DOWN, buff=0.09)
+            self.fit(g, w=2.80, h=0.76); g.move_to(box)
+            cards.add(VGroup(box, g))
+        rows = VGroup(VGroup(*cards[:4]).arrange(RIGHT, buff=0.27),
+                      VGroup(*cards[4:]).arrange(RIGHT, buff=0.27)).arrange(DOWN, buff=0.34).move_to([0, 0.45, 0])
+        self.play(LaggedStart(*[FadeIn(c, shift=UP * 0.06) for c in cards], lag_ratio=0.08), run_time=1.8)
+        n = self.note("Before each solution: pause, write the interpretation, then compare with the animation.", 12.0, 0.84, 24).move_to([0, -2.15, 0])
+        self.play(FadeIn(n), run_time=RUN)
+        self.wait(PAUSE_READ)
+        self.clear_stage(keep_header=False)
+
+    def solve_standard(self, number, st: PStatement, title, context_note, performance_note=None, final_note=None):
+        self.set_header(f"PROBLEM {number}", title)
+        self.set_step(1)
+        card = self.statement_card(st)
+        self.play(FadeIn(card), run_time=RUN)
+        work = self.note("YOUR TURN: interpret the statement before the solution appears.", 10.6, 0.80, 23.5).move_to([0, Y_META, 0])
+        self.play(FadeIn(work), run_time=RUN)
+        self.wait(PAUSE_WORK)
+        self.play(FadeOut(work), run_time=RUN_FAST)
+
+        self.set_step(2)
+        kbox = self.note(f"k = {st.k}", 3.0, 0.72, 24, fill=WHITE).move_to([-2.0, Y_META, 0])
+        self.play(FadeIn(kbox), run_time=RUN_FAST)
+
+        self.set_step(3)
+        vbox = self.note(f"value = {fmt(st.value)} {st.unit}".strip(), 4.4, 0.72, 24, fill=WHITE).move_to([2.0, Y_META, 0])
+        self.play(FadeIn(vbox), run_time=RUN_FAST)
+
+        bar = self.percentile_bar(st.k, f"{fmt(st.value)} {st.unit}".strip())
+        self.play(Create(bar[0]), Create(bar[1]), FadeIn(bar[2]), FadeIn(bar[3]), FadeIn(bar[4]), run_time=RUN_SLOW)
+
+        self.set_step(4)
+        pair = self.meaning_pair(st)
+        self.play(FadeIn(pair[0]), run_time=RUN)
+
+        self.set_step(5)
+        self.play(FadeIn(pair[1]), run_time=RUN)
+
+        self.set_step(6)
+        context = self.note(context_note, 12.1, 0.82, 22.5).move_to([0, Y_RESULT, 0])
+        self.play(FadeIn(context), run_time=RUN)
+        if performance_note:
+            perf = self.note(performance_note, 12.1, 0.82, 22.0).move_to([0, Y_RESULT, 0])
+            self.play(Transform(context, perf), run_time=RUN)
+
+        self.set_step(7)
+        check = self.note(f"CHECK: {st.k} is a percentile rank — not {st.k}% of {fmt(st.value)} {st.unit}.", 11.4, 0.82, 22.3).move_to([0, Y_RESULT, 0])
+        self.play(Transform(context, check), run_time=RUN)
+
+        self.set_step(8)
+        if final_note is None:
+            final_note = (f"About {st.k}% of {st.context}s are at/below {fmt(st.value)} {st.unit}; "
+                          f"about {st.above}% are above it.")
+        final = self.note(final_note, 12.4, 0.86, 21.4).move_to([0, Y_RESULT, 0])
+        self.play(Transform(context, final), run_time=RUN)
+        self.wait(PAUSE_EXPLAIN)
+        self.clear_stage(keep_header=False, keep_steps=False)
+        self.step_strip = None
+
