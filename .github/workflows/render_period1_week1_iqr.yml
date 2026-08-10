@@ -66,7 +66,16 @@ jobs:
           FINAL="$(find media/videos -type f -path '*1080p*' -name 'Statistics10Period1Week1IQRRecovery.mp4' | head -n 1)"
           test -n "$FINAL"
           cp "$FINAL" delivery/Statistics10_Period1_Week1_IQR_Recovery_pqh.mp4
-          ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of default=noprint_wrappers=1 delivery/Statistics10_Period1_Week1_IQR_Recovery_pqh.mp4 | tee delivery/FFPROBE.txt
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint ffprobe \
+            manimcommunity/manim:v0.20.1 \
+            -v error -select_streams v:0 \
+            -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+            -of default=noprint_wrappers=1 \
+            delivery/Statistics10_Period1_Week1_IQR_Recovery_pqh.mp4 | tee delivery/FFPROBE.txt
           sha256sum delivery/Statistics10_Period1_Week1_IQR_Recovery_pqh.mp4 | tee delivery/SHA256.txt
           printf '%s\n' 'manim -pql statistics10_period1_week1_iqr_recovery_render.py Statistics10Period1Week1IQRRecovery --format=mp4 --disable_caching' 'manim -pqh statistics10_period1_week1_iqr_recovery_render.py Statistics10Period1Week1IQRRecovery --format=mp4 --disable_caching' > delivery/RENDER_COMMANDS.txt
 
