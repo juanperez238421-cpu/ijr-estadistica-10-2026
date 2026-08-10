@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Period 1 · Week 3 — Deciles & Percentiles.
+
+Professional theory + worked examples + Percentile Line-Up Game.
+
+Continuity with Week 2:
+- Week 2 used the classroom median-of-halves convention for Q1, Q2 and Q3.
+- Week 3 generalizes the *idea of position* to deciles and percentiles.
+- For percentile-location exercises in this course, this lesson adopts one
+  explicit classroom convention:
+
+      L = (k / 100) (n + 1)
+
+  where k is the percentile number and L is a 1-indexed position in the
+  ordered sample. If L is not an integer, linear interpolation is used between
+  the two neighboring ordered observations.
+
+Important methodological note:
+Different textbooks and software packages may implement other sample-quantile
+conventions. This lesson states the convention explicitly so students do not
+mix algorithms. The Week 2 quartile algorithm is not retroactively replaced.
+
+Eight-step Week 3 recipe:
+1. ORDER
+2. COUNT n
+3. CHOOSE k
+4. LOCATE L
+5. FIND NEIGHBORS
+6. INTERPOLATE
+7. STATE RESULT
+8. INTERPRET
+
+Target: Manim Community Edition 0.20.x, 1920x1080, 30 fps, white JP classroom
+style. Final render must use literal `-pqh`.
+"""
+from __future__ import annotations
+
+from dataclasses import dataclass
+from math import floor
+from typing import Sequence
+
+from manim import *
+
+# ---------------------------------------------------------------------------
+# Render configuration
+# ---------------------------------------------------------------------------
+config.pixel_width = 1920
+config.pixel_height = 1080
+config.frame_width = 16
+config.frame_height = 9
+config.frame_rate = 30
+config.background_color = WHITE
+
+INK = BLACK
+DARK = "#303030"
+MID = "#777777"
+LIGHT = "#D6D6D6"
+VERY_LIGHT = "#EEEEEE"
+PAPER = "#F8F8F8"
+SAFE_W = 14.65
+
+RUN_FAST = 0.45
+RUN = 0.78
+RUN_SLOW = 1.05
+PAUSE_READ = 1.15
+PAUSE_EXPLAIN = 1.85
+PAUSE_WORK = 3.0
+PAUSE_SUMMARY = 3.0
+
+
+# ---------------------------------------------------------------------------
+# Mathematics / data validation
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class PercentileSolution:
+    raw: tuple[float, ...]
+    ordered: tuple[float, ...]
+    k: float
+    locator: float
+    lower_position: int
+    upper_position: int
+    fraction: float
+    value: float
+
+
+def fmt(v: float) -> str:
+    if abs(v - round(v)) < 1e-9:
+        return str(int(round(v)))
+    return f"{v:.2f}".rstrip("0").rstrip(".")
+
+
+def percentile_course(values: Sequence[float], k: float) -> PercentileSolution:
+    """Course percentile convention L=(k/100)(n+1), with interpolation."""
+    if len(values) < 3:
+        raise ValueError("At least three observations are required.")
+    if not (0 < k < 100):
+        raise ValueError("k must satisfy 0 < k < 100.")
+    ordered = tuple(sorted(float(v) for v in values))
+    n = len(ordered)
+    locator = (k / 100.0) * (n + 1)
+    # The lesson deliberately chooses tasks with 1 <= L <= n.
+    if locator < 1 or locator > n:
+        raise ValueError("Chosen percentile falls outside the interior locator range.")
+    j = floor(locator)
+    fraction = locator - j
+    if abs(fraction) < 1e-9:
+        lower_position = upper_position = j
+        value = ordered[j - 1]
+        fraction = 0.0
+    else:
+        lower_position = j
+        upper_position = j + 1
+        low = ordered[j - 1]
+        high = ordered[j]
+        value = low + fraction * (high - low)
+    return PercentileSolution(
+        raw=tuple(float(v) for v in values),
+        ordered=ordered,
+        k=float(k),
+        locator=float(locator),
+        lower_position=lower_position,
+        upper_position=upper_position,
+        fraction=float(fraction),
+        value=float(value),
+    )
+
+
+# ---------------------------------------------------------------------------
+# Scene
+# ---------------------------------------------------------------------------
+class Statistics10Period1Week3DecilesPercentiles(MovingCameraScene):
+    STEP_NAMES = (
+        "ORDER",
+        "COUNT n",
+        "CHOOSE k",
+        "LOCATE L",
+        "NEIGHBORS",
+        "INTERPOLATE",
+        "STATE",
+        "INTERPRET",
+    )
+
+    DATA_A = (32, 18, 25, 40, 12, 29, 21, 36, 16)
+    DATA_B = (45, 28, 36, 52, 20, 40, 32, 48, 24)
+
+    def setup(self):
+        super().setup()
+        self.camera.background_color = WHITE
+        self.camera.frame.set(width=16).move_to(ORIGIN)
+        self.header = None
+        self.step_strip = None
+        self._validate_lesson()
+
+    def _validate_lesson(self):
+        assert tuple(sorted(self.DATA_A)) == (12, 16, 18, 21, 25, 29, 32, 36, 40)
+        p30 = percentile_course(self.DATA_A, 30)
+        assert p30.locator == 3 and p30.value == 18
+        p40 = percentile_course(self.DATA_A, 40)
+        assert p40.locator == 4 and p40.value == 21
+        p60 = percentile_course(self.DATA_A, 60)
+        assert p60.locator == 6 and p60.value == 29
+        p65 = percentile_course(self.DATA_A, 65)
+        assert p65.locator == 6.5 and p65.value == 30.5
+        p80 = percentile_course(self.DATA_A, 80)
+        assert p80.locator == 8 and p80.value == 36
+        challenge = percentile_course(self.DATA_B, 55)
+        assert challenge.ordered == (20, 24, 28, 32, 36, 40, 45, 48, 52)
+        assert challenge.locator == 5.5 and challenge.value == 38
+        d7 = percentile_course(self.DATA_B, 70)
+        assert d7.locator == 7 and d7.value == 45
+
+    # ------------------------------------------------------------------
+    # Style helpers
+    # ------------------------------------------------------------------
+    def t(self, content, size=29, weight=NORMAL, color=INK, **kwargs):
+        return Text(
+            content,
+            font_size=size,
+            color=color,

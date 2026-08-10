@@ -1,0 +1,43 @@
+--- a/manim/period1_week3_deciles_percentiles/statistics10_period1_week3_deciles_percentiles.py
++++ b/manim/period1_week3_deciles_percentiles/statistics10_period1_week3_deciles_percentiles.py
+@@ -527,28 +527,31 @@
+         self.play(FadeIn(neigh), run_time=RUN)
+ 
+         self.set_step(6)
+-        self.play(FadeOut(loc), run_time=RUN_FAST)
++        # NEIGHBORS has completed its job; clear that band before INTERPOLATE.
++        self.play(FadeOut(loc), FadeOut(neigh), run_time=RUN_FAST)
+         if sol.fraction == 0:
+-            calc = self.m(rf"P_{{{int(k)}}}=x_{{{sol.lower_position}}}={fmt(sol.value)}", 49).move_to([0, -1.82, 0])
+-            expl = self.note("Integer locator → one ordered position → no interpolation.", 10.6, 0.76, 24).move_to([0, -2.55, 0])
++            calc = self.m(rf"P_{{{int(k)}}}=x_{{{sol.lower_position}}}={fmt(sol.value)}", 49).move_to([0, -1.66, 0])
++            expl = self.note("Integer locator → one ordered position → no interpolation.", 10.6, 0.70, 24).move_to([0, -2.33, 0])
+             self.play(Write(calc), run_time=RUN_SLOW)
+             self.play(FadeIn(expl), run_time=RUN)
+         else:
+             low = sol.ordered[sol.lower_position-1]
+             high = sol.ordered[sol.upper_position-1]
+-            track = self.interpolation_track(low, high, sol.fraction, sol.value).scale(0.82).move_to([0, -1.55, 0])
++            track = self.interpolation_track(low, high, sol.fraction, sol.value).scale(0.78).move_to([0, -1.28, 0])
+             self.play(FadeIn(track), run_time=RUN)
+-            calc = self.m(rf"P_{{{int(k)}}}={fmt(low)}+{fmt(sol.fraction)}({fmt(high)}-{fmt(low)})={fmt(sol.value)}", 44).move_to([0, -2.47, 0])
++            calc = self.m(rf"P_{{{int(k)}}}={fmt(low)}+{fmt(sol.fraction)}({fmt(high)}-{fmt(low)})={fmt(sol.value)}", 44).move_to([0, -2.18, 0])
+             self.play(Write(calc), run_time=RUN_SLOW)
+ 
+         self.set_step(7)
++        if sol.fraction == 0:
++            self.play(FadeOut(expl), run_time=RUN_FAST)
+         result_text = f"{decile_name} = P{int(k)} = {fmt(sol.value)}" if decile_name else f"P{int(k)} = {fmt(sol.value)}"
+-        result = self.note(result_text, 7.8, 0.72, 28).move_to([0, -3.02, 0])
++        result = self.note(result_text, 7.8, 0.62, 27).move_to([0, -2.82, 0])
+         self.play(FadeIn(result), run_time=RUN)
+         self.set_step(8)
+-        interpretation = self.t(f"Interpretation: {fmt(sol.value)} is the value located at the P{int(k)} position under our course convention.", 22, NORMAL, color=MID)
+-        self.fit(interpretation, w=12.5, h=0.42)
+-        interpretation.move_to([0, -3.02, 0])
++        interpretation = self.t(f"Interpretation: {fmt(sol.value)} is the value at the P{int(k)} position under our course convention.", 22, NORMAL, color=MID)
++        self.fit(interpretation, w=12.3, h=0.40)
++        interpretation.move_to([0, -2.82, 0])
+         self.play(Transform(result, interpretation), run_time=RUN)
+         self.wait(PAUSE_EXPLAIN)
+         self.clear_stage(keep_steps=False)

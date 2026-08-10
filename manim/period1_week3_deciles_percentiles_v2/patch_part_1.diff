@@ -1,0 +1,162 @@
+--- a/manim/period1_week3_deciles_percentiles/statistics10_period1_week3_deciles_percentiles.py
++++ b/manim/period1_week3_deciles_percentiles/statistics10_period1_week3_deciles_percentiles.py
+@@ -2,7 +2,7 @@
+ # -*- coding: utf-8 -*-
+ """Statistics 10 · Period 1 · Week 3 — Deciles & Percentiles.
+ 
+-Professional theory + worked examples + Percentile Line-Up Game.
++Senior V2 · professional theory + visual interpolation + worked examples + Percentile Line-Up Game.
+ 
+ Continuity with Week 2:
+ - Week 2 used the classroom median-of-halves convention for Q1, Q2 and Q3.
+@@ -63,10 +63,10 @@
+ RUN_FAST = 0.45
+ RUN = 0.78
+ RUN_SLOW = 1.05
+-PAUSE_READ = 1.15
+-PAUSE_EXPLAIN = 1.85
+-PAUSE_WORK = 3.0
+-PAUSE_SUMMARY = 3.0
++PAUSE_READ = 1.35
++PAUSE_EXPLAIN = 2.15
++PAUSE_WORK = 3.5
++PAUSE_SUMMARY = 3.6
+ 
+ 
+ # ---------------------------------------------------------------------------
+@@ -270,27 +270,28 @@
+         return VGroup(cards, indices)
+ 
+     def build_step_strip(self, active=1):
++        """Persistent 8-step navigator sized for classroom projection."""
+         cells = VGroup()
+         for i, name in enumerate(self.STEP_NAMES, start=1):
+-            fill = VERY_LIGHT if i == active else WHITE
+-            sw = 2.2 if i == active else 1.1
++            fill = "#EAEAEA" if i == active else WHITE
++            sw = 2.5 if i == active else 1.15
+             box = RoundedRectangle(
+-                width=1.73,
+-                height=0.62,
+-                corner_radius=0.07,
++                width=1.76,
++                height=0.72,
++                corner_radius=0.08,
+                 stroke_color=DARK if i == active else LIGHT,
+                 stroke_width=sw,
+                 fill_color=fill,
+                 fill_opacity=1,
+             )
+-            num = self.t(str(i), 17, BOLD, color=DARK)
+-            lab = self.t(name, 13.5, BOLD if i == active else NORMAL, color=DARK if i == active else MID)
+-            content = VGroup(num, lab).arrange(RIGHT, buff=0.10)
+-            self.fit(content, w=1.48, h=0.36)
++            num = self.t(str(i), 19, BOLD, color=DARK)
++            lab = self.t(name, 15.2, BOLD if i == active else NORMAL, color=DARK if i == active else MID)
++            content = VGroup(num, lab).arrange(RIGHT, buff=0.11)
++            self.fit(content, w=1.54, h=0.42)
+             content.move_to(box)
+             cells.add(VGroup(box, content))
+-        strip = cells.arrange(RIGHT, buff=0.08)
+-        strip.move_to([0, -3.72, 0])
++        strip = cells.arrange(RIGHT, buff=0.075)
++        strip.move_to([0, -3.60, 0])
+         return strip
+ 
+     def set_step(self, active):
+@@ -312,55 +313,68 @@
+         sub = self.t("when L = j + d, with 0 < d < 1", 22, NORMAL, color=MID).next_to(eq, DOWN, buff=0.15)
+         return VGroup(box, eq, sub)
+ 
+-    def percent_bar(self, k=60, width=11.5):
+-        total_h = 0.76
++    def percent_bar(self, k=60, width=12.6):
++        """Conceptual percentage-position bar; not a frequency-count claim."""
++        total_h = 0.88
+         left_w = width * (k / 100)
+         right_w = width - left_w
+-        left = Rectangle(
+-            width=left_w,
+-            height=total_h,
+-            stroke_color=DARK,
+-            stroke_width=1.4,
+-            fill_color=VERY_LIGHT,
+-            fill_opacity=1,
+-        )
+-        right = Rectangle(
+-            width=right_w,
+-            height=total_h,
+-            stroke_color=DARK,
+-            stroke_width=1.4,
+-            fill_color=WHITE,
+-            fill_opacity=1,
+-        )
++        left = Rectangle(width=left_w, height=total_h, stroke_color=DARK, stroke_width=1.6,
++                         fill_color=VERY_LIGHT, fill_opacity=1)
++        right = Rectangle(width=right_w, height=total_h, stroke_color=DARK, stroke_width=1.6,
++                          fill_color=WHITE, fill_opacity=1)
+         group = VGroup(left, right).arrange(RIGHT, buff=0)
+-        marker = Line(UP * 0.58, DOWN * 0.58, color=INK, stroke_width=3).move_to(left.get_right())
+-        plab = self.m(rf"P_{{{k}}}", 34).next_to(marker, UP, buff=0.10)
+-        lower = self.t(f"lower {k}%", 22, BOLD, color=DARK).move_to(left)
+-        upper = self.t(f"upper {100-k}%", 22, NORMAL, color=MID).move_to(right)
++        marker = Line(UP * 0.68, DOWN * 0.68, color=INK, stroke_width=3.4).move_to(left.get_right())
++        plab = self.m(rf"P_{{{k}}}", 38).next_to(marker, UP, buff=0.11)
++        lower = self.t(f"lower-position region: {k}%", 24, BOLD, color=DARK).move_to(left)
++        upper = self.t(f"upper-position region: {100-k}%", 23, NORMAL, color=MID).move_to(right)
+         return VGroup(group, marker, plab, lower, upper)
+ 
+     def decile_ruler(self):
+         segs = VGroup()
+         for i in range(10):
+-            rect = Rectangle(
+-                width=1.08,
+-                height=0.72,
+-                stroke_color=DARK,
+-                stroke_width=1.2,
+-                fill_color=VERY_LIGHT if i % 2 == 0 else WHITE,
+-                fill_opacity=1,
+-            )
+-            txt = self.t(f"{10*i}-{10*(i+1)}%", 15, NORMAL, color=MID).move_to(rect)
++            rect = Rectangle(width=1.20, height=0.82, stroke_color=DARK, stroke_width=1.35,
++                             fill_color=VERY_LIGHT if i % 2 == 0 else WHITE, fill_opacity=1)
++            txt = self.t(f"{10*i}-{10*(i+1)}%", 17, NORMAL, color=MID).move_to(rect)
+             segs.add(VGroup(rect, txt))
+         segs.arrange(RIGHT, buff=0)
+         labels = VGroup()
++        left_x = segs[0].get_left()[0]
+         for j in range(1, 10):
+-            x = segs[0].get_left()[0] + 1.08 * j
+-            tick = Line([x, -0.47, 0], [x, -0.74, 0], color=DARK, stroke_width=1.5)
+-            lab = self.m(rf"D_{{{j}}}", 25).next_to(tick, DOWN, buff=0.05)
++            x = left_x + 1.20 * j
++            tick = Line([x, -0.52, 0], [x, -0.84, 0], color=DARK, stroke_width=1.7)
++            lab = self.m(rf"D_{{{j}}}", 29).next_to(tick, DOWN, buff=0.06)
+             labels.add(VGroup(tick, lab))
+         return VGroup(segs, labels)
+ 
++    def locator_marker(self, indexed, locator, label_tex):
++        """Place a visual marker on or between indexed cards."""
++        cards = indexed[0]
++        j = floor(locator)
++        d = locator - j
++        if abs(d) < 1e-9:
++            x = cards[j-1].get_center()[0]
++        else:
++            x0 = cards[j-1].get_center()[0]
++            x1 = cards[j].get_center()[0]
++            x = x0 + d * (x1 - x0)
++        arrow = Arrow([x, 1.90, 0], [x, 1.23, 0], buff=0.03, color=DARK, stroke_width=3, max_tip_length_to_length_ratio=0.22)
++        label = self.m(label_tex, 34).next_to(arrow, UP, buff=0.05)
++        return VGroup(arrow, label)
++
++    def interpolation_track(self, low, high, fraction, result):
++        """Geometric interpolation visual: move a marker fraction d from low to high."""
++        x0, x1 = -3.5, 3.5
++        line = Line([x0, 0, 0], [x1, 0, 0], color=DARK, stroke_width=3)
++        left_tick = Line([x0, -0.16, 0], [x0, 0.16, 0], color=DARK, stroke_width=2)
++        right_tick = Line([x1, -0.16, 0], [x1, 0.16, 0], color=DARK, stroke_width=2)
++        xm = x0 + fraction * (x1-x0)
++        mark = Dot([xm, 0, 0], radius=0.075, color=DARK)
++        low_lab = self.t(fmt(low), 24, BOLD).next_to(left_tick, DOWN, buff=0.12)
++        high_lab = self.t(fmt(high), 24, BOLD).next_to(right_tick, DOWN, buff=0.12)
