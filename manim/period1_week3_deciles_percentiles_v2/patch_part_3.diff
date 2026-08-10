@@ -1,0 +1,162 @@
+-        ).move_to([0, -0.40, 0])
++            self.play(Indicate(cards[pos-1], color=DARK, scale_factor=1.10), run_time=RUN_FAST)
++        neigh_text = (f"Use position {sol.lower_position}" if sol.lower_position == sol.upper_position
++                      else f"Use positions {sol.lower_position} and {sol.upper_position}")
++        neigh = self.t(neigh_text, 27, BOLD, color=DARK).move_to([0, -1.12, 0])
+         self.play(FadeIn(neigh), run_time=RUN)
+ 
+         self.set_step(6)
++        self.play(FadeOut(loc), run_time=RUN_FAST)
+         if sol.fraction == 0:
+-            calc = self.m(rf"P_{{{int(k)}}}=x_{{{sol.lower_position}}}={fmt(sol.value)}", 45).move_to([0, -1.28, 0])
+-            expl = self.note("L is an integer, so no interpolation is needed.", 9.2, 0.72, 23).move_to([0, -2.06, 0])
++            calc = self.m(rf"P_{{{int(k)}}}=x_{{{sol.lower_position}}}={fmt(sol.value)}", 49).move_to([0, -1.82, 0])
++            expl = self.note("Integer locator → one ordered position → no interpolation.", 10.6, 0.76, 24).move_to([0, -2.55, 0])
++            self.play(Write(calc), run_time=RUN_SLOW)
++            self.play(FadeIn(expl), run_time=RUN)
+         else:
+-            low = sol.ordered[sol.lower_position - 1]
+-            high = sol.ordered[sol.upper_position - 1]
+-            calc = self.m(
+-                rf"P_{{{int(k)}}}={fmt(low)}+{fmt(sol.fraction)}({fmt(high)}-{fmt(low)})={fmt(sol.value)}",
+-                42,
+-            ).move_to([0, -1.28, 0])
+-            expl = self.note(
+-                f"L={fmt(sol.locator)} is halfway between positions {sol.lower_position} and {sol.upper_position}.",
+-                10.8,
+-                0.72,
+-                23,
+-            ).move_to([0, -2.06, 0])
+-        self.play(Write(calc), run_time=RUN_SLOW)
+-        self.play(FadeIn(expl), run_time=RUN)
++            low = sol.ordered[sol.lower_position-1]
++            high = sol.ordered[sol.upper_position-1]
++            track = self.interpolation_track(low, high, sol.fraction, sol.value).scale(0.82).move_to([0, -1.55, 0])
++            self.play(FadeIn(track), run_time=RUN)
++            calc = self.m(rf"P_{{{int(k)}}}={fmt(low)}+{fmt(sol.fraction)}({fmt(high)}-{fmt(low)})={fmt(sol.value)}", 44).move_to([0, -2.47, 0])
++            self.play(Write(calc), run_time=RUN_SLOW)
+ 
+         self.set_step(7)
+         result_text = f"{decile_name} = P{int(k)} = {fmt(sol.value)}" if decile_name else f"P{int(k)} = {fmt(sol.value)}"
+-        result = self.note(result_text, 7.8, 0.74, 27).move_to([0, -2.82, 0])
++        result = self.note(result_text, 7.8, 0.72, 28).move_to([0, -3.02, 0])
+         self.play(FadeIn(result), run_time=RUN)
+-
+         self.set_step(8)
++        interpretation = self.t(f"Interpretation: {fmt(sol.value)} is the value located at the P{int(k)} position under our course convention.", 22, NORMAL, color=MID)
++        self.fit(interpretation, w=12.5, h=0.42)
++        interpretation.move_to([0, -3.02, 0])
++        self.play(Transform(result, interpretation), run_time=RUN)
+         self.wait(PAUSE_EXPLAIN)
+         self.clear_stage(keep_steps=False)
+         self.step_strip = None
+ 
+     def lineup_game(self):
+-        self.set_header("7 · PERCENTILE LINE-UP GAME", "Turn ordered position into a physical classroom decision")
++        self.set_header("7 · PERCENTILE LINE-UP GAME", "ORDER first; the percentile becomes a visible location")
+         raw = list(self.DATA_A)
+-        icons = VGroup(*[self.person_icon(v) for v in raw]).arrange(RIGHT, buff=0.30)
+-        self.fit(icons, w=14.0, h=2.3)
+-        icons.move_to(UP * 0.92)
+-        prompt = self.note("ROUND 1: everyone receives one score card. First mission: line up from smallest to largest.", 13.1, 0.82, 23)
+-        prompt.move_to([0, 2.62, 0])
++        icons = VGroup(*[self.person_icon(v) for v in raw]).arrange(RIGHT, buff=0.34)
++        self.fit(icons, w=14.2, h=2.55)
++        icons.move_to(UP * 0.95)
++        prompt = self.note("ROUND 1 · Each student receives one score card. Line up from smallest to largest.", 13.3, 0.86, 24).move_to([0, 2.65, 0])
+         self.play(FadeIn(prompt), FadeIn(icons), run_time=RUN_SLOW)
+         self.wait(PAUSE_WORK)
+-
+         ordered_vals = sorted(raw)
+-        sorted_icons = VGroup(*[self.person_icon(v) for v in ordered_vals]).arrange(RIGHT, buff=0.30)
+-        self.fit(sorted_icons, w=14.0, h=2.3)
+-        sorted_icons.move_to(UP * 0.92)
++        sorted_icons = VGroup(*[self.person_icon(v) for v in ordered_vals]).arrange(RIGHT, buff=0.34)
++        self.fit(sorted_icons, w=14.2, h=2.55)
++        sorted_icons.move_to(UP * 0.95)
+         self.play(Transform(icons, sorted_icons), run_time=RUN_SLOW)
+-        indices = VGroup()
+-        for i, icon in enumerate(icons, start=1):
+-            indices.add(self.t(str(i), 18, NORMAL, color=MID).next_to(icon, DOWN, buff=0.08))
++        indices = VGroup(*[self.t(str(i), 20, BOLD, color=MID).next_to(icon, DOWN, buff=0.07) for i,icon in enumerate(icons,1)])
+         self.play(FadeIn(indices), run_time=RUN)
+-
+-        target = self.m(r"\text{Target: }P_{60}", 42).move_to([0, -1.05, 0])
+-        loc = self.m(r"L=\frac{60}{100}(9+1)=6", 39).next_to(target, DOWN, buff=0.25)
+-        self.play(Write(target), Write(loc), run_time=RUN_SLOW)
++        target = self.m(r"P_{60}\qquad L=\frac{60}{100}(9+1)=6", 43).move_to([0, -1.15, 0])
++        self.play(Write(target), run_time=RUN_SLOW)
+         self.wait(PAUSE_WORK)
+-
+         sixth = icons[5]
+-        self.play(Indicate(sixth, color=DARK, scale_factor=1.10), run_time=RUN)
+-        self.play(FadeOut(loc), run_time=RUN_FAST)
+-        result = self.note("Position 6 holds 29, so P60 = 29 using the Week 3 course convention.", 11.6, 0.80, 24)
+-        result.move_to([0, -2.34, 0])
++        cut = DashedLine([sixth.get_center()[0], -0.15, 0], [sixth.get_center()[0], 2.15, 0], dash_length=0.12, color=MID)
++        arrow = Arrow([sixth.get_center()[0], -0.45, 0], [sixth.get_center()[0], 0.10, 0], buff=0.02, color=DARK, stroke_width=3)
++        self.play(Create(cut), GrowArrow(arrow), Indicate(sixth, color=DARK, scale_factor=1.10), run_time=RUN)
++        self.play(FadeOut(target), run_time=RUN_FAST)
++        result = self.note("Position 6 contains 29 → P60 = 29 under the Week 3 convention.", 11.8, 0.82, 25).move_to([0, -2.05, 0])
+         self.play(FadeIn(result), run_time=RUN)
+-        rule = self.note("Game rule: ORDER → LOCATE → POINT → JUSTIFY. The formula is useless until the line is ordered.", 12.8, 0.78, 22)
+-        rule.move_to([0, -3.10, 0])
+-        self.play(FadeIn(rule), run_time=RUN)
++        misconception = self.note("29 is the percentile VALUE. It is not 60% of 29 and it is not a percentage score.", 12.0, 0.80, 23).move_to([0, -2.90, 0])
++        self.play(FadeIn(misconception), run_time=RUN)
+         self.wait(PAUSE_EXPLAIN)
+         self.clear_stage()
+ 
+@@ -651,32 +647,28 @@
+         self.clear_stage()
+ 
+     def final_recipe(self):
+-        self.set_header("10 · FINAL RECIPE", "Use the same route every time")
+-        rows = VGroup()
++        self.set_header("10 · FINAL RECIPE", "Eight actions; two columns; one repeatable algorithm")
+         descriptions = (
+-            "Sort from smallest to largest.",
+-            "Count the observations.",
+-            "Convert decile to percentile if needed.",
+-            "Compute L = (k/100)(n+1).",
+-            "Identify the ordered position(s).",
+-            "Interpolate only when L is decimal.",
+-            "Write Pk or Dj with its value.",
+-            "Explain the relative position in words.",
++            "Sort smallest → largest.", "Count observations.", "Convert Dj → P10j if needed.", "Compute L=(k/100)(n+1).",
++            "Identify position(s).", "Interpolate if L is decimal.", "State Pk or Dj and value.", "Explain relative position in words.",
+         )
+-        for i, (name, desc) in enumerate(zip(self.STEP_NAMES, descriptions), start=1):
+-            num = Circle(radius=0.22, stroke_color=DARK, stroke_width=1.5, fill_color=VERY_LIGHT, fill_opacity=1)
+-            ntx = self.t(str(i), 18, BOLD).move_to(num)
+-            title = self.t(name, 22, BOLD, color=DARK)
+-            body = self.t(desc, 21, NORMAL, color=MID)
+-            line = VGroup(VGroup(num, ntx), title, body).arrange(RIGHT, buff=0.28)
+-            rows.add(line)
+-        rows.arrange(DOWN, aligned_edge=LEFT, buff=0.22)
+-        self.fit(rows, w=13.6, h=5.15)
+-        rows.move_to([0, 0.18, 0])
+-        self.play(LaggedStart(*[FadeIn(r, shift=RIGHT * 0.18) for r in rows], lag_ratio=0.11), run_time=2.4)
+-        closing = self.note("NEXT: Week 4 — interpret percentiles in sports, academic and real-data contexts.", 12.1, 0.80, 24)
+-        closing.move_to([0, -3.16, 0])
+-        self.play(FadeIn(closing), run_time=RUN)
++        cards = VGroup()
++        for i,(name,desc) in enumerate(zip(self.STEP_NAMES,descriptions),1):
++            box=self.panel(6.55,1.15,fill=WHITE)
++            num=Circle(radius=0.23,stroke_color=DARK,stroke_width=1.6,fill_color=VERY_LIGHT,fill_opacity=1)
++            nt=self.t(str(i),19,BOLD).move_to(num)
++            title=self.t(name,25,BOLD,color=DARK)
++            body=self.t(desc,23,NORMAL,color=MID)
++            text=VGroup(title,body).arrange(DOWN,aligned_edge=LEFT,buff=0.08)
++            content=VGroup(VGroup(num,nt),text).arrange(RIGHT,buff=0.28)
++            self.fit(content,w=6.05,h=0.88); content.move_to(box)
++            cards.add(VGroup(box,content))
++        left=VGroup(*cards[:4]).arrange(DOWN,buff=0.18)
++        right=VGroup(*cards[4:]).arrange(DOWN,buff=0.18)
++        grid=VGroup(left,right).arrange(RIGHT,buff=0.42).move_to([0,0.20,0])
++        self.play(LaggedStart(*[FadeIn(c,shift=RIGHT*0.15) for c in cards],lag_ratio=0.08),run_time=2.5)
++        closing=self.note("NEXT · Week 4: interpret percentiles in sports, academic and real-data contexts.",12.5,0.82,25).move_to([0,-3.17,0])
++        self.play(FadeIn(closing),run_time=RUN)
+         self.wait(PAUSE_SUMMARY)
+ 
+     def construct(self):
