@@ -21,9 +21,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          echo 'b90db463038792d1b2656e4192834d2b94895dbf4dc0bace63b30b79825cdbbb  render_physics9_week2_v2/source_v2.xz.b64' | sha256sum -c -
-          base64 -d render_physics9_week2_v2/source_v2.xz.b64 | xz -d > physics9_week2_velocity_time_galileo_cinematic_v2.py
-          echo '9ddbbb45d7cf69d5a7f87287a7c1051c6df68eea587a9cb3bfe1c4e855022530  physics9_week2_velocity_time_galileo_cinematic_v2.py' | sha256sum -c -
+          echo '9e0fa908b958629c911290427da17ed887c641721fc0cde01b0548866a85d571  render_physics9_week2_v2/source_v2_fixed.xz.b64' | sha256sum -c -
+          base64 -d render_physics9_week2_v2/source_v2_fixed.xz.b64 | xz -d > physics9_week2_velocity_time_galileo_cinematic_v2.py
+          echo 'bc2f3bbeeebfc471cb2c498fdd0c0d0927503a6030de042fce353b35618a7aac  physics9_week2_velocity_time_galileo_cinematic_v2.py' | sha256sum -c -
           echo '4a5c21279f5c7ae1b4daffa3928bf1eb0dbdde6873ae688161c87e9987663a74  render_physics9_week2/style_exact.b64' | sha256sum -c -
           echo 'da1d43b8499b4613090d88689af8fadaa39a7280f65403e965aee8f96032a605  render_physics9_week2/checker_exact.b64' | sha256sum -c -
           base64 -d render_physics9_week2/style_exact.b64 | gzip -d > library/jp_classroom_style.py
@@ -81,7 +81,7 @@ jobs:
           set -euo pipefail
           mkdir -p delivery/qa_theory delivery/qa_problems delivery/qa_galileo delivery/qa_area delivery/qa_problem4
           python - <<'PY'
-          import subprocess, os
+          import subprocess
           specs=[
               ('Physics9Week2VelocityTimeTheory',100,'delivery/qa_theory'),
               ('Physics9Week2VelocityTimeProblems',84,'delivery/qa_problems'),
