@@ -16,19 +16,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct, patch, and validate exact Week 4 V2 source
+      - name: Reconstruct and validate exact Week 4 V2 source
         run: |
           set -euo pipefail
           SRC_DIR="manim/week4_percentile_interpretation"
           SRC="$SRC_DIR/statistics10_week4_percentile_interpretation_senior.py"
-          cat "$SRC_DIR"/srcpart_*.txt > "$SRC"
-          echo "44798a17c1dea77235f759ddb38c4ef33707d519d2f9c24d3e2cf14620050601  $SRC" | sha256sum -c -
-          python -m py_compile "$SRC"
-          cat "$SRC_DIR"/v2patch_00.b64 "$SRC_DIR"/v2patch_01.b64 "$SRC_DIR"/v2patch_02.b64 "$SRC_DIR"/v2patch_03.b64 "$SRC_DIR"/v2patch_tail.b64 > /tmp/week4_v2.patch.b64
-          echo "c69c901cd40d07f81dd9e667d0bd7ca853da2b8f7d8930198a548707e179d68d  /tmp/week4_v2.patch.b64" | sha256sum -c -
-          base64 -d /tmp/week4_v2.patch.b64 > /tmp/week4_v2.patch
-          echo "4c8a5dd46142e173076446693faa0b604c2542eb5426983e8b1065a40430dddd  /tmp/week4_v2.patch" | sha256sum -c -
-          (cd "$SRC_DIR" && patch -p0 < /tmp/week4_v2.patch)
+          cat "$SRC_DIR"/v2src_*.txt > "$SRC"
           echo "60a0c496172e4084a49774e572b6fe9a2bee68a0ee9112cf6f07a8f89284c22a  $SRC" | sha256sum -c -
           python -m py_compile "$SRC"
 
