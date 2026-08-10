@@ -1,4 +1,4 @@
-name: Physics 9 Week 2 v-t Galileo FINAL PQH
+name: Physics 9 Week 2 CINEMATIC V2 Preview QA
 
 on:
   pull_request:
@@ -9,21 +9,22 @@ permissions:
   contents: read
 
 jobs:
-  final:
+  preview:
     runs-on: ubuntu-latest
-    timeout-minutes: 240
+    timeout-minutes: 180
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct approved source and exact JP dependencies
+      - name: Reconstruct cinematic V2 source and exact JP dependencies
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          cp render_physics9_week2/physics9_week2_velocity_time_galileo.py physics9_week2_velocity_time_galileo.py
-          python render_physics9_week2/apply_problem4_layout_v2.py
-          echo '698854362b2e3376dec518156233a57f7b36330ab9382420d8e7fafa278de009  physics9_week2_velocity_time_galileo.py' | sha256sum -c -
+          cat render_physics9_week2_v2/source.part0{0,1,2,3,4} > /tmp/week2_v2.b64
+          echo '5d565a7d6e9f9f5a715e6ce18779062ee8e41d367514a4a36590bdfaae5637e9  /tmp/week2_v2.b64' | sha256sum -c -
+          base64 -d /tmp/week2_v2.b64 | gzip -d > physics9_week2_velocity_time_galileo_cinematic_v2.py
+          echo '9ddbbb45d7cf69d5a7f87287a7c1051c6df68eea587a9cb3bfe1c4e855022530  physics9_week2_velocity_time_galileo_cinematic_v2.py' | sha256sum -c -
           echo '4a5c21279f5c7ae1b4daffa3928bf1eb0dbdde6873ae688161c87e9987663a74  render_physics9_week2/style_exact.b64' | sha256sum -c -
           echo 'da1d43b8499b4613090d88689af8fadaa39a7280f65403e965aee8f96032a605  render_physics9_week2/checker_exact.b64' | sha256sum -c -
           base64 -d render_physics9_week2/style_exact.b64 | gzip -d > library/jp_classroom_style.py
@@ -31,17 +32,15 @@ jobs:
           touch library/__init__.py
           echo '3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d  library/jp_classroom_style.py' | sha256sum -c -
           echo 'd2f6c4ceaf8ff41dcf2312aaf54b1b92a4211985d67c97fa749cd56123ffdbd9  tools/check_manim_style.py' | sha256sum -c -
-          cp physics9_week2_velocity_time_galileo.py delivery/Physics9_Week2_VelocityTime_Galileo_FINAL.py
+          cp physics9_week2_velocity_time_galileo_cinematic_v2.py delivery/Physics9_Week2_VelocityTime_Galileo_CINEMATIC_V2.py
 
       - name: Static and style validation
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile physics9_week2_velocity_time_galileo.py
-          python tools/check_manim_style.py physics9_week2_velocity_time_galileo.py | tee delivery/STYLE_QA.txt
+          python -m py_compile physics9_week2_velocity_time_galileo_cinematic_v2.py
+          python tools/check_manim_style.py physics9_week2_velocity_time_galileo_cinematic_v2.py | tee delivery/STYLE_QA.txt
           grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
-          grep -q 'class Physics9Week2VelocityTimeTheory' physics9_week2_velocity_time_galileo.py
-          grep -q 'class Physics9Week2VelocityTimeProblems' physics9_week2_velocity_time_galileo.py
 
       - name: Prepare official ManimCE 0.20.1
         shell: bash
@@ -55,10 +54,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python physics9_week2_velocity_time_galileo.py' | tee delivery/ASSERTIONS.txt
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c 'python physics9_week2_velocity_time_galileo_cinematic_v2.py' | tee delivery/ASSERTIONS.txt
           grep -q 'Physics 9 Week 2 velocity-time lesson assertions passed.' delivery/ASSERTIONS.txt
 
-      - name: Full literal pql protocol renders
+      - name: Full literal pql previews
         shell: bash
         run: |
           set -euo pipefail
@@ -69,108 +68,54 @@ jobs:
               printf '#!/usr/bin/env bash\nexit 0\n' > /tmp/manim-bin/xdg-open
               chmod +x /tmp/manim-bin/xdg-open
               export PATH=\"/tmp/manim-bin:\$PATH\"
-              manim -pql --fps 15 -r 854,480 physics9_week2_velocity_time_galileo.py $S --format=mp4 --disable_caching --media_dir media_preview_$S
+              manim -pql --fps 15 -r 854,480 physics9_week2_velocity_time_galileo_cinematic_v2.py $S --format=mp4 --disable_caching --media_dir media_$S
             "
-            V=$(find "media_preview_$S" -type f -name "$S.mp4" -print -quit)
+            V=$(find "media_$S" -type f -name "$S.mp4" -print -quit)
             test -n "$V" && test -s "$V"
-            cp "$V" "delivery/${S}_PREVIEW_pql.mp4"
-            ffmpeg -v error -i "delivery/${S}_PREVIEW_pql.mp4" -f null -
+            cp "$V" "delivery/${S}_CINEMATIC_V2_PREVIEW_pql.mp4"
+            ffmpeg -v error -i "delivery/${S}_CINEMATIC_V2_PREVIEW_pql.mp4" -f null -
           done
 
-      - name: Final literal pqh renders
+      - name: Dense temporal QA
         shell: bash
         run: |
           set -euo pipefail
-          for S in Physics9Week2VelocityTimeTheory Physics9Week2VelocityTimeProblems; do
-            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c "
-              set -euo pipefail
-              mkdir -p /tmp/manim-home /tmp/manim-bin
-              printf '#!/usr/bin/env bash\nexit 0\n' > /tmp/manim-bin/xdg-open
-              chmod +x /tmp/manim-bin/xdg-open
-              export PATH=\"/tmp/manim-bin:\$PATH\"
-              manim -pqh --fps 30 -r 1920,1080 physics9_week2_velocity_time_galileo.py $S --format=mp4 --disable_caching --media_dir media_final_$S
-            "
-            V=$(find "media_final_$S" -type f -name "$S.mp4" -print -quit)
-            test -n "$V" && test -s "$V"
-            if [ "$S" = 'Physics9Week2VelocityTimeTheory' ]; then
-              OUT='delivery/Physics9_Week2_VelocityTime_Galileo_THEORY_FINAL_PQH.mp4'
-            else
-              OUT='delivery/Physics9_Week2_VelocityTime_WORKED_PROBLEMS_FINAL_PQH.mp4'
-            fi
-            cp "$V" "$OUT"
-          done
-
-      - name: Technical verification of both final MP4s
-        shell: bash
-        run: |
-          set -euo pipefail
-          : > delivery/FFPROBE.txt
-          for V in delivery/Physics9_Week2_VelocityTime_Galileo_THEORY_FINAL_PQH.mp4 delivery/Physics9_Week2_VelocityTime_WORKED_PROBLEMS_FINAL_PQH.mp4; do
-            echo "===== $(basename "$V") =====" | tee -a delivery/FFPROBE.txt
-            ffprobe -v error -show_entries stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,avg_frame_rate,nb_frames:format=duration,size -of default=noprint_wrappers=1 "$V" | tee -a delivery/FFPROBE.txt
-            ffprobe -v error -show_entries stream=codec_name,width,height,pix_fmt,r_frame_rate -of csv=p=0 "$V" | grep -q 'h264,1920,1080,yuv420p,30/1'
-            ffmpeg -v error -i "$V" -f null -
-          done
-          echo 'PASS: both full PQH MP4s decoded completely without FFmpeg errors.' | tee delivery/TECHNICAL_VERIFICATION.txt
-
-      - name: Dense final visual QA
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p delivery/qa_theory delivery/qa_problems delivery/qa_targeted
+          mkdir -p delivery/qa_theory delivery/qa_problems delivery/qa_galileo delivery/qa_area delivery/qa_problem4
           python - <<'PY'
           import subprocess, os
           specs=[
-              ('delivery/Physics9_Week2_VelocityTime_Galileo_THEORY_FINAL_PQH.mp4',120,'delivery/qa_theory'),
-              ('delivery/Physics9_Week2_VelocityTime_WORKED_PROBLEMS_FINAL_PQH.mp4',96,'delivery/qa_problems'),
+              ('Physics9Week2VelocityTimeTheory',100,'delivery/qa_theory'),
+              ('Physics9Week2VelocityTimeProblems',84,'delivery/qa_problems'),
           ]
-          for v,n,out in specs:
+          for scene,n,out in specs:
+              v=f'delivery/{scene}_CINEMATIC_V2_PREVIEW_pql.mp4'
               d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v],text=True))
               for i in range(n):
-                  t=max(0,min(d-.05,d*(i+.5)/n))
+                  t=max(0,min(d-.03,d*(i+.5)/n))
                   subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'{out}/frame_{i+1:03d}.png'],check=True)
-          # Extra dense samples around Galileo theory scene (~10–25% of theory timeline)
-          v='delivery/Physics9_Week2_VelocityTime_Galileo_THEORY_FINAL_PQH.mp4'
-          d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v],text=True))
-          for i in range(28):
-              f=.09 + (.18)*(i+.5)/28
-              t=d*f
-              subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_targeted/galileo_{i+1:02d}.png'],check=True)
-          # Extra dense samples around Problem 4 (~48–72% of problems timeline)
-          v='delivery/Physics9_Week2_VelocityTime_WORKED_PROBLEMS_FINAL_PQH.mp4'
-          d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v],text=True))
-          for i in range(32):
-              f=.48 + (.24)*(i+.5)/32
-              t=d*f
-              subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_targeted/problem4_{i+1:02d}.png'],check=True)
+          targets=[
+              ('Physics9Week2VelocityTimeTheory',.10,.28,36,'delivery/qa_galileo','galileo'),
+              ('Physics9Week2VelocityTimeTheory',.62,.90,40,'delivery/qa_area','area'),
+              ('Physics9Week2VelocityTimeProblems',.48,.76,40,'delivery/qa_problem4','problem4'),
+          ]
+          for scene,a,b,n,out,prefix in targets:
+              v=f'delivery/{scene}_CINEMATIC_V2_PREVIEW_pql.mp4'
+              d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v],text=True))
+              for i in range(n):
+                  t=d*(a+(b-a)*(i+.5)/n)
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'{out}/{prefix}_{i+1:03d}.png'],check=True)
           PY
-          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_theory/frame_*.png' -vf 'scale=300:-1,tile=10x12:padding=4:margin=4:color=white' -frames:v 1 delivery/THEORY_120_FRAME_FINAL_QA.png
-          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_problems/frame_*.png' -vf 'scale=320:-1,tile=12x8:padding=4:margin=4:color=white' -frames:v 1 delivery/PROBLEMS_96_FRAME_FINAL_QA.png
-          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/galileo_*.png' -vf 'scale=480:-1,tile=7x4:padding=6:margin=6:color=white' -frames:v 1 delivery/GALILEO_28_FRAME_TARGETED_QA.png
-          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_targeted/problem4_*.png' -vf 'scale=420:-1,tile=8x4:padding=6:margin=6:color=white' -frames:v 1 delivery/PROBLEM4_32_FRAME_TARGETED_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_theory/frame_*.png' -vf 'scale=300:-1,tile=10x10:padding=4:margin=4:color=white' -frames:v 1 delivery/THEORY_100_FRAME_V2_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_problems/frame_*.png' -vf 'scale=330:-1,tile=12x7:padding=4:margin=4:color=white' -frames:v 1 delivery/PROBLEMS_84_FRAME_V2_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_galileo/galileo_*.png' -vf 'scale=500:-1,tile=6x6:padding=6:margin=6:color=white' -frames:v 1 delivery/GALILEO_36_FRAME_V2_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_area/area_*.png' -vf 'scale=460:-1,tile=8x5:padding=6:margin=6:color=white' -frames:v 1 delivery/AREA_40_FRAME_V2_QA.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_problem4/problem4_*.png' -vf 'scale=460:-1,tile=8x5:padding=6:margin=6:color=white' -frames:v 1 delivery/PROBLEM4_40_FRAME_V2_QA.png
+          sha256sum delivery/*.mp4 delivery/*_QA.png > delivery/PREVIEW_SHA256.txt
 
-      - name: Report and hashes
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > delivery/RENDER_INFO.txt <<'EOF'
-          Physics 9 — Week 2: Velocity–Time Graphs + Galileo Inclined-Plane Bridge
-          Two final videos:
-          A) Theory: v–t sign, rest, constant velocity, signed area as displacement, Galileo schematic bridge.
-          B) Worked problems: graph reading, displacement/distance by area, story→v–t, x–t→v–t, Galileo interpretation.
-          Approved source SHA-256: 698854362b2e3376dec518156233a57f7b36330ab9382420d8e7fafa278de009
-          Renderer: official manimcommunity/manim:v0.20.1
-          Protocol preview: literal -pql, 854x480, 15 fps, LESSON_TIME_SCALE=0.10
-          Final: literal -pqh, 1920x1080, 30 fps, LESSON_TIME_SCALE=1.00
-          Historical framing: Galileo ramp numerical positions are explicitly schematic and are not represented as Galileo's exact historical measurements.
-          QA: 120 theory frames + 96 problems frames + 28 targeted Galileo frames + 32 targeted Problem 4 frames.
-          EOF
-          sha256sum delivery/Physics9_Week2_VelocityTime_Galileo_THEORY_FINAL_PQH.mp4 delivery/Physics9_Week2_VelocityTime_WORKED_PROBLEMS_FINAL_PQH.mp4 delivery/Physics9_Week2_VelocityTime_Galileo_FINAL.py delivery/THEORY_120_FRAME_FINAL_QA.png delivery/PROBLEMS_96_FRAME_FINAL_QA.png delivery/GALILEO_28_FRAME_TARGETED_QA.png delivery/PROBLEM4_32_FRAME_TARGETED_QA.png > delivery/SHA256SUMS.txt
-
-      - name: Upload final package
+      - name: Upload cinematic preview QA
         uses: actions/upload-artifact@v4
         with:
-          name: Physics9-Week2-VelocityTime-Galileo-FINAL-PQH
+          name: Physics9-Week2-CINEMATIC-V2-PREVIEW-QA
           path: delivery/
           if-no-files-found: error
           retention-days: 7
