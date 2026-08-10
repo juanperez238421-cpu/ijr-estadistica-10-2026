@@ -21,9 +21,8 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p library tools delivery
-          cat render_physics9_week2_v2/source.part0{0,1,2,3,4} > /tmp/week2_v2.b64
-          echo '5d565a7d6e9f9f5a715e6ce18779062ee8e41d367514a4a36590bdfaae5637e9  /tmp/week2_v2.b64' | sha256sum -c -
-          base64 -d /tmp/week2_v2.b64 | gzip -d > physics9_week2_velocity_time_galileo_cinematic_v2.py
+          echo 'b90db463038792d1b2656e4192834d2b94895dbf4dc0bace63b30b79825cdbbb  render_physics9_week2_v2/source_v2.xz.b64' | sha256sum -c -
+          base64 -d render_physics9_week2_v2/source_v2.xz.b64 | xz -d > physics9_week2_velocity_time_galileo_cinematic_v2.py
           echo '9ddbbb45d7cf69d5a7f87287a7c1051c6df68eea587a9cb3bfe1c4e855022530  physics9_week2_velocity_time_galileo_cinematic_v2.py' | sha256sum -c -
           echo '4a5c21279f5c7ae1b4daffa3928bf1eb0dbdde6873ae688161c87e9987663a74  render_physics9_week2/style_exact.b64' | sha256sum -c -
           echo 'da1d43b8499b4613090d88689af8fadaa39a7280f65403e965aee8f96032a605  render_physics9_week2/checker_exact.b64' | sha256sum -c -
@@ -47,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
+          sudo apt-get install -y -qq ffmpeg xz-utils
           docker pull manimcommunity/manim:v0.20.1
 
       - name: Numerical lesson assertions
