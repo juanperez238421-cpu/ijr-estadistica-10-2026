@@ -66,14 +66,11 @@ jobs:
           FINAL="$(find media/videos -type f -path '*1080p*' -name 'Statistics10Period1Week1IQRRecovery.mp4' | head -n 1)"
           test -n "$FINAL"
           cp "$FINAL" delivery/Statistics10_Period1_Week1_IQR_Recovery_pqh.mp4
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            -v "$PWD:/manim" \
-            -w /manim \
-            --entrypoint ffprobe \
-            manimcommunity/manim:v0.20.1 \
-            -v error -select_streams v:0 \
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          ffprobe -v error -select_streams v:0 \
             -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+            -show_entries format=duration \
             -of default=noprint_wrappers=1 \
             delivery/Statistics10_Period1_Week1_IQR_Recovery_pqh.mp4 | tee delivery/FFPROBE.txt
           sha256sum delivery/Statistics10_Period1_Week1_IQR_Recovery_pqh.mp4 | tee delivery/SHA256.txt
