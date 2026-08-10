@@ -1,0 +1,86 @@
+name: Physics 9 Motion V5.1 Targeted Layout QA V3
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  targeted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct V5.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p library tools delivery
+          cat render_motion_v4/source_v4.part0{1,2,3,4,5} > /tmp/v4.b64
+          echo 'cee2bab40b7114aa986d91505334183b102ffee703a1dce171e945f72800b586  /tmp/v4.b64' | sha256sum -c -
+          base64 -d /tmp/v4.b64 | gzip -d > physics9_motion_achilles_v4_senior.py
+          echo 'fa062f56872a807dc2add7e46183290651910945134981a4dad465808810e2a9  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          patch -p0 < render_motion_v4/deep_zoom_final.patch
+          echo 'c93ee486ad0471d3fcaf278b3b00e49b17aef86cabf3ac1839383d2cc8fd19ef  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          base64 -d render_motion_v5/v4_to_v5_frame_audit.patch.gz.b64 | gzip -d > /tmp/v5.patch
+          echo '0fb250855e6ea243a73d85233d27d3ac58338b0af9d1871c9b441642c5cf521f  /tmp/v5.patch' | sha256sum -c -
+          patch -p0 < /tmp/v5.patch
+          echo '1bcbc6b7060f5ecc4a74de2112d88789bdd331c01f148b503f6e066c629658eb  physics9_motion_achilles_v4_senior.py' | sha256sum -c -
+          mv physics9_motion_achilles_v4_senior.py physics9_motion_achilles_v5_frame_audited.py
+          patch -p0 < render_motion_v5/v5_to_v5_1_layout_fix.patch
+          echo '8353ea73568a89aa5e94954c7469ecca2e14f37de509c7b2d9c2292c206f8748  physics9_motion_achilles_v5_frame_audited.py' | sha256sum -c -
+          base64 -d render_motion_exact_20260810/style_exact.b64 | gzip -d > library/jp_classroom_style.py
+          base64 -d render_motion_exact_20260810/checker_exact.b64 | gzip -d > tools/check_manim_style.py
+          touch library/__init__.py
+          python -m py_compile physics9_motion_achilles_v5_frame_audited.py
+          python tools/check_manim_style.py physics9_motion_achilles_v5_frame_audited.py | tee delivery/STYLE_QA.txt
+          grep -q 'PASS: no structural/style issues detected.' delivery/STYLE_QA.txt
+          cp physics9_motion_achilles_v5_frame_audited.py delivery/
+          cat > targeted_driver.py <<'PY'
+          import physics9_motion_achilles_v5_frame_audited as lesson
+          class Scene01QA(lesson.Physics9MotionAchillesFull):
+              def construct(self): self.scene_01_paradox_setup()
+          class Scene05QA(lesson.Physics9MotionAchillesFull):
+              def construct(self): self.scene_05_distance_displacement()
+          class Scene07QA(lesson.Physics9MotionAchillesFull):
+              def construct(self): self.scene_07_position_time_graph()
+          PY
+      - name: Prepare ManimCE
+        shell: bash
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          docker pull manimcommunity/manim:v0.20.1
+      - name: Render targeted pql
+        shell: bash
+        run: |
+          set -euo pipefail
+          for S in Scene01QA Scene05QA Scene07QA; do
+            docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c "mkdir -p /tmp/manim-home && manim -pql --fps 15 -r 854,480 targeted_driver.py $S --format=mp4 --disable_caching --media_dir media_$S"
+            V=$(find "media_$S" -type f -name "$S.mp4" -print -quit)
+            test -n "$V" && test -s "$V"
+            cp "$V" "delivery/$S.mp4"
+            ffmpeg -v error -i "delivery/$S.mp4" -f null -
+          done
+      - name: Build QA sheets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery/qa
+          python - <<'PY'
+          import subprocess, os
+          for scene in ['Scene01QA','Scene05QA','Scene07QA']:
+              v=f'delivery/{scene}.mp4'; out=f'delivery/qa/{scene}'; os.makedirs(out,exist_ok=True)
+              d=float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','csv=p=0',v],text=True))
+              for i in range(15):
+                  t=max(0,min(d-.03,d*(i+.5)/15))
+                  subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'{out}/frame_{i+1:02d}.png'],check=True)
+          PY
+          for S in Scene01QA Scene05QA Scene07QA; do
+            ffmpeg -y -v error -pattern_type glob -i "delivery/qa/$S/frame_*.png" -vf 'scale=520:-1,tile=5x3:padding=8:margin=8:color=white' -frames:v 1 "delivery/${S}_QA.png"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Physics9-Motion-Achilles-V5-1-Targeted-QA-V3
+          path: delivery/
+          retention-days: 7
