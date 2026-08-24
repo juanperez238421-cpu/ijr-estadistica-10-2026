@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - render/statistics10-p3w2-iqr-boxplot-senior-v1-20260824
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
