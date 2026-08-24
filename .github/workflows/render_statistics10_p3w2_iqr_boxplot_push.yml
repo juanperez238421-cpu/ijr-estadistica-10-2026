@@ -1,0 +1,33 @@
+name: Render Statistics 10 P3W2 IQR Box Plot Push Runner
+
+on:
+  push:
+    branches:
+      - render/statistics10-p3w2-iqr-boxplot-senior-v1-20260824
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v4
+      - name: Run audited PQL to PQH package pipeline
+        shell: bash
+        run: bash render_jobs/statistics10_p3w2_iqr_boxplot_20260824/run_pipeline.sh
+      - name: Upload canonical full project package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-P3W2-IQR-BoxPlot-Senior-V1-FINAL-PQH-PROJECT
+          path: |
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_PQH_PROJECT.zip
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_PQH_PROJECT.zip.sha256
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_pqh.mp4
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_PQH_PACKAGE/
+            delivery/ZIP_TEST.txt
+          if-no-files-found: error
+          retention-days: 14
