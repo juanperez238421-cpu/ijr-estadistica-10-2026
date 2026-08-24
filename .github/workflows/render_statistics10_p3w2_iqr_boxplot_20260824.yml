@@ -35,7 +35,8 @@ jobs:
             "$SRC" | sha256sum --check --strict
           grep -n '^class Statistics10Period3Week2IQRBoxPlotConstructionSenior' "$SRC"
           grep -q 'IQR / Modified Box-Plot Construction' "$STORY"
-          grep -q 'Version: 1.1' "$PROTOCOL"
+          grep -q 'ManimCE PQH Project Package Standard' "$PROTOCOL"
+          grep -q '1.1' "$PROTOCOL"
           mkdir -p qa_runtime/pql qa_runtime/pqh qa_runtime/audit_frames delivery
           sha256sum "$SRC" "$STORY" "$PROTOCOL" > qa_runtime/PRE_RENDER_SHA256.txt
 
