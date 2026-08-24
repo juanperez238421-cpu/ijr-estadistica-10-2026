@@ -1,0 +1,221 @@
+name: Render Statistics10 IQR Step-by-Step Senior V1
+
+on:
+  push:
+    branches:
+      - render/statistics10-p3w2-iqr-boxplot-senior-v1-20260824
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      ROOT: render_jobs/statistics10_p3w2_iqr_boxplot_20260824
+      SRC: render_jobs/statistics10_p3w2_iqr_boxplot_20260824/work/statistics10_iqr_boxplot_step_by_step_senior_v1.py
+      STYLE: render_jobs/statistics10_p3w2_iqr_boxplot_20260824/work/jp_classroom_style.py
+      SCENE: Statistics10IQRBoxPlotStepByStepSeniorV1
+      PROJECT: Statistics10_IQR_BoxPlot_StepByStep_Senior_V1
+      EXPECTED_SOURCE_SHA: a3c46cb52c6d22be6a7fc7e37961892e8411c89c5c03b3fcc3c5874eff0f3d13
+      EXPECTED_STYLE_SHA: 3f3f06e94d5cad870ad335502cc1a93e56ce675abb1231ded5f9c71fd3e60e3d
+
+    steps:
+      - name: Checkout render branch
+        uses: actions/checkout@v4
+
+      - name: Reconstruct exact scene and style
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$ROOT/work"
+          base64 -d "$ROOT/payload/scene.py.gz.b64" | gzip -dc > "$SRC"
+          base64 -d "$ROOT/payload/jp_classroom_style.py.gz.b64" | gzip -dc > "$STYLE"
+          test "$(sha256sum "$SRC" | cut -d' ' -f1)" = "$EXPECTED_SOURCE_SHA"
+          test "$(sha256sum "$STYLE" | cut -d' ' -f1)" = "$EXPECTED_STYLE_SHA"
+          python -m py_compile "$SRC" "$STYLE"
+          ! grep -Eq 'TransformFromCopy|ReplacementTransform\([^,]+,[^,]+\)' "$SRC"
+          grep -q 'OUTLIERS == (15,)' "$SRC"
+          grep -q 'UPPER_FENCE == 13.5' "$SRC"
+          sha256sum "$SRC" "$STYLE" | tee /tmp/SOURCE_HASHES.txt
+
+      - name: Pull fixed ManimCE 0.20.1 image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Mathematical import validation in Manim container
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim/$ROOT/work \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              python - <<"PY"
+              from statistics10_iqr_boxplot_step_by_step_senior_v1 import Statistics10IQRBoxPlotStepByStepSeniorV1 as S
+              assert S.ORDERED == (2, 3, 4, 4, 5, 6, 7, 8, 15)
+              assert S.Q1 == 3.5 and S.Q2 == 5 and S.Q3 == 7.5
+              assert S.IQR == 4
+              assert S.LOWER_FENCE == -2.5 and S.UPPER_FENCE == 13.5
+              assert S.OUTLIERS == (15,)
+              assert S.LOWER_WHISKER == 2 and S.UPPER_WHISKER == 8
+              print("MATHEMATICAL_ASSERTIONS=PASS")
+              PY
+            ' | tee "$ROOT/work/mathematical_assertions.log"
+
+      - name: Literal PQL full-timeline QA render
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$ROOT/work/logs"
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -e LESSON_TIME_SCALE=0.10 \
+            -v "$PWD:/manim" \
+            -w /manim/$ROOT/work \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql statistics10_iqr_boxplot_step_by_step_senior_v1.py Statistics10IQRBoxPlotStepByStepSeniorV1 --format=mp4 --disable_caching 2>&1
+            ' | tee "$ROOT/work/logs/render_pql.log"
+
+      - name: Literal PQH final classroom render
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" \
+            -w /manim/$ROOT/work \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh statistics10_iqr_boxplot_step_by_step_senior_v1.py Statistics10IQRBoxPlotStepByStepSeniorV1 --format=mp4 --disable_caching 2>&1
+            ' | tee "$ROOT/work/logs/render_pqh.log"
+
+      - name: Technical verification and dense QA frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg zip
+
+          FINAL="$(find "$ROOT/work/media/videos" -type f -path '*1080p*' -name "${SCENE}.mp4" | head -n 1)"
+          test -n "$FINAL"
+
+          PKG="$ROOT/package/${PROJECT}_FINAL_PQH_PROJECT"
+          mkdir -p "$PKG/src" "$PKG/storyboard" "$PKG/render" "$PKG/qa/audit_frames" "$PKG/protocol" "$PKG/workflow"
+
+          cp "$FINAL" "$PKG/render/${PROJECT}_FINAL_pqh.mp4"
+          cp "$SRC" "$PKG/src/statistics10_iqr_boxplot_step_by_step_senior_v1.py"
+          cp "$STYLE" "$PKG/src/jp_classroom_style.py"
+          cp "$ROOT/storyboard/STORYBOARD_IQR_V1.md" "$PKG/storyboard/STORYBOARD.md"
+          cp "$ROOT/protocol/PROTOCOL_MANIMCE_PQH_PROJECT_PACKAGE_STANDARD.md" "$PKG/protocol/PROTOCOL_MANIMCE_PQH_PROJECT_PACKAGE_STANDARD.md"
+          cp .github/workflows/render_statistics10_iqr_step_by_step_senior_v1.yml "$PKG/workflow/render_statistics10_iqr_step_by_step_senior_v1.yml"
+          cp "$ROOT/work/logs/render_pql.log" "$PKG/qa/render_pql.log"
+          cp "$ROOT/work/logs/render_pqh.log" "$PKG/qa/render_pqh.log"
+          cp "$ROOT/work/mathematical_assertions.log" "$PKG/qa/mathematical_assertions.log"
+
+          MP4="$PKG/render/${PROJECT}_FINAL_pqh.mp4"
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,width,height,r_frame_rate,avg_frame_rate,pix_fmt \
+            -show_entries format=duration \
+            -of default=noprint_wrappers=1 "$MP4" | tee "$PKG/qa/ffprobe.txt"
+
+          grep -q '^codec_name=h264$' "$PKG/qa/ffprobe.txt"
+          grep -q '^width=1920$' "$PKG/qa/ffprobe.txt"
+          grep -q '^height=1080$' "$PKG/qa/ffprobe.txt"
+          grep -Eq '^r_frame_rate=30/1$|^avg_frame_rate=30/1$' "$PKG/qa/ffprobe.txt"
+          grep -q '^pix_fmt=yuv420p$' "$PKG/qa/ffprobe.txt"
+
+          ffmpeg -v error -i "$MP4" -f null - 2> "$PKG/qa/full_decode.log"
+          test ! -s "$PKG/qa/full_decode.log"
+
+          ffmpeg -y -v error -i "$MP4" -vf 'fps=1/8' "$PKG/qa/audit_frames/frame_%03d.png"
+          test "$(find "$PKG/qa/audit_frames" -type f -name '*.png' | wc -l)" -ge 12
+          ffmpeg -y -v error -i "$MP4" -vf 'fps=1/10,scale=480:-1,tile=4x6' -frames:v 1 "$PKG/qa/contact_sheet.png"
+
+          DURATION="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$MP4")"
+          CODEC="$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of csv=p=0 "$MP4")"
+          PIXFMT="$(ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of csv=p=0 "$MP4")"
+          printf 'file\twidth\theight\tfps\tcodec\tpix_fmt\tduration_s\n%s\t1920\t1080\t30\t%s\t%s\t%s\n' \
+            "${PROJECT}_FINAL_pqh.mp4" "$CODEC" "$PIXFMT" "$DURATION" > "$PKG/qa/VIDEO_TECHNICAL.tsv"
+
+          sha256sum "$MP4" "$PKG/src/statistics10_iqr_boxplot_step_by_step_senior_v1.py" "$PKG/src/jp_classroom_style.py" \
+            | sed "s#${PKG}/##" > "$PKG/qa/SHA256SUMS.txt"
+          MP4_SHA="$(sha256sum "$MP4" | cut -d' ' -f1)"
+
+          cat > "$PKG/README.md" <<EOF
+          # Statistics 10 — IQR / Modified Box Plot — Step-by-Step Senior V1
+
+          **Package standard:** ManimCE PQH Project Package Standard v1.1  
+          **ManimCE:** 0.20.1  
+          **Scene:** Statistics10IQRBoxPlotStepByStepSeniorV1  
+          **Source:** src/statistics10_iqr_boxplot_step_by_step_senior_v1.py  
+          **Style:** src/jp_classroom_style.py  
+          **Storyboard:** storyboard/STORYBOARD.md
+
+          ## Render commands
+
+          `manim -pql statistics10_iqr_boxplot_step_by_step_senior_v1.py Statistics10IQRBoxPlotStepByStepSeniorV1 --format=mp4 --disable_caching`
+
+          `manim -pqh statistics10_iqr_boxplot_step_by_step_senior_v1.py Statistics10IQRBoxPlotStepByStepSeniorV1 --format=mp4 --disable_caching`
+
+          ## Final technical specification
+
+          1920×1080, 30 fps, H.264, yuv420p, MP4. Full FFmpeg decode passed with an empty error log.
+
+          **Final MP4 SHA-256:** `${MP4_SHA}`
+
+          ## Pedagogical design
+
+          The lesson constructs the graph only after the underlying statistics are established: order → Q2 → Q1/Q3 → IQR → fences → outlier/whiskers → box plot → interpretation. Large projector-safe cards, explicit pauses, and a deliberate final zoom support notebook copying and classroom explanation.
+
+          ## QA status
+
+          - exact source/style SHA validation: PASS
+          - mathematical assertions: PASS
+          - py_compile: PASS
+          - literal PQL runtime gate: PASS
+          - literal PQH render: PASS
+          - ffprobe technical gate: PASS
+          - full FFmpeg decode: PASS
+          - dense audit-frame extraction: PASS
+          - source/style/render SHA-256 recorded: PASS
+          EOF
+
+          mkdir -p "$ROOT/delivery"
+          cp "$MP4" "$ROOT/delivery/${PROJECT}_FINAL_pqh.mp4"
+          (cd "$ROOT/package" && zip -qr "$OLDPWD/$ROOT/delivery/${PROJECT}_FINAL_PQH_PROJECT.zip" "${PROJECT}_FINAL_PQH_PROJECT")
+          sha256sum "$ROOT/delivery/${PROJECT}_FINAL_pqh.mp4" "$ROOT/delivery/${PROJECT}_FINAL_PQH_PROJECT.zip" \
+            | tee "$ROOT/delivery/DELIVERY_SHA256SUMS.txt"
+          ls -lh "$ROOT/delivery"
+
+      - name: Upload final MP4 and complete reproducible package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-IQR-StepByStep-Senior-V1-FINAL
+          path: |
+            render_jobs/statistics10_p3w2_iqr_boxplot_20260824/delivery/Statistics10_IQR_BoxPlot_StepByStep_Senior_V1_FINAL_pqh.mp4
+            render_jobs/statistics10_p3w2_iqr_boxplot_20260824/delivery/Statistics10_IQR_BoxPlot_StepByStep_Senior_V1_FINAL_PQH_PROJECT.zip
+            render_jobs/statistics10_p3w2_iqr_boxplot_20260824/delivery/DELIVERY_SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
