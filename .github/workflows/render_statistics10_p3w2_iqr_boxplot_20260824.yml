@@ -1,0 +1,311 @@
+name: Render Statistics 10 P3W2 IQR Box Plot Senior V1
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout exact render branch
+        uses: actions/checkout@v4
+
+      - name: Validate exact source, storyboard, and protocol
+        shell: bash
+        run: |
+          set -euo pipefail
+          JOB="render_jobs/statistics10_p3w2_iqr_boxplot_20260824"
+          SRC="$JOB/statistics10_p3w2_iqr_boxplot_construction_senior.py"
+          STORY="$JOB/STORYBOARD.md"
+          PROTOCOL="protocols/PROTOCOL_MANIMCE_PQH_PROJECT_PACKAGE_STANDARD_v1.1.md"
+          test -s "$STORY"
+          test -s "$PROTOCOL"
+          cat "$JOB"/source_parts/part_*.b64 | base64 --decode | gzip -dc > "$SRC"
+          test -s "$SRC"
+          python -m py_compile "$SRC"
+          printf '%s  %s\n' \
+            'd2118c1a14a0a2dde9c58536ea130dcc5521d33853829c812a51e4151820f509' \
+            "$SRC" | sha256sum --check --strict
+          grep -n '^class Statistics10Period3Week2IQRBoxPlotConstructionSenior' "$SRC"
+          grep -q 'IQR / Modified Box-Plot Construction' "$STORY"
+          grep -q 'Version: 1.1' "$PROTOCOL"
+          mkdir -p qa_runtime/pql qa_runtime/pqh qa_runtime/audit_frames delivery
+          sha256sum "$SRC" "$STORY" "$PROTOCOL" > qa_runtime/PRE_RENDER_SHA256.txt
+
+      - name: Pull official ManimCE 0.20.1 image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Literal PQL QA render
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -e LESSON_TIME_SCALE=0.10 \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pql \
+                render_jobs/statistics10_p3w2_iqr_boxplot_20260824/statistics10_p3w2_iqr_boxplot_construction_senior.py \
+                Statistics10Period3Week2IQRBoxPlotConstructionSenior \
+                --format=mp4 \
+                --disable_caching \
+                --media_dir qa_runtime/pql
+            ' 2>&1 | tee qa_runtime/render_pql.log
+          PQL="$(find qa_runtime/pql -type f -name 'Statistics10Period3Week2IQRBoxPlotConstructionSenior.mp4' -print -quit)"
+          test -n "$PQL"
+          test -s "$PQL"
+          cp "$PQL" qa_runtime/PQL_PREVIEW.mp4
+
+      - name: Literal PQH final render
+        shell: bash
+        run: |
+          set -euo pipefail
+          set -o pipefail
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e HOME=/tmp/manim-home \
+            -e LESSON_TIME_SCALE=1.00 \
+            -v "$PWD:/manim" \
+            -w /manim \
+            --entrypoint bash \
+            manimcommunity/manim:v0.20.1 \
+            -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open
+              export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh \
+                render_jobs/statistics10_p3w2_iqr_boxplot_20260824/statistics10_p3w2_iqr_boxplot_construction_senior.py \
+                Statistics10Period3Week2IQRBoxPlotConstructionSenior \
+                --format=mp4 \
+                --disable_caching \
+                --media_dir qa_runtime/pqh
+            ' 2>&1 | tee qa_runtime/render_pqh.log
+          PQH="$(find qa_runtime/pqh -type f -name 'Statistics10Period3Week2IQRBoxPlotConstructionSenior.mp4' -print -quit)"
+          test -n "$PQH"
+          test -s "$PQH"
+          cp "$PQH" qa_runtime/FINAL_SOURCE_RENDER.mp4
+
+      - name: Technical QA and full decode
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIDEO="qa_runtime/FINAL_SOURCE_RENDER.mp4"
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+          codec="$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$VIDEO")"
+          width="$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nw=1:nk=1 "$VIDEO")"
+          height="$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nw=1:nk=1 "$VIDEO")"
+          fps="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nw=1:nk=1 "$VIDEO")"
+          pix="$(ffprobe -v error -select_streams v:0 -show_entries stream=pix_fmt -of default=nw=1:nk=1 "$VIDEO")"
+          duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$VIDEO")"
+          size="$(ffprobe -v error -show_entries format=size -of default=nw=1:nk=1 "$VIDEO")"
+
+          test "$codec" = "h264"
+          test "$width" = "1920"
+          test "$height" = "1080"
+          test "$fps" = "30/1"
+          test "$pix" = "yuv420p"
+
+          printf 'field\tvalue\ncodec\t%s\nwidth\t%s\nheight\t%s\nfps\t%s\npix_fmt\t%s\nduration_s\t%s\nsize_bytes\t%s\n' \
+            "$codec" "$width" "$height" "$fps" "$pix" "$duration" "$size" \
+            > qa_runtime/VIDEO_TECHNICAL.tsv
+
+          ffmpeg -v error -i "$VIDEO" -f null - 2> qa_runtime/full_decode.log
+          test ! -s qa_runtime/full_decode.log
+
+      - name: Dense audit frames and contact sheet
+        shell: bash
+        run: |
+          set -euo pipefail
+          VIDEO="qa_runtime/FINAL_SOURCE_RENDER.mp4"
+          DURATION="$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")"
+          python - "$DURATION" > qa_runtime/audit_times.txt <<'PY'
+          import sys
+          d = float(sys.argv[1])
+          n = 32
+          start = min(1.0, d * 0.01)
+          end = max(start, d - min(1.0, d * 0.01))
+          if n == 1:
+              print(f"{d/2:.6f}")
+          else:
+              for i in range(n):
+                  t = start + (end - start) * i / (n - 1)
+                  print(f"{t:.6f}")
+          PY
+
+          i=0
+          while IFS= read -r t; do
+            printf -v idx '%02d' "$i"
+            ffmpeg -y -loglevel error -ss "$t" -i "$VIDEO" -frames:v 1 "qa_runtime/audit_frames/frame_${idx}.png"
+            i=$((i+1))
+          done < qa_runtime/audit_times.txt
+          test "$i" -eq 32
+
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageDraw
+          files = sorted(Path('qa_runtime/audit_frames').glob('frame_*.png'))
+          assert len(files) == 32
+          thumbs=[]
+          for f in files:
+              im=Image.open(f).convert('RGB')
+              im.thumbnail((384,216))
+              canvas=Image.new('RGB',(400,242),'white')
+              canvas.paste(im,((400-im.width)//2,6))
+              ImageDraw.Draw(canvas).text((8,222),f.stem,fill='black')
+              thumbs.append(canvas)
+          sheet=Image.new('RGB',(1600,1936),'white')
+          for i,im in enumerate(thumbs):
+              x=(i%4)*400
+              y=(i//4)*242
+              sheet.paste(im,(x,y))
+          sheet.save('qa_runtime/QA_CONTACT_SHEET.png',quality=95)
+          PY
+          test -s qa_runtime/QA_CONTACT_SHEET.png
+
+      - name: Build mandatory PQH project package
+        shell: bash
+        run: |
+          set -euo pipefail
+          PROJECT="Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_PQH_PACKAGE"
+          ROOT="delivery/$PROJECT"
+          FINAL_NAME="Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_pqh.mp4"
+          ZIP_NAME="Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_PQH_PROJECT.zip"
+          SRC="render_jobs/statistics10_p3w2_iqr_boxplot_20260824/statistics10_p3w2_iqr_boxplot_construction_senior.py"
+          STORY="render_jobs/statistics10_p3w2_iqr_boxplot_20260824/STORYBOARD.md"
+          PROTOCOL="protocols/PROTOCOL_MANIMCE_PQH_PROJECT_PACKAGE_STANDARD_v1.1.md"
+
+          mkdir -p "$ROOT/src" "$ROOT/storyboard" "$ROOT/render" "$ROOT/qa/audit_frames" "$ROOT/protocol" "$ROOT/workflow"
+          cp "$SRC" "$ROOT/src/"
+          cp "$STORY" "$ROOT/storyboard/STORYBOARD.md"
+          cp qa_runtime/FINAL_SOURCE_RENDER.mp4 "$ROOT/render/$FINAL_NAME"
+          cp qa_runtime/VIDEO_TECHNICAL.tsv "$ROOT/qa/"
+          cp qa_runtime/full_decode.log "$ROOT/qa/"
+          cp qa_runtime/render_pql.log "$ROOT/qa/"
+          cp qa_runtime/render_pqh.log "$ROOT/qa/"
+          cp qa_runtime/QA_CONTACT_SHEET.png "$ROOT/qa/"
+          cp qa_runtime/audit_times.txt "$ROOT/qa/"
+          cp qa_runtime/audit_frames/*.png "$ROOT/qa/audit_frames/"
+          cp "$PROTOCOL" "$ROOT/protocol/PROTOCOL_MANIMCE_PQH_PROJECT_PACKAGE_STANDARD.md"
+          cp .github/workflows/render_statistics10_p3w2_iqr_boxplot_20260824.yml "$ROOT/workflow/"
+
+          (
+            cd "$ROOT"
+            sha256sum \
+              "render/$FINAL_NAME" \
+              src/*.py \
+              storyboard/STORYBOARD.md \
+              protocol/*.md \
+              qa/VIDEO_TECHNICAL.tsv \
+              qa/full_decode.log \
+              qa/QA_CONTACT_SHEET.png \
+              qa/audit_frames/*.png \
+              workflow/*.yml > qa/SHA256SUMS.txt
+          )
+          MP4_SHA="$(sha256sum "$ROOT/render/$FINAL_NAME" | awk '{print $1}')"
+
+          cat > "$ROOT/README.md" <<EOF
+          # Statistics 10 · Period 3 · Week 2 — IQR / Modified Box-Plot Construction
+
+          **Version:** V1 FINAL PQH  
+          **Class week:** 24–28 Aug 2026  
+          **Primary class date:** 25 Aug 2026  
+          **ManimCE:** 0.20.1  
+          **Scene:** Statistics10Period3Week2IQRBoxPlotConstructionSenior  
+          **Source:** src/statistics10_p3w2_iqr_boxplot_construction_senior.py  
+          **Storyboard:** storyboard/STORYBOARD.md
+
+          ## Pedagogical route
+
+          ORDER → Q2 → Q1/Q3 → IQR → 1.5·IQR FENCES → OUTLIERS → WHISKERS → BUILD PLOT → INTERPRET.
+
+          The final construction explicitly distinguishes statistical fences from actual whisker endpoints and ends with a same-scale comparison.
+
+          ## Exact render commands
+
+          PQL QA:
+
+          `LESSON_TIME_SCALE=0.10 manim -pql statistics10_p3w2_iqr_boxplot_construction_senior.py Statistics10Period3Week2IQRBoxPlotConstructionSenior --format=mp4 --disable_caching`
+
+          Final PQH:
+
+          `LESSON_TIME_SCALE=1.00 manim -pqh statistics10_p3w2_iqr_boxplot_construction_senior.py Statistics10Period3Week2IQRBoxPlotConstructionSenior --format=mp4 --disable_caching`
+
+          ## Technical acceptance
+
+          - 1920×1080
+          - 30 fps
+          - H.264
+          - yuv420p
+          - full FFmpeg decode: PASS (empty qa/full_decode.log)
+          - 32 dense audit frames + contact sheet
+          - exact source hash validated before rendering
+
+          ## Final MP4 SHA-256
+
+          `$MP4_SHA`
+
+          ## Directory map
+
+          - `src/`: exact rendered source
+          - `storyboard/`: narrative/pedagogical specification
+          - `render/`: final literal PQH MP4
+          - `qa/`: technical metadata, logs, hashes, audit frames/contact sheet
+          - `protocol/`: ManimCE PQH Project Package Standard v1.1
+          - `workflow/`: exact GitHub Actions workflow used
+
+          ## QA status
+
+          Automated gates in this artifact: source SHA, py_compile, literal PQL, literal PQH, ffprobe, H.264/Full-HD/30fps/yuv420p assertions, complete FFmpeg decode, 32-frame audit export, package SHA-256.
+
+          Final visual acceptance requires review of `qa/QA_CONTACT_SHEET.png` and critical full-resolution frames; any detected overlap, clipping, stale label or continuity defect requires a source patch and a new render rather than renaming this MP4.
+          EOF
+
+          cp "$ROOT/render/$FINAL_NAME" "delivery/$FINAL_NAME"
+          (
+            cd delivery
+            zip -qr "$ZIP_NAME" "$PROJECT"
+          )
+          test -s "delivery/$ZIP_NAME"
+          sha256sum "delivery/$ZIP_NAME" > "delivery/${ZIP_NAME}.sha256"
+          unzip -t "delivery/$ZIP_NAME" | tee delivery/ZIP_TEST.txt
+
+          sha256sum "$SRC" "$STORY" "$PROTOCOL" > qa_runtime/POST_RENDER_SHA256.txt
+          cmp qa_runtime/PRE_RENDER_SHA256.txt qa_runtime/POST_RENDER_SHA256.txt
+
+      - name: Upload canonical full project package
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-P3W2-IQR-BoxPlot-Senior-V1-FINAL-PQH-PROJECT
+          path: |
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_PQH_PROJECT.zip
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_PQH_PROJECT.zip.sha256
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_FINAL_pqh.mp4
+            delivery/Statistics10_P3W2_IQR_BoxPlot_Construction_Senior_V1_PQH_PACKAGE/
+            delivery/ZIP_TEST.txt
+          if-no-files-found: error
+          retention-days: 14
