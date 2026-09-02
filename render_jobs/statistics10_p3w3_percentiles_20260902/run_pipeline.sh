@@ -29,6 +29,7 @@ sha256sum "$JOB/build/scene.py" library/jp_classroom_style.py | tee "$JOB/delive
 # -----------------------------------------------------------------------------
 docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" bash -c '
   set -euo pipefail
+  export PYTHONPATH="/manim:${PYTHONPATH:-}"
   python -m py_compile library/jp_classroom_style.py
   python -m py_compile render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py
   python -c "import sys; sys.path.insert(0, \"render_jobs/statistics10_p3w3_percentiles_20260902/build\"); import scene; scene.validate_all_data(); print(\"Numerical assertions: PASS\")"
@@ -43,6 +44,7 @@ docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoin
   printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/bin/xdg-open
   chmod +x /tmp/bin/xdg-open
   export PATH="/tmp/bin:$PATH"
+  export PYTHONPATH="/manim:${PYTHONPATH:-}"
   manim -pql render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py \
     Statistics10Period3Week3PercentilesPostRobledista \
     --format=mp4 --disable_caching
@@ -57,6 +59,7 @@ docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoin
   printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/bin/xdg-open
   chmod +x /tmp/bin/xdg-open
   export PATH="/tmp/bin:$PATH"
+  export PYTHONPATH="/manim:${PYTHONPATH:-}"
   manim -pqh render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py \
     Statistics10Period3Week3PercentilesPostRobledista \
     --format=mp4 --disable_caching
