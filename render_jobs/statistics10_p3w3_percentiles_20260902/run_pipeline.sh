@@ -6,8 +6,9 @@ JOB="render_jobs/statistics10_p3w3_percentiles_20260902"
 SCENE_NAME="Statistics10Period3Week3PercentilesPostRobledista"
 OUT_NAME="Statistics10_P3W3_Quartiles_Deciles_Percentiles_PostRobledista_FINAL_pqh.mp4"
 MANIM_IMAGE="manimcommunity/manim:v0.20.1"
+DOCKER_USER_ARGS=(--user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home)
 
-mkdir -p "$JOB/build" "$JOB/delivery" "$JOB/qa_frames" library
+mkdir -p "$JOB/build" "$JOB/delivery" "$JOB/qa_frames" library media
 
 # -----------------------------------------------------------------------------
 # 1. Reconstruct exact source and consolidated JP style
@@ -21,8 +22,10 @@ sha256sum "$JOB/build/scene.py" library/jp_classroom_style.py | tee "$JOB/delive
 
 # -----------------------------------------------------------------------------
 # 2. Syntax + numerical assertions
+# Use the runner UID/GID inside Docker so Python can create __pycache__ and
+# Manim can write media files on the bind-mounted GitHub Actions workspace.
 # -----------------------------------------------------------------------------
-docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" bash -c '
+docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" bash -c '
   set -euo pipefail
   python -m py_compile library/jp_classroom_style.py
   python -m py_compile render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py
@@ -32,7 +35,7 @@ docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" bash -c '
 # -----------------------------------------------------------------------------
 # 3. Literal -pql preview
 # -----------------------------------------------------------------------------
-docker run --rm -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
+docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
   set -euo pipefail
   mkdir -p /tmp/bin
   printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/bin/xdg-open
@@ -46,7 +49,7 @@ docker run --rm -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c 
 # -----------------------------------------------------------------------------
 # 4. Literal -pqh final render
 # -----------------------------------------------------------------------------
-docker run --rm -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
+docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
   set -euo pipefail
   mkdir -p /tmp/bin
   printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/bin/xdg-open
@@ -64,7 +67,7 @@ cp "$FINAL_MP4" "$JOB/delivery/$OUT_NAME"
 # -----------------------------------------------------------------------------
 # 5. Technical acceptance: ffprobe + full decode
 # -----------------------------------------------------------------------------
-docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
+docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
   ffprobe -v error -select_streams v:0 \
   -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
   -of default=noprint_wrappers=1 "$JOB/delivery/$OUT_NAME" \
@@ -76,22 +79,22 @@ grep -q '^height=1080$' "$JOB/delivery/ffprobe.txt"
 grep -q '^r_frame_rate=30/1$' "$JOB/delivery/ffprobe.txt"
 grep -q '^pix_fmt=yuv420p$' "$JOB/delivery/ffprobe.txt"
 
-docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
+docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
   ffmpeg -v error -i "$JOB/delivery/$OUT_NAME" -f null -
 
 # -----------------------------------------------------------------------------
 # 6. Dense visual audit sampling (~32 frames) + contact sheet
 # -----------------------------------------------------------------------------
-DURATION="$(docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
+DURATION="$(docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
   ffprobe -v error -show_entries format=duration -of default=nk=1:nw=1 "$JOB/delivery/$OUT_NAME")"
 INTERVAL="$(python -c "d=float('$DURATION'); print(max(d/32.0, 0.5))")"
 rm -f "$JOB"/qa_frames/*.png
 
-docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
+docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
   ffmpeg -v error -i "$JOB/delivery/$OUT_NAME" \
   -vf "fps=1/$INTERVAL,scale=480:-1" "$JOB/qa_frames/frame_%03d.png"
 
-docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" python -c '
+docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" python -c '
 from pathlib import Path
 from PIL import Image
 folder=Path("render_jobs/statistics10_p3w3_percentiles_20260902/qa_frames")
