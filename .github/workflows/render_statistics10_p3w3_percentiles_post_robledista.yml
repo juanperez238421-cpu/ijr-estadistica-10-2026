@@ -2,6 +2,12 @@ name: Render Statistics 10 P3W3 Percentiles Post-Robledista
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - lesson/statistics10-p3w3-percentiles-post-robledista-v2-20260902
+    paths:
+      - 'render_jobs/statistics10_p3w3_percentiles_20260902/TRIGGER_RENDER.txt'
+      - '.github/workflows/render_statistics10_p3w3_percentiles_post_robledista.yml'
 
 permissions:
   contents: read
