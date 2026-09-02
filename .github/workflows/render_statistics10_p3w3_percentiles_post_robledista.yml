@@ -27,7 +27,8 @@ jobs:
       - name: Run consolidated senior render protocol
         run: bash render_jobs/statistics10_p3w3_percentiles_20260902/run_pipeline.sh
 
-      - name: Upload verified delivery package
+      - name: Upload delivery package and diagnostics
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Statistics10-P3W3-Percentiles-PostRobledista-pqh
