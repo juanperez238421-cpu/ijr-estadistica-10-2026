@@ -6,9 +6,15 @@ JOB="render_jobs/statistics10_p3w3_percentiles_20260902"
 SCENE_NAME="Statistics10Period3Week3PercentilesPostRobledista"
 OUT_NAME="Statistics10_P3W3_Quartiles_Deciles_Percentiles_PostRobledista_FINAL_pqh.mp4"
 MANIM_IMAGE="manimcommunity/manim:v0.20.1"
-DOCKER_USER_ARGS=(--user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home)
+DOCKER_USER_ARGS=(--user "$(id -u):$(id -g)" -e HOME=/tmp)
 
 mkdir -p "$JOB/build" "$JOB/delivery" "$JOB/qa_frames" library media
+exec > >(tee -a "$JOB/delivery/pipeline.log") 2>&1
+trap 'status=$?; echo "PIPELINE_EXIT=$status"; exit $status' EXIT
+
+echo "=== Statistics 10 P3W3 senior render pipeline ==="
+echo "Runner UID:GID=$(id -u):$(id -g)"
+echo "Working directory: $ROOT"
 
 # -----------------------------------------------------------------------------
 # 1. Reconstruct exact source and consolidated JP style
@@ -22,10 +28,6 @@ sha256sum "$JOB/build/scene.py" library/jp_classroom_style.py | tee "$JOB/delive
 
 # -----------------------------------------------------------------------------
 # 2. Syntax + numerical assertions
-# Use the runner UID/GID inside Docker so Python can create __pycache__ and
-# Manim can write media files on the bind-mounted GitHub Actions workspace.
-# Import scene through normal import machinery so dataclasses can resolve the
-# module correctly under Python 3.14.
 # -----------------------------------------------------------------------------
 docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" bash -c '
   set -euo pipefail
@@ -40,10 +42,10 @@ docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMA
 # -----------------------------------------------------------------------------
 docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
   set -euo pipefail
-  mkdir -p /tmp/bin
-  printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/bin/xdg-open
-  chmod +x /tmp/bin/xdg-open
-  export PATH="/tmp/bin:$PATH"
+  mkdir -p /tmp/manim-bin
+  printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+  chmod +x /tmp/manim-bin/xdg-open
+  export PATH="/tmp/manim-bin:$PATH"
   export PYTHONPATH="/manim:${PYTHONPATH:-}"
   manim -pql render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py \
     Statistics10Period3Week3PercentilesPostRobledista \
@@ -55,10 +57,10 @@ docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoin
 # -----------------------------------------------------------------------------
 docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
   set -euo pipefail
-  mkdir -p /tmp/bin
-  printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/bin/xdg-open
-  chmod +x /tmp/bin/xdg-open
-  export PATH="/tmp/bin:$PATH"
+  mkdir -p /tmp/manim-bin
+  printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+  chmod +x /tmp/manim-bin/xdg-open
+  export PATH="/tmp/manim-bin:$PATH"
   export PYTHONPATH="/manim:${PYTHONPATH:-}"
   manim -pqh render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py \
     Statistics10Period3Week3PercentilesPostRobledista \
