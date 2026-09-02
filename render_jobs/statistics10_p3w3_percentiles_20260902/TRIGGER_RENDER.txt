@@ -1,3 +1,3 @@
 Final render requested by user on 2026-09-02.
-Attempt 3 after Docker UID fix and Python 3.14 dataclass import correction.
+Attempt 4 after Docker UID fix, Python 3.14 dataclass import correction, and PYTHONPATH correction for Manim.
 Run full senior protocol: py_compile -> numerical assertions -> literal -pql -> literal -pqh -> ffprobe -> full decode -> QA frames -> artifact package.
