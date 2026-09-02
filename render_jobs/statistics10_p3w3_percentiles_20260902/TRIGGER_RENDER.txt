@@ -1,0 +1,2 @@
+Final render requested by user on 2026-09-02.
+Run full senior protocol: py_compile -> numerical assertions -> literal -pql -> literal -pqh -> ffprobe -> full decode -> QA frames -> artifact package.
