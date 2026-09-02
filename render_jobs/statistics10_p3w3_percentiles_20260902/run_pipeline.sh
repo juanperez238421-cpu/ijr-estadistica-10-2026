@@ -57,7 +57,7 @@ docker run --rm -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c 
     --format=mp4 --disable_caching
 '
 
-FINAL_MP4="$(find media/videos -type f -name "${SCENE_NAME}.mp4" | sort | tail -n 1)"
+FINAL_MP4="$(find media/videos -type f -path '*1080p*' -name "${SCENE_NAME}.mp4" | sort | tail -n 1)"
 test -n "$FINAL_MP4"
 cp "$FINAL_MP4" "$JOB/delivery/$OUT_NAME"
 
@@ -93,7 +93,7 @@ docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" \
 
 docker run --rm -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" python -c '
 from pathlib import Path
-from PIL import Image, ImageOps, ImageDraw
+from PIL import Image
 folder=Path("render_jobs/statistics10_p3w3_percentiles_20260902/qa_frames")
 paths=sorted(folder.glob("frame_*.png"))[:32]
 if not paths:
