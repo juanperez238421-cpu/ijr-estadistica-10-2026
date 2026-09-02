@@ -24,12 +24,14 @@ sha256sum "$JOB/build/scene.py" library/jp_classroom_style.py | tee "$JOB/delive
 # 2. Syntax + numerical assertions
 # Use the runner UID/GID inside Docker so Python can create __pycache__ and
 # Manim can write media files on the bind-mounted GitHub Actions workspace.
+# Import scene through normal import machinery so dataclasses can resolve the
+# module correctly under Python 3.14.
 # -----------------------------------------------------------------------------
 docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim "$MANIM_IMAGE" bash -c '
   set -euo pipefail
   python -m py_compile library/jp_classroom_style.py
   python -m py_compile render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py
-  python -c "import importlib.util, pathlib; p=pathlib.Path(\"render_jobs/statistics10_p3w3_percentiles_20260902/build/scene.py\"); spec=importlib.util.spec_from_file_location(\"statistics10_p3w3_scene\", p); m=importlib.util.module_from_spec(spec); spec.loader.exec_module(m); m.validate_all_data(); print(\"Numerical assertions: PASS\")"
+  python -c "import sys; sys.path.insert(0, \"render_jobs/statistics10_p3w3_percentiles_20260902/build\"); import scene; scene.validate_all_data(); print(\"Numerical assertions: PASS\")"
 '
 
 # -----------------------------------------------------------------------------
