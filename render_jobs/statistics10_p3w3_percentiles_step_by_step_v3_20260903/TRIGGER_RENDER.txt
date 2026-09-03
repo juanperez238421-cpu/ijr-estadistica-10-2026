@@ -2,3 +2,4 @@ Render requested 2026-09-03.
 Target: Statistics10Period3Week3PercentilesStepByStepV3.
 Protocol: compile + numerical assertions + literal -pql preview + literal -pqh final + ffprobe + full decode + 40-frame QA contact sheet + direct repository MP4 publication.
 Pedagogical revision: explicit six-step numbering, larger step banners, stable method bar, longer animated pauses, explicit integer/decimal locator decision, and more explicit interpolation.
+Attempt 2: restored explicit Q1=P25, Q2=P50, Q3=P75 label group in the IQR-to-percentile bridge after preview QA exposed the missing runtime symbol.
