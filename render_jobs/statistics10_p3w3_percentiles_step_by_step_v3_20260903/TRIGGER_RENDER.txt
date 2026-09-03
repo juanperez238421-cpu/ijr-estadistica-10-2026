@@ -4,3 +4,4 @@ Protocol: compile + numerical assertions + literal -pql preview + literal -pqh f
 Pedagogical revision: explicit six-step numbering, larger step banners, stable method bar, longer animated pauses, explicit integer/decimal locator decision, and more explicit interpolation.
 Attempt 2: restored explicit Q1=P25, Q2=P50, Q3=P75 label group in the IQR-to-percentile bridge after preview QA exposed the missing runtime symbol.
 Attempt 3: replaced corrupted gzip/base64 scene reconstruction with the exact six plain-text source fragments and re-triggered the complete PQL→PQH protocol.
+Attempt 4: corrected Docker entrypoints for ffprobe, ffmpeg, and Python QA after Attempt 3 successfully produced the PQH video but failed during technical acceptance/publication.
