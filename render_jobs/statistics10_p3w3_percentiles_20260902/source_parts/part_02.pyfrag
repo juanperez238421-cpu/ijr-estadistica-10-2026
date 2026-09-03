@@ -1,0 +1,180 @@
+                ("k", "requested percentile"),
+                ("n", "number of observations"),
+                ("L", "position in ordered data"),
+            ],
+            width=6.4,
+            label_size=23,
+            value_size=22,
+        )
+        meanings.move_to(RIGHT * 3.75 + DOWN * 1.45)
+
+        self.assert_content_safe(VGroup(row, locator, meanings), "locator layout")
+        self.assert_within_frame(strip, "locator step strip")
+        self.play(FadeIn(row[0], shift=UP * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SHORT)
+        self.play(FadeIn(row[1]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_READ)
+        self.play(FadeIn(locator), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXPLAIN)
+        self.play(FadeIn(meanings), run_time=RUN_NORMAL)
+        self.wait(PAUSE_WORK)
+        self.play(FadeOut(locator), FadeOut(meanings), run_time=RUN_NORMAL)
+
+        integer_note = self.note_panel(
+            "DECISION",
+            [
+                "Integer L: read that ordered position.",
+                "Non-integer L: interpolate between adjacent positions.",
+            ],
+            width=9.0,
+            title_size=25,
+            body_size=22,
+        )
+        integer_note.move_to(DOWN * 1.75)
+        self.play(FadeIn(integer_note), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 4. Integer percentile example
+    # ------------------------------------------------------------------
+    def integer_percentile_example(self) -> None:
+        self.set_header(
+            4,
+            "WORKED EXAMPLE A — INTEGER LOCATOR",
+            "Find P40 for the ordered score data. When L is an integer, no interpolation is needed.",
+        )
+        strip = self.add_step(4)
+
+        row = self.ordered_row(ORDERED, box_size=0.66)
+        row.move_to(UP * 0.55)
+        # Highlight position 4 in grayscale.
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        self.play(row[0][0][3].animate.set_fill(LIGHT_GRAY, opacity=1), run_time=RUN_QUICK)
+
+        equations = self.equation_stack(
+            [
+                r"k=40,\qquad n=9",
+                r"L=\frac{40}{100}(9+1)",
+                r"L=4",
+                r"P_{40}=x_{(4)}=64",
+            ],
+            sizes=[34, 38, 42, 44],
+            max_width=6.1,
+        )
+        equations.move_to(LEFT * 3.4 + DOWN * 1.40)
+
+        interpretation = self.note_panel(
+            "INTERPRET",
+            [
+                "P40 is a data-value benchmark.",
+                "Here the benchmark is a score of 64.",
+                "Its meaning comes from relative position, not from 40% of 64.",
+            ],
+            width=6.5,
+            title_size=25,
+            body_size=22,
+        )
+        interpretation.move_to(RIGHT * 3.65 + DOWN * 1.50)
+
+        self.assert_content_safe(VGroup(row, equations, interpretation), "integer example")
+        self.assert_within_frame(strip, "integer example step strip")
+        self.animate_equation_stack(equations, pause=PAUSE_READ)
+        self.play(FadeIn(interpretation), run_time=RUN_NORMAL)
+        self.wait(PAUSE_WORK)
+        self.focus_on(equations[-1], width=5.4, pause=PAUSE_EXPLAIN)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 5. Interpolation example
+    # ------------------------------------------------------------------
+    def interpolated_percentile_example(self) -> None:
+        self.set_header(
+            5,
+            "WORKED EXAMPLE B — NON-INTEGER LOCATOR",
+            "Find P65. A locator of 6.5 means the desired percentile lies halfway between positions 6 and 7.",
+        )
+        strip = self.add_step(5)
+
+        row = self.ordered_row(ORDERED, box_size=0.66)
+        row.move_to(UP * 0.75)
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        self.play(
+            row[0][0][5].animate.set_fill(LIGHT_GRAY, opacity=1),
+            row[0][0][6].animate.set_fill(LIGHT_GRAY, opacity=1),
+            run_time=RUN_QUICK,
+        )
+
+        left_eq = self.equation_stack(
+            [
+                r"L=\frac{65}{100}(9+1)=6.5",
+                r"x_{(6)}=72,\qquad x_{(7)}=75",
+                r"d=6.5-6=0.5",
+                r"P_{65}=72+0.5(75-72)=73.5",
+            ],
+            sizes=[37, 34, 35, 39],
+            max_width=6.6,
+        )
+        left_eq.move_to(LEFT * 3.35 + DOWN * 1.45)
+
+        track = self.interpolation_track(72, 75, 0.5, 73.5, width=5.3)
+        track.move_to(RIGHT * 3.65 + DOWN * 1.15)
+        track_panel = self.figure_panel(
+            track,
+            width=6.3,
+            height=2.65,
+            title="LINEAR INTERPOLATION",
+            caption="Move 50% of the distance from 72 to 75.",
+        )
+        track_panel.group.move_to(RIGHT * 3.65 + DOWN * 1.15)
+
+        self.assert_content_safe(VGroup(row, left_eq, track_panel.group), "interpolation example")
+        self.assert_within_frame(strip, "interpolation step strip")
+        self.animate_equation_stack(left_eq[:3], pause=PAUSE_READ)
+        panel_shell = VGroup(track_panel.box)
+        if track_panel.title is not None:
+            panel_shell.add(track_panel.title)
+        if track_panel.caption is not None:
+            panel_shell.add(track_panel.caption)
+        self.play(FadeIn(panel_shell), run_time=RUN_NORMAL)
+        self.play(Create(track[0]), FadeIn(VGroup(*track[1:])), run_time=RUN_SLOW)
+        self.wait(PAUSE_EXPLAIN)
+        self.play(Write(left_eq[3]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_WORK)
+        self.focus_on(left_eq[3], width=6.3, pause=PAUSE_EXPLAIN)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 6. Decile conversion
+    # ------------------------------------------------------------------
+    def decile_conversion(self) -> None:
+        self.set_header(
+            6,
+            "DECILES ARE PERCENTILES WITH MULTIPLES OF TEN",
+            "Convert first, then use exactly the same locator and interpolation method.",
+        )
+        strip = self.add_step(6)
+
+        conversion = self.formula_panel(r"D_j=P_{10j}", width=5.3, height=1.18, font_size=48)
+        conversion.move_to(UP * 1.55)
+        worked = self.equation_stack(
+            [
+                r"D_7=P_{70}",
+                r"L=\frac{70}{100}(9+1)=7",
+                r"D_7=P_{70}=x_{(7)}=75",
+            ],
+            sizes=[42, 39, 43],
+            max_width=7.4,
+        )
+        worked.move_to(LEFT * 3.25 + DOWN * 0.65)
+        note = self.note_panel(
+            "SAME METHOD",
+            [
+                "D1 = P10",
+                "D5 = P50 = median",
+                "D9 = P90",
+                "Only the label changes; the position logic does not.",
+            ],
+            width=6.3,
+            title_size=25,
+            body_size=22,

@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Period 3 · Week 3
+Post-Semana-Robledista class: Quartiles, Deciles and Percentiles in Context.
+
+ManimCE target: 0.20.x
+Visual system: JP Classroom monochrome, 1920x1080, 30 fps.
+
+Pedagogical continuity:
+    IQR / modified box plot -> quartiles as positions -> deciles -> percentiles
+    -> locator -> interpolation -> interpretation -> value vs rank.
+
+Classroom percentile convention used in the existing Grade 10 sequence:
+    L = (k/100) * (n + 1)
+with linear interpolation when L is non-integer.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import math
+import numpy as np
+
+from library.jp_classroom_style import *
+
+
+# =============================================================================
+# VERIFIED LESSON DATA
+# =============================================================================
+DATA = [52, 58, 61, 64, 68, 72, 75, 81, 88]
+ORDERED = sorted(DATA)
+N = len(ORDERED)
+
+
+@dataclass(frozen=True)
+class PercentileResult:
+    k: float
+    locator: float
+    lower_position: int
+    upper_position: int
+    fraction: float
+    lower_value: float
+    upper_value: float
+    value: float
+
+
+def classroom_percentile(sorted_values: list[float], k: float) -> PercentileResult:
+    """Return percentile using the established classroom (n+1) locator rule.
+
+    Positions are 1-indexed. For this lesson all selected k values produce
+    locators inside the observed range, so endpoint extrapolation is not needed.
+    """
+    if sorted_values != sorted(sorted_values):
+        raise ValueError("Values must be sorted before percentile calculation.")
+    if not 0 < k < 100:
+        raise ValueError("k must satisfy 0 < k < 100.")
+
+    locator = (k / 100.0) * (len(sorted_values) + 1)
+    lower_position = math.floor(locator)
+    upper_position = math.ceil(locator)
+
+    if lower_position < 1 or upper_position > len(sorted_values):
+        raise ValueError("Selected percentile falls outside the classroom interpolation range.")
+
+    lower_value = float(sorted_values[lower_position - 1])
+    upper_value = float(sorted_values[upper_position - 1])
+    fraction = locator - lower_position
+    value = lower_value + fraction * (upper_value - lower_value)
+
+    return PercentileResult(
+        k=k,
+        locator=locator,
+        lower_position=lower_position,
+        upper_position=upper_position,
+        fraction=fraction,
+        lower_value=lower_value,
+        upper_value=upper_value,
+        value=value,
+    )
+
+
+P40 = classroom_percentile(ORDERED, 40)
+P50 = classroom_percentile(ORDERED, 50)
+P65 = classroom_percentile(ORDERED, 65)
+P70 = classroom_percentile(ORDERED, 70)
+P75 = classroom_percentile(ORDERED, 75)
+
+CHALLENGE = [12, 15, 17, 18, 21, 24, 27, 31, 34, 39, 43]
+CHALLENGE_ORDERED = sorted(CHALLENGE)
+D3_CHALLENGE = classroom_percentile(CHALLENGE_ORDERED, 30)
+P85_CHALLENGE = classroom_percentile(CHALLENGE_ORDERED, 85)
+
+
+def validate_all_data() -> None:
+    assert ORDERED == [52, 58, 61, 64, 68, 72, 75, 81, 88]
+    assert N == 9
+
+    assert_close(P40.locator, 4.0, label="P40 locator")
+    assert_close(P40.value, 64.0, label="P40 value")
+    assert_close(P50.locator, 5.0, label="P50 locator")
+    assert_close(P50.value, 68.0, label="P50 value")
+    assert_close(P65.locator, 6.5, label="P65 locator")
+    assert_close(P65.value, 73.5, label="P65 interpolated value")
+    assert_close(P70.locator, 7.0, label="P70 locator")
+    assert_close(P70.value, 75.0, label="D7 / P70 value")
+    assert_close(P75.locator, 7.5, label="P75 locator")
+    assert_close(P75.value, 78.0, label="Q3 / P75 value")
+
+    assert CHALLENGE_ORDERED == [12, 15, 17, 18, 21, 24, 27, 31, 34, 39, 43]
+    assert_close(D3_CHALLENGE.locator, 3.6, label="challenge D3 locator")
+    assert_close(D3_CHALLENGE.value, 17.6, label="challenge D3")
+    assert_close(P85_CHALLENGE.locator, 10.2, label="challenge P85 locator")
+    assert_close(P85_CHALLENGE.value, 39.8, label="challenge P85")
+
+
+# =============================================================================
+# MAIN LESSON
+# =============================================================================
+class Statistics10Period3Week3PercentilesPostRobledista(JPMathClassroomScene):
+    """Full post-Semana-Robledista lesson for Grade 10 Statistics."""
+
+    STEP_LABELS = [
+        "CONNECT",
+        "GENERALIZE",
+        "LOCATE",
+        "CALCULATE",
+        "INTERPOLATE",
+        "CONVERT",
+        "INTERPRET",
+        "VERIFY",
+    ]
+
+    def validate_lesson_data(self) -> None:
+        validate_all_data()
+
+    def construct(self) -> None:
+        self.opening()
+        self.bridge_from_boxplot()
+        self.quartiles_deciles_percentiles_family()
+        self.locator_rule()
+        self.integer_percentile_example()
+        self.interpolated_percentile_example()
+        self.decile_conversion()
+        self.percentile_value_vs_rank()
+        self.context_interpretation()
+        self.misconception_clinic()
+        self.guided_challenge()
+        self.final_recipe()
+
+    # ------------------------------------------------------------------
+    # Small lesson-specific helpers
+    # ------------------------------------------------------------------
+    def step_strip(self, active: int) -> VGroup:
+        """Create a compact eight-step navigator for the bottom safe zone."""
+        cards = VGroup()
+        for index, label in enumerate(self.STEP_LABELS, start=1):
+            box = RoundedRectangle(
+                width=1.68,
+                height=0.52,
+                corner_radius=0.08,
+                stroke_color=BLACK_LINE,
+                stroke_width=2.1 if index == active else 1.15,
+                fill_color=LIGHT_GRAY if index == active else WHITE_FILL,
+                fill_opacity=1.0,
+            )
+            number = self.text(str(index), 16, BOLD)
+            word = self.text(label, 14, BOLD if index == active else NORMAL)
+            content = VGroup(number, word).arrange(RIGHT, buff=0.09)
+            self.fit(content, 1.48, 0.34)
+            content.move_to(box)
+            cards.add(VGroup(box, content))
+        cards.arrange(RIGHT, buff=0.08)
+        cards.to_edge(DOWN, buff=0.17)
+        return cards
+
+    def add_step(self, active: int) -> VGroup:
+        strip = self.step_strip(active)
+        self.add(strip)
+        return strip
+

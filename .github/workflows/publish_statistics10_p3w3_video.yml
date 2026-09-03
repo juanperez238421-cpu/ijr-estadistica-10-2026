@@ -1,0 +1,67 @@
+name: Publish Statistics 10 P3W3 MP4 to repository
+
+on:
+  push:
+    branches:
+      - lesson/statistics10-p3w3-percentiles-post-robledista-v2-20260902
+    paths:
+      - '.github/workflows/publish_statistics10_p3w3_video.yml'
+      - 'render_jobs/statistics10_p3w3_percentiles_20260902/PUBLISH_VIDEO.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download exact rendered artifact from GitHub Actions
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          rm -rf artifact
+          gh run download 33672702789 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "Statistics10-P3W3-Percentiles-PostRobledista-pqh" \
+            --dir artifact
+
+      - name: Validate and stage real MP4
+        run: |
+          set -euo pipefail
+          SRC="artifact/Statistics10_P3W3_Quartiles_Deciles_Percentiles_PostRobledista_FINAL_pqh.mp4"
+          DST_DIR="deliveries/statistics10_p3w3_percentiles"
+          DST="$DST_DIR/Statistics10_P3W3_Quartiles_Deciles_Percentiles_PostRobledista_FINAL_pqh.mp4"
+          test -s "$SRC"
+          mkdir -p "$DST_DIR"
+          cp "$SRC" "$DST"
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          p=Path('deliveries/statistics10_p3w3_percentiles/Statistics10_P3W3_Quartiles_Deciles_Percentiles_PostRobledista_FINAL_pqh.mp4')
+          b=p.read_bytes()
+          assert len(b) > 1_000_000
+          assert b[4:8] == b'ftyp', 'Not an ISO BMFF/MP4 file'
+          print('bytes=', len(b))
+          print('sha256=', hashlib.sha256(b).hexdigest())
+          PY
+
+      - name: Commit binary delivery to branch
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deliveries/statistics10_p3w3_percentiles/Statistics10_P3W3_Quartiles_Deciles_Percentiles_PostRobledista_FINAL_pqh.mp4
+          if git diff --cached --quiet; then
+            echo "MP4 already published; nothing to commit."
+          else
+            git commit -m "delivery: publish real P3W3 percentiles PQH MP4"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

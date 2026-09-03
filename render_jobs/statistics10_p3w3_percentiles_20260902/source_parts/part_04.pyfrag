@@ -1,0 +1,109 @@
+                "1. Convert D3 to a percentile.",
+                "2. Compute both locators.",
+                "3. Decide whether interpolation is needed.",
+                "4. State both percentile values.",
+            ],
+            width=6.3,
+            title_size=25,
+            body_size=22,
+        )
+        prompt.move_to(LEFT * 3.55 + DOWN * 1.15)
+        blank = self.note_panel(
+            "WORKSPACE",
+            [
+                "D3 = ______",
+                "P85 = ______",
+                "Show locator + interpolation.",
+            ],
+            width=6.2,
+            title_size=25,
+            body_size=24,
+        )
+        blank.move_to(RIGHT * 3.60 + DOWN * 1.15)
+
+        self.assert_content_safe(VGroup(row, prompt, blank), "challenge prompt")
+        self.assert_within_frame(strip, "challenge step strip")
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        self.play(FadeIn(prompt), FadeIn(blank), run_time=RUN_NORMAL)
+        self.wait(PAUSE_WORK * 2.0)
+
+        solution = self.equation_stack(
+            [
+                r"D_3=P_{30}:\quad L=0.30(12)=3.6",
+                r"D_3=17+0.6(18-17)=17.6",
+                r"P_{85}:\quad L=0.85(12)=10.2",
+                r"P_{85}=39+0.2(43-39)=39.8",
+            ],
+            sizes=[34, 36, 34, 36],
+            max_width=8.2,
+        )
+        solution.move_to(DOWN * 1.20)
+
+        self.play(FadeOut(prompt), FadeOut(blank), run_time=RUN_NORMAL)
+        self.animate_equation_stack(solution, pause=PAUSE_READ)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 11. Final reproducible method
+    # ------------------------------------------------------------------
+    def final_recipe(self) -> None:
+        self.set_header(
+            11,
+            "FINAL METHOD — FROM ORDERED DATA TO MEANING",
+            "The procedure is reusable for quartiles, deciles and percentiles when the class convention is kept consistent.",
+        )
+        strip = self.add_step(8)
+
+        route = self.process_map(
+            [
+                ("1", "ORDER THE DATA"),
+                ("2", "IDENTIFY k"),
+                ("3", "COMPUTE L"),
+                ("4", "LOCATE POSITIONS"),
+                ("5", "INTERPOLATE IF NEEDED"),
+                ("6", "STATE THE VALUE"),
+                ("7", "INTERPRET IN CONTEXT"),
+                ("8", "CHECK THE CLAIM"),
+            ],
+            card_width=3.35,
+            card_height=1.02,
+            columns=4,
+        )
+        route.move_to(UP * 0.15)
+        self.fit(route, 14.1, 3.15)
+
+        identity = self.formula_panel(
+            r"Q_1=P_{25},\quad Q_2=P_{50},\quad Q_3=P_{75},\quad D_j=P_{10j}",
+            width=11.6,
+            height=1.02,
+            font_size=34,
+        )
+        identity.move_to(DOWN * 2.15)
+
+        checkpoint = self.text(
+            "POSITION FIRST → VALUE SECOND → INTERPRETATION LAST",
+            27,
+            BOLD,
+        ).move_to(DOWN * 3.06)
+
+        self.assert_content_safe(VGroup(route, identity, checkpoint), "final recipe")
+        self.assert_within_frame(strip, "final recipe step strip")
+        self.play(
+            LaggedStart(*[FadeIn(card, shift=UP * 0.10) for card in route], lag_ratio=0.08),
+            run_time=RUN_SLOW * 1.8,
+        )
+        self.wait(PAUSE_WORK)
+        self.play(FadeIn(identity), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXPLAIN)
+        self.play(FadeIn(checkpoint), run_time=RUN_NORMAL)
+        self.wait(PAUSE_FINAL)
+        self.standard_closing("Order. Locate. Interpolate. Interpret.")
+
+
+# Preview:
+#   manim -pql manim/period3_week3_percentiles/scene.py \
+#     Statistics10Period3Week3PercentilesPostRobledista --disable_caching
+# Final:
+#   manim -pqh manim/period3_week3_percentiles/scene.py \
+#     Statistics10Period3Week3PercentilesPostRobledista --disable_caching

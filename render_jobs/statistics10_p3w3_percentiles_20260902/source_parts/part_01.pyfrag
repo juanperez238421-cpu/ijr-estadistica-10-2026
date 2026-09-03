@@ -1,0 +1,180 @@
+    def ordered_row(self, values: list[int], *, box_size: float = 0.69) -> VGroup:
+        row = self.boxed_values(values, box_size=box_size, font_size=30, buff=0.08)
+        indices = VGroup(*[self.math(str(i), 18) for i in range(1, len(values) + 1)])
+        for index, box in zip(indices, row[0]):
+            index.next_to(box, DOWN, buff=0.08)
+        return VGroup(row, indices)
+
+    def percentage_axis(self, *, width: float = 11.4, y: float = -0.25) -> VGroup:
+        x0 = -width / 2
+        x1 = width / 2
+        axis = Line([x0, y, 0], [x1, y, 0], color=BLACK_LINE, stroke_width=2.4)
+        ticks = VGroup()
+        labels = VGroup()
+        for p in [0, 25, 50, 75, 100]:
+            x = x0 + width * p / 100.0
+            tick = Line([x, y - 0.12, 0], [x, y + 0.12, 0], color=BLACK_LINE, stroke_width=1.8)
+            label = self.math(rf"{p}\%", 24).next_to(tick, DOWN, buff=0.10)
+            ticks.add(tick)
+            labels.add(label)
+        return VGroup(axis, ticks, labels)
+
+    def interpolation_track(
+        self,
+        left_value: float,
+        right_value: float,
+        fraction: float,
+        result: float,
+        *,
+        width: float = 6.2,
+    ) -> VGroup:
+        start = LEFT * width / 2
+        end = RIGHT * width / 2
+        line = Line(start, end, color=BLACK_LINE, stroke_width=3)
+        left_dot = Dot(start, color=BLACK_LINE, radius=0.07)
+        right_dot = Dot(end, color=BLACK_LINE, radius=0.07)
+        target_point = start + fraction * (end - start)
+        target = Dot(target_point, color=BLACK_LINE, radius=0.10)
+        left_label = self.math(str(left_value).rstrip("0").rstrip("."), 28).next_to(left_dot, DOWN, buff=0.12)
+        right_label = self.math(str(right_value).rstrip("0").rstrip("."), 28).next_to(right_dot, DOWN, buff=0.12)
+        target_label = self.math(str(result).rstrip("0").rstrip("."), 30).next_to(target, UP, buff=0.14)
+        frac_label = self.math(rf"d={fraction:g}", 25).next_to(line, UP, buff=0.52)
+        return VGroup(line, left_dot, right_dot, target, left_label, right_label, target_label, frac_label)
+
+    # ------------------------------------------------------------------
+    # 0. Opening
+    # ------------------------------------------------------------------
+    def opening(self) -> None:
+        self.standard_opening(
+            "STATISTICS 10 · PERIOD 3 · WEEK 3",
+            "QUARTILES, DECILES & PERCENTILES",
+            "From the box plot you already know to a general language of position.",
+            "Connect the graph to percent positions, calculate carefully, then interpret in context.",
+        )
+
+    # ------------------------------------------------------------------
+    # 1. Bridge from the previous IQR/boxplot class
+    # ------------------------------------------------------------------
+    def bridge_from_boxplot(self) -> None:
+        self.set_header(
+            1,
+            "THE BOXPLOT ALREADY CONTAINS PERCENTILES",
+            "Q1, Q2 and Q3 are not isolated formulas: they are the 25th, 50th and 75th percentile positions.",
+        )
+        strip = self.add_step(1)
+
+        # Simplified boxplot on a percentage axis.
+        axis = self.percentage_axis(width=10.8, y=-0.65)
+        x_left = -5.4
+        x25 = x_left + 10.8 * 0.25
+        x50 = x_left + 10.8 * 0.50
+        x75 = x_left + 10.8 * 0.75
+
+        box = Rectangle(
+            width=x75 - x25,
+            height=1.25,
+            stroke_color=BLACK_LINE,
+            stroke_width=2.5,
+            fill_color=VERY_LIGHT_GRAY,
+            fill_opacity=1,
+        ).move_to([(x25 + x75) / 2, 0.75, 0])
+        median = Line([x50, 0.125, 0], [x50, 1.375, 0], color=BLACK_LINE, stroke_width=3)
+        whisker_left = Line([-5.0, 0.75, 0], [x25, 0.75, 0], color=BLACK_LINE, stroke_width=2.3)
+        whisker_right = Line([x75, 0.75, 0], [5.0, 0.75, 0], color=BLACK_LINE, stroke_width=2.3)
+        caps = VGroup(
+            Line([-5.0, 0.45, 0], [-5.0, 1.05, 0], color=BLACK_LINE, stroke_width=2.1),
+            Line([5.0, 0.45, 0], [5.0, 1.05, 0], color=BLACK_LINE, stroke_width=2.1),
+        )
+        q_labels = VGroup(
+            self.math(r"Q_1=P_{25}", 34).next_to(box.get_left(), UP, buff=0.24),
+            self.math(r"Q_2=P_{50}", 34).next_to(median, UP, buff=0.24),
+            self.math(r"Q_3=P_{75}", 34).next_to(box.get_right(), UP, buff=0.24),
+        )
+        plot = VGroup(box, median, whisker_left, whisker_right, caps, q_labels, axis)
+        plot.move_to(DOWN * 0.25)
+        self.assert_content_safe(plot, "boxplot bridge")
+        self.assert_within_frame(strip, "boxplot bridge step strip")
+
+        self.play(Create(axis[0]), FadeIn(axis[1]), FadeIn(axis[2]), run_time=RUN_NORMAL)
+        self.play(Create(whisker_left), Create(whisker_right), Create(caps), run_time=RUN_NORMAL)
+        self.play(FadeIn(box), Create(median), run_time=RUN_NORMAL)
+        self.wait(PAUSE_READ)
+        self.play(LaggedStart(*[Write(label) for label in q_labels], lag_ratio=0.18), run_time=RUN_SLOW)
+        self.wait(PAUSE_WORK)
+
+        statement = self.formula_panel(r"Q_1=P_{25},\qquad Q_2=P_{50},\qquad Q_3=P_{75}", width=9.8, height=1.05, font_size=39)
+        statement.move_to(DOWN * 2.45)
+        self.play(FadeIn(statement), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 2. Generalize the family
+    # ------------------------------------------------------------------
+    def quartiles_deciles_percentiles_family(self) -> None:
+        self.set_header(
+            2,
+            "ONE IDEA, THREE LEVELS OF PRECISION",
+            "Quartiles split an ordered distribution into 4 parts, deciles into 10, and percentiles into 100.",
+        )
+        strip = self.add_step(2)
+
+        cards = VGroup()
+        specs = [
+            ("QUARTILES", "4 equal position regions", r"Q_1=P_{25},\ Q_2=P_{50},\ Q_3=P_{75}"),
+            ("DECILES", "10 equal position regions", r"D_j=P_{10j}"),
+            ("PERCENTILES", "100 equal position regions", r"P_k\quad (1\leq k\leq 99)"),
+        ]
+        for title, body, formula in specs:
+            title_m = self.text(title, 28, BOLD)
+            body_m = self.text(body, 22)
+            formula_m = self.math(formula, 34)
+            content = VGroup(title_m, body_m, formula_m).arrange(DOWN, buff=0.24)
+            self.fit(content, 4.15, 2.30)
+            box = RoundedRectangle(
+                width=4.45,
+                height=2.75,
+                corner_radius=0.12,
+                stroke_color=BLACK_LINE,
+                stroke_width=1.8,
+                fill_color=WHITE_FILL,
+                fill_opacity=1,
+            )
+            content.move_to(box)
+            cards.add(VGroup(box, content))
+        cards.arrange(RIGHT, buff=0.30).move_to(UP * 0.10)
+
+        bridge = self.formula_panel(
+            r"Q_1=P_{25}\quad\Rightarrow\quad D_5=P_{50}=Q_2\quad\Rightarrow\quad D_9=P_{90}",
+            width=11.8,
+            height=1.05,
+            font_size=34,
+        )
+        bridge.move_to(DOWN * 2.10)
+
+        self.assert_content_safe(VGroup(cards, bridge), "family layout")
+        self.assert_within_frame(strip, "family step strip")
+        self.play(LaggedStart(*[FadeIn(card, shift=UP * 0.10) for card in cards], lag_ratio=0.18), run_time=RUN_SLOW * 1.4)
+        self.wait(PAUSE_EXPLAIN)
+        self.play(FadeIn(bridge), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 3. Locator rule
+    # ------------------------------------------------------------------
+    def locator_rule(self) -> None:
+        self.set_header(
+            3,
+            "THE LOCATOR TELLS US WHERE TO LOOK",
+            "Use the same class convention as before: L=(k/100)(n+1). L is a position in the ordered list, not a data value.",
+        )
+        strip = self.add_step(3)
+
+        row = self.ordered_row(ORDERED, box_size=0.66)
+        row.move_to(UP * 0.35)
+        locator = self.formula_panel(r"L=\frac{k}{100}(n+1)", width=5.8, height=1.20, font_size=44)
+        locator.move_to(LEFT * 3.6 + DOWN * 1.75)
+        meanings = self.key_value_panel(
+            "READ THE SYMBOLS",
+            [

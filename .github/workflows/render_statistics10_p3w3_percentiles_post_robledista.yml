@@ -1,0 +1,36 @@
+name: Render Statistics 10 P3W3 Percentiles Post-Robledista
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - lesson/statistics10-p3w3-percentiles-post-robledista-v2-20260902
+    paths:
+      - 'render_jobs/statistics10_p3w3_percentiles_20260902/TRIGGER_RENDER.txt'
+      - '.github/workflows/render_statistics10_p3w3_percentiles_post_robledista.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout exact branch
+        uses: actions/checkout@v4
+
+      - name: Pull fixed ManimCE image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run consolidated senior render protocol
+        run: bash render_jobs/statistics10_p3w3_percentiles_20260902/run_pipeline.sh
+
+      - name: Upload delivery package and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-P3W3-Percentiles-PostRobledista-pqh
+          path: render_jobs/statistics10_p3w3_percentiles_20260902/delivery/
+          if-no-files-found: error

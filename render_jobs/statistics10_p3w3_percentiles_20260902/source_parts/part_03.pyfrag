@@ -1,0 +1,180 @@
+        )
+        note.move_to(RIGHT * 3.55 + DOWN * 0.70)
+
+        self.assert_content_safe(VGroup(conversion, worked, note), "decile conversion")
+        self.assert_within_frame(strip, "decile step strip")
+        self.play(FadeIn(conversion), run_time=RUN_NORMAL)
+        self.wait(PAUSE_READ)
+        self.animate_equation_stack(worked, pause=PAUSE_READ)
+        self.play(FadeIn(note), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 7. Percentile value versus percentile rank
+    # ------------------------------------------------------------------
+    def percentile_value_vs_rank(self) -> None:
+        self.set_header(
+            7,
+            "DO NOT CONFUSE PERCENTILE VALUE WITH PERCENTILE RANK",
+            "P65 answers 'what value is at this percentile?'; percentile rank answers 'where does this observed value stand?'.",
+        )
+        strip = self.add_step(7)
+
+        left = self.note_panel(
+            "PERCENTILE VALUE",
+            [
+                "Input: percentile k",
+                "Question: which data value is there?",
+                "Example: P65 = 73.5",
+                "Output has the original data units.",
+            ],
+            width=6.4,
+            title_size=27,
+            body_size=23,
+        )
+        right = self.note_panel(
+            "PERCENTILE RANK",
+            [
+                "Input: an observed data value",
+                "Question: what relative position does it occupy?",
+                "Example idea: score 75 is near the 70th-percentile position.",
+                "Output is a relative standing.",
+            ],
+            width=6.4,
+            title_size=27,
+            body_size=22,
+        )
+        layout = self.split_layout(left, right, center_y=-0.35)
+
+        arrow = DoubleArrow(LEFT * 1.0, RIGHT * 1.0, color=BLACK_LINE, stroke_width=2.2, buff=0.0)
+        label = self.text("inverse questions", 20, BOLD).next_to(arrow, UP, buff=0.08)
+        connector = VGroup(arrow, label).move_to(DOWN * 2.72)
+
+        self.assert_content_safe(VGroup(layout.group, connector), "value vs rank")
+        self.assert_within_frame(strip, "value-vs-rank step strip")
+        self.play(FadeIn(left, shift=RIGHT * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_READ)
+        self.play(FadeIn(right, shift=LEFT * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXPLAIN)
+        self.play(Create(arrow), FadeIn(label), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 8. Context interpretation
+    # ------------------------------------------------------------------
+    def context_interpretation(self) -> None:
+        self.set_header(
+            8,
+            "A PERCENTILE DESCRIBES POSITION — CONTEXT DECIDES WHETHER THAT IS GOOD",
+            "For some variables larger is preferable; for others, such as race time, a smaller value may represent better performance.",
+        )
+        strip = self.add_step(7)
+
+        exam = self.note_panel(
+            "EXAM SCORE",
+            [
+                "Suppose P90 = 92 points.",
+                "92 is a high relative-position benchmark.",
+                "Here larger scores usually indicate stronger performance.",
+            ],
+            width=6.3,
+            title_size=26,
+            body_size=22,
+        )
+        race = self.note_panel(
+            "RACE TIME",
+            [
+                "Suppose P90 = 18.4 s.",
+                "The percentile still describes position in the ordered times.",
+                "But a larger time can mean slower performance.",
+            ],
+            width=6.3,
+            title_size=26,
+            body_size=22,
+        )
+        layout = self.split_layout(exam, race, center_y=-0.15)
+
+        takeaway = self.formula_panel(r"\text{percentile position}\neq\text{automatic quality judgment}", width=11.2, height=1.0, font_size=34)
+        takeaway.move_to(DOWN * 2.75)
+
+        self.assert_content_safe(VGroup(layout.group, takeaway), "context interpretation")
+        self.assert_within_frame(strip, "context step strip")
+        self.play(FadeIn(exam), run_time=RUN_NORMAL)
+        self.wait(PAUSE_READ)
+        self.play(FadeIn(race), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXPLAIN)
+        self.play(FadeIn(takeaway), run_time=RUN_NORMAL)
+        self.wait(PAUSE_SUMMARY)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 9. Misconception clinic
+    # ------------------------------------------------------------------
+    def misconception_clinic(self) -> None:
+        self.set_header(
+            9,
+            "MISCONCEPTION CLINIC",
+            "Check the meaning before accepting a numerical answer. Percentiles are positions in an ordered distribution.",
+        )
+        strip = self.add_step(8)
+
+        items = [
+            ("FALSE", "P90 means a score of 90."),
+            ("TRUE", "Q3 is the same position as P75."),
+            ("TRUE", "D8 is the same position as P80."),
+            ("FALSE", "P65 = 73.5 means 65% of 73.5."),
+        ]
+        cards = VGroup()
+        for verdict, sentence in items:
+            badge = RoundedRectangle(
+                width=1.35,
+                height=0.56,
+                corner_radius=0.08,
+                stroke_color=BLACK_LINE,
+                stroke_width=1.6,
+                fill_color=LIGHT_GRAY if verdict == "TRUE" else WHITE_FILL,
+                fill_opacity=1,
+            )
+            verdict_m = self.text(verdict, 18, BOLD).move_to(badge)
+            sentence_m = self.text(sentence, 23)
+            content = VGroup(VGroup(badge, verdict_m), sentence_m).arrange(RIGHT, buff=0.28)
+            self.fit(content, 12.3, 0.62)
+            row_box = RoundedRectangle(
+                width=13.2,
+                height=0.90,
+                corner_radius=0.08,
+                stroke_color=BLACK_LINE,
+                stroke_width=1.25,
+                fill_color=WHITE_FILL,
+                fill_opacity=1,
+            )
+            content.move_to(row_box).align_to(row_box, LEFT).shift(RIGHT * 0.32)
+            cards.add(VGroup(row_box, content))
+        cards.arrange(DOWN, buff=0.18).move_to(DOWN * 0.15)
+
+        self.assert_content_safe(cards, "misconception clinic")
+        self.assert_within_frame(strip, "misconception step strip")
+        for card in cards:
+            self.play(FadeIn(card, shift=RIGHT * 0.12), run_time=RUN_NORMAL)
+            self.wait(PAUSE_READ)
+        self.wait(PAUSE_WORK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 10. Guided challenge
+    # ------------------------------------------------------------------
+    def guided_challenge(self) -> None:
+        self.set_header(
+            10,
+            "GUIDED CHALLENGE — YOU DO THE POSITION WORK",
+            "Use the same locator rule to find D3 and P85 for the ordered data. Pause before the solution appears.",
+        )
+        strip = self.add_step(8)
+
+        row = self.ordered_row(CHALLENGE_ORDERED, box_size=0.59)
+        row.move_to(UP * 0.95)
+        prompt = self.note_panel(
+            "YOUR TASK",
+            [
