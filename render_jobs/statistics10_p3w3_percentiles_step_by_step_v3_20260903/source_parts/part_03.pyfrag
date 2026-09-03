@@ -1,0 +1,180 @@
+            "IDENTIFY k AND n",
+            "For P65, k=65. The ordered list still contains n=9 observations.",
+        )
+        inputs = self.formula_panel(r"k=65,\qquad n=9", width=5.4, height=1.05, font_size=42)
+        inputs.move_to(DOWN * 1.45)
+        self.play(FadeIn(inputs), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXAMPLE)
+
+        # STEP 3
+        banner, bar = self.swap_step(
+            banner, bar, 3,
+            "COMPUTE THE LOCATOR L",
+            "Use exactly the same locator rule as before.",
+        )
+        self.play(FadeOut(inputs), run_time=RUN_NORMAL)
+        equations = self.equation_stack(
+            [
+                r"L=\frac{65}{100}(9+1)",
+                r"L=0.65(10)",
+                r"L=6.5",
+            ],
+            sizes=[43, 43, 47],
+            max_width=6.3,
+        )
+        equations.move_to(DOWN * 1.35)
+        self.animate_equation_stack(equations, pause=PAUSE_STEP)
+        self.wait(PAUSE_EXAMPLE)
+
+        # STEP 4
+        banner, bar = self.swap_step(
+            banner, bar, 4,
+            "DECIDE: INTEGER OR DECIMAL?",
+            "L=6.5 is decimal. The target lies between ordered positions 6 and 7.",
+        )
+        self.play(FadeOut(equations), run_time=RUN_NORMAL)
+        self.highlight_positions(ordered, [6, 7])
+        between = self.formula_panel(r"6<L=6.5<7", width=5.5, height=1.05, font_size=44)
+        between.move_to(DOWN * 1.40)
+        neighbors = self.text("POSITION 6 = 72     |     POSITION 7 = 75", 24, BOLD).next_to(between, DOWN, buff=0.26)
+        self.play(FadeIn(between), run_time=RUN_NORMAL)
+        self.play(FadeIn(neighbors), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+
+        # STEP 5
+        banner, bar = self.swap_step(
+            banner, bar, 5,
+            "INTERPOLATE BETWEEN THE NEIGHBORS",
+            "6.5 is halfway from 6 to 7, so move 50% of the distance from 72 to 75.",
+        )
+        self.play(FadeOut(between), FadeOut(neighbors), run_time=RUN_NORMAL)
+        equation = self.equation_stack(
+            [
+                r"d=6.5-6=0.5",
+                r"P_{65}=72+0.5(75-72)",
+                r"P_{65}=72+1.5=73.5",
+            ],
+            sizes=[36, 39, 43],
+            max_width=6.5,
+        )
+        equation.move_to(LEFT * 3.55 + DOWN * 1.25)
+
+        track = self.interpolation_track(72, 75, 0.5, 73.5, width=5.2)
+        panel = self.figure_panel(
+            track,
+            width=6.1,
+            height=2.60,
+            title="INTERPOLATION",
+            caption="Halfway between 72 and 75 is 73.5.",
+        )
+        panel.group.move_to(RIGHT * 3.65 + DOWN * 1.28)
+        self.assert_content_safe(VGroup(ordered, equation, panel.group), "P65 interpolation")
+        self.animate_equation_stack(equation, pause=PAUSE_STEP)
+        shell = VGroup(panel.box)
+        if panel.title is not None:
+            shell.add(panel.title)
+        if panel.caption is not None:
+            shell.add(panel.caption)
+        self.play(FadeIn(shell), run_time=RUN_NORMAL)
+        self.play(Create(track[0]), FadeIn(VGroup(*track[1:3])), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(FadeIn(VGroup(*track[3:])), run_time=RUN_NORMAL)
+        self.wait(PAUSE_RESULT)
+
+        # STEP 6
+        banner, bar = self.swap_step(
+            banner, bar, 6,
+            "INTERPRET AND CHECK",
+            "P65=73.5 is the percentile benchmark; 65 refers to relative position, not 65% of the value.",
+        )
+        self.play(FadeOut(equation), FadeOut(panel.group), run_time=RUN_NORMAL)
+        final = VGroup(
+            self.formula_panel(r"\boxed{P_{65}=73.5}", width=5.5, height=1.12, font_size=46),
+            self.note_panel(
+                "CHECK",
+                [
+                    "73.5 lies between 72 and 75 — correct for a 6.5 locator.",
+                    "A decimal locator required interpolation — correct operation.",
+                ],
+                width=8.4,
+                title_size=25,
+                body_size=23,
+            ),
+        ).arrange(DOWN, buff=0.28).move_to(DOWN * 1.15)
+        self.play(FadeIn(final[0]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(FadeIn(final[1]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 5. Quartiles and deciles are translations into percentile language
+    # ------------------------------------------------------------------
+    def quartiles_deciles_translation(self) -> None:
+        self.set_header(
+            5,
+            "QUARTILES AND DECILES USE THE SAME PERCENTILE ENGINE",
+            "Translate the label first. Then return to the same six-step method instead of learning a new formula.",
+        )
+
+        cards = VGroup()
+        specs = [
+            ("QUARTILE", r"Q_1=P_{25}"),
+            ("MEDIAN", r"Q_2=P_{50}"),
+            ("QUARTILE", r"Q_3=P_{75}"),
+            ("DECILE RULE", r"D_j=P_{10j}"),
+        ]
+        for title, formula in specs:
+            card = VGroup(
+                self.text(title, 24, BOLD),
+                self.math(formula, 39),
+            ).arrange(DOWN, buff=0.18)
+            box = RoundedRectangle(
+                width=3.15,
+                height=1.55,
+                corner_radius=0.10,
+                stroke_color=BLACK_LINE,
+                stroke_width=1.7,
+                fill_color=WHITE_FILL,
+                fill_opacity=1.0,
+            )
+            card.move_to(box)
+            cards.add(VGroup(box, card))
+        cards.arrange(RIGHT, buff=0.24).move_to(UP * 0.85)
+
+        worked = self.equation_stack(
+            [
+                r"\text{Example: }D_7=P_{70}",
+                r"L=\frac{70}{100}(9+1)=7",
+                r"D_7=P_{70}=x_{(7)}=75",
+            ],
+            sizes=[40, 40, 44],
+            max_width=7.3,
+        )
+        worked.move_to(LEFT * 3.45 + DOWN * 1.65)
+        note = self.note_panel(
+            "THE LOGIC DOES NOT CHANGE",
+            [
+                "0. Translate the label: D7 → P70.",
+                "1–6. Use the same ordered-data percentile method.",
+                "Result here: D7 = P70 = 75.",
+            ],
+            width=6.2,
+            title_size=25,
+            body_size=23,
+        )
+        note.move_to(RIGHT * 3.55 + DOWN * 1.60)
+
+        self.assert_content_safe(VGroup(cards, worked, note), "quartile-decile translation")
+        for card in cards:
+            self.play(FadeIn(card, shift=UP * 0.10), run_time=RUN_NORMAL)
+            self.wait(PAUSE_STEP)
+        self.animate_equation_stack(worked, pause=PAUSE_STEP)
+        self.play(FadeIn(note), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 6. Percentile value vs percentile rank + context
+    # ------------------------------------------------------------------
+    def value_vs_rank_and_context(self) -> None:
