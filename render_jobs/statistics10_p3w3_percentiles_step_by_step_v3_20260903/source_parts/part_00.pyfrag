@@ -1,0 +1,180 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Period 3 · Week 3 — Step-by-step percentile lesson V3.
+
+Pedagogical revision of the post-Semana-Robledista percentiles lesson.
+The mathematical content is preserved, but the classroom logic is made more
+explicit through a reusable six-step numbered method, larger step banners,
+stronger visual sequencing, and longer reading/thinking pauses.
+
+ManimCE target: 0.20.1
+Visual system: JP Classroom monochrome, 1920x1080, 30 fps.
+Classroom locator convention: L = (k/100)(n+1).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+import math
+import numpy as np
+
+from library.jp_classroom_style import *
+
+
+# =============================================================================
+# VERIFIED LESSON DATA
+# =============================================================================
+RAW_DATA = [75, 52, 88, 64, 61, 72, 58, 81, 68]
+ORDERED = sorted(RAW_DATA)
+N = len(ORDERED)
+
+CHALLENGE_RAW = [31, 12, 43, 21, 17, 39, 24, 15, 34, 18, 27]
+CHALLENGE_ORDERED = sorted(CHALLENGE_RAW)
+
+# Deliberately slower than the prior version: students need time to read the
+# numbered instruction before the next algebraic action appears.
+PAUSE_STEP = 2.60
+PAUSE_EXAMPLE = 3.20
+PAUSE_THINK = 4.80
+PAUSE_CHALLENGE = 8.00
+PAUSE_RESULT = 4.20
+
+
+@dataclass(frozen=True)
+class PercentileResult:
+    k: float
+    locator: float
+    lower_position: int
+    upper_position: int
+    fraction: float
+    lower_value: float
+    upper_value: float
+    value: float
+
+
+def classroom_percentile(sorted_values: list[float], k: float) -> PercentileResult:
+    """Percentile under the established class locator convention.
+
+    Data positions are 1-indexed. The lesson examples stay inside the observed
+    range, so endpoint extrapolation is intentionally not part of this class.
+    """
+    if sorted_values != sorted(sorted_values):
+        raise ValueError("Values must be ordered before percentile calculation.")
+    if not 0 < k < 100:
+        raise ValueError("k must satisfy 0 < k < 100.")
+
+    locator = (k / 100.0) * (len(sorted_values) + 1)
+    lower_position = math.floor(locator)
+    upper_position = math.ceil(locator)
+    if lower_position < 1 or upper_position > len(sorted_values):
+        raise ValueError("Locator outside the interpolation range used in this lesson.")
+
+    lower_value = float(sorted_values[lower_position - 1])
+    upper_value = float(sorted_values[upper_position - 1])
+    fraction = locator - lower_position
+    value = lower_value + fraction * (upper_value - lower_value)
+
+    return PercentileResult(
+        k=k,
+        locator=locator,
+        lower_position=lower_position,
+        upper_position=upper_position,
+        fraction=fraction,
+        lower_value=lower_value,
+        upper_value=upper_value,
+        value=value,
+    )
+
+
+P40 = classroom_percentile(ORDERED, 40)
+P50 = classroom_percentile(ORDERED, 50)
+P65 = classroom_percentile(ORDERED, 65)
+P70 = classroom_percentile(ORDERED, 70)
+P75 = classroom_percentile(ORDERED, 75)
+D3_CHALLENGE = classroom_percentile(CHALLENGE_ORDERED, 30)
+P85_CHALLENGE = classroom_percentile(CHALLENGE_ORDERED, 85)
+
+
+def validate_all_data() -> None:
+    assert RAW_DATA == [75, 52, 88, 64, 61, 72, 58, 81, 68]
+    assert ORDERED == [52, 58, 61, 64, 68, 72, 75, 81, 88]
+    assert N == 9
+
+    assert_close(P40.locator, 4.0, label="P40 locator")
+    assert_close(P40.value, 64.0, label="P40 value")
+    assert_close(P50.locator, 5.0, label="P50 locator")
+    assert_close(P50.value, 68.0, label="P50 value")
+    assert_close(P65.locator, 6.5, label="P65 locator")
+    assert_close(P65.value, 73.5, label="P65 value")
+    assert_close(P70.locator, 7.0, label="P70 locator")
+    assert_close(P70.value, 75.0, label="D7 value")
+    assert_close(P75.locator, 7.5, label="P75 locator")
+    assert_close(P75.value, 78.0, label="Q3 / P75 value")
+
+    assert CHALLENGE_ORDERED == [12, 15, 17, 18, 21, 24, 27, 31, 34, 39, 43]
+    assert_close(D3_CHALLENGE.locator, 3.6, label="challenge D3 locator")
+    assert_close(D3_CHALLENGE.value, 17.6, label="challenge D3 value")
+    assert_close(P85_CHALLENGE.locator, 10.2, label="challenge P85 locator")
+    assert_close(P85_CHALLENGE.value, 39.8, label="challenge P85 value")
+
+
+# =============================================================================
+# MAIN LESSON
+# =============================================================================
+class Statistics10Period3Week3PercentilesStepByStepV3(JPMathClassroomScene):
+    """Senior classroom revision with explicit numbered procedural logic."""
+
+    METHOD = [
+        "ORDER DATA",
+        "IDENTIFY k, n",
+        "COMPUTE L",
+        "DECIDE TYPE",
+        "READ / INTERPOLATE",
+        "INTERPRET + CHECK",
+    ]
+
+    def validate_lesson_data(self) -> None:
+        validate_all_data()
+
+    def construct(self) -> None:
+        self.opening()
+        self.bridge_iqr_to_percentiles()
+        self.six_step_method()
+        self.example_p40()
+        self.example_p65()
+        self.quartiles_deciles_translation()
+        self.value_vs_rank_and_context()
+        self.guided_challenge()
+        self.final_summary()
+
+    # ------------------------------------------------------------------
+    # Reusable lesson-specific visual components
+    # ------------------------------------------------------------------
+    def ordered_row(self, values: list[int], *, box_size: float = 0.72, font_size: int = 30) -> VGroup:
+        row = self.boxed_values(values, box_size=box_size, font_size=font_size, buff=0.09)
+        positions = VGroup(*[self.math(str(i), 18) for i in range(1, len(values) + 1)])
+        for position, box in zip(positions, row[0]):
+            position.next_to(box, DOWN, buff=0.08)
+        return VGroup(row, positions)
+
+    def method_bar(self, active: int) -> VGroup:
+        """Large six-step progress bar; stable under the fixed classroom camera."""
+        cards = VGroup()
+        for idx, label in enumerate(self.METHOD, start=1):
+            box = RoundedRectangle(
+                width=2.18,
+                height=0.58,
+                corner_radius=0.08,
+                stroke_color=BLACK_LINE,
+                stroke_width=2.2 if idx == active else 1.25,
+                fill_color=LIGHT_GRAY if idx == active else WHITE_FILL,
+                fill_opacity=1.0,
+            )
+            badge = RoundedRectangle(
+                width=0.42,
+                height=0.38,
+                corner_radius=0.06,
+                stroke_color=BLACK_LINE,
+                stroke_width=1.3,
+                fill_color=VERY_LIGHT_GRAY,
+                fill_opacity=1.0,
