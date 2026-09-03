@@ -1,0 +1,55 @@
+name: Render Statistics 10 P3W3 Percentiles Step-by-Step V3
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - render/statistics10-p3w3-percentiles-step-by-step-v3-20260903
+    paths:
+      - 'render_jobs/statistics10_p3w3_percentiles_step_by_step_v3_20260903/TRIGGER_RENDER.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout exact V3 branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull fixed ManimCE image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run full senior ManimCE render protocol
+        id: render_protocol
+        run: bash render_jobs/statistics10_p3w3_percentiles_step_by_step_v3_20260903/run_pipeline.sh
+
+      - name: Upload V3 delivery package and QA diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-P3W3-Percentiles-StepByStep-V3-pqh
+          path: render_jobs/statistics10_p3w3_percentiles_step_by_step_v3_20260903/delivery/
+          if-no-files-found: warn
+
+      - name: Publish verified MP4 directly into repository branch
+        if: steps.render_protocol.outcome == 'success'
+        run: |
+          set -euo pipefail
+          SRC='render_jobs/statistics10_p3w3_percentiles_step_by_step_v3_20260903/delivery/Statistics10_P3W3_Percentiles_STEP_BY_STEP_V3_FINAL_pqh.mp4'
+          DST_DIR='deliveries/statistics10_p3w3_percentiles_step_by_step_v3'
+          DST="$DST_DIR/Statistics10_P3W3_Percentiles_STEP_BY_STEP_V3_FINAL_pqh.mp4"
+          test -s "$SRC"
+          mkdir -p "$DST_DIR"
+          cp "$SRC" "$DST"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$DST"
+          git commit -m 'delivery: publish Statistics 10 percentiles Step-by-Step V3 PQH MP4'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
