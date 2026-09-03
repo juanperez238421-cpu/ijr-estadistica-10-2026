@@ -1,0 +1,180 @@
+            ("4", "DECIDE: INTEGER OR DECIMAL?"),
+            ("5", "READ OR INTERPOLATE"),
+            ("6", "INTERPRET AND CHECK"),
+        ]
+        route = self.process_map(steps, card_width=4.35, card_height=1.14, columns=3)
+        route.move_to(UP * 0.20)
+        self.fit(route, 13.8, 3.25)
+
+        formula = self.formula_panel(r"L=\frac{k}{100}(n+1)", width=6.4, height=1.18, font_size=47)
+        formula.move_to(DOWN * 2.05)
+        decision = self.text(
+            "INTEGER L → READ A POSITION     |     DECIMAL L → INTERPOLATE",
+            24,
+            BOLD,
+        ).move_to(DOWN * 2.95)
+
+        self.assert_content_safe(VGroup(route, formula, decision), "six-step method")
+        for card in route:
+            self.play(FadeIn(card, shift=UP * 0.10), run_time=RUN_NORMAL)
+            self.wait(PAUSE_STEP)
+
+        self.play(FadeIn(formula), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXAMPLE)
+        self.play(FadeIn(decision), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 3. Worked Example A: P40, explicit six-step method
+    # ------------------------------------------------------------------
+    def example_p40(self) -> None:
+        self.set_header(
+            3,
+            "WORKED EXAMPLE A — FIND P40",
+            "We will not skip any step. Watch the same numbered method from raw data to interpretation.",
+        )
+
+        banner = None
+        bar = None
+
+        # STEP 1
+        banner, bar = self.swap_step(
+            banner, bar, 1,
+            "ORDER THE DATA",
+            "Percentiles use positions, so the values must be sorted from smallest to largest first.",
+        )
+        raw = self.boxed_values(RAW_DATA, box_size=0.69, font_size=29, buff=0.09)
+        raw.move_to(UP * 0.65)
+        sort_arrow = Arrow(UP * 0.05, DOWN * 0.75, color=BLACK_LINE, stroke_width=2.0, buff=0.08)
+        sort_label = self.text("SORT ASCENDING", 20, BOLD).next_to(sort_arrow, RIGHT, buff=0.18)
+        ordered = self.ordered_row(ORDERED, box_size=0.69, font_size=29)
+        ordered.move_to(DOWN * 1.30)
+        self.assert_content_safe(VGroup(raw, sort_arrow, sort_label, ordered), "P40 order data")
+        self.play(FadeIn(raw), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(GrowArrow(sort_arrow), FadeIn(sort_label), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(FadeIn(ordered[0], shift=DOWN * 0.10), run_time=RUN_NORMAL)
+        self.play(FadeIn(ordered[1]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXAMPLE)
+        self.play(FadeOut(raw), FadeOut(sort_arrow), FadeOut(sort_label), run_time=RUN_NORMAL)
+        self.play(ordered.animate.move_to(UP * 0.55), run_time=RUN_NORMAL)
+
+        # STEP 2
+        banner, bar = self.swap_step(
+            banner, bar, 2,
+            "IDENTIFY k AND n",
+            "k is the requested percentile. n is the number of ordered observations.",
+        )
+        inputs = self.key_value_panel(
+            "INPUTS",
+            [("Requested percentile", r"k=40"), ("Observations", r"n=9")],
+            width=6.3,
+            label_size=23,
+            value_size=29,
+        )
+        inputs.move_to(DOWN * 1.45)
+        self.play(FadeIn(inputs), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXAMPLE)
+
+        # STEP 3
+        banner, bar = self.swap_step(
+            banner, bar, 3,
+            "COMPUTE THE LOCATOR L",
+            "Substitute k and n into the class rule. L is a POSITION, not a score.",
+        )
+        self.play(FadeOut(inputs), run_time=RUN_NORMAL)
+        equations = self.equation_stack(
+            [
+                r"L=\frac{k}{100}(n+1)",
+                r"L=\frac{40}{100}(9+1)",
+                r"L=0.40(10)=4",
+            ],
+            sizes=[42, 42, 45],
+            max_width=6.8,
+        )
+        equations.move_to(DOWN * 1.35)
+        self.animate_equation_stack(equations, pause=PAUSE_STEP)
+        self.wait(PAUSE_EXAMPLE)
+
+        # STEP 4
+        banner, bar = self.swap_step(
+            banner, bar, 4,
+            "DECIDE: INTEGER OR DECIMAL?",
+            "L=4 is an integer, so we read the value at ordered position 4. No interpolation.",
+        )
+        self.play(FadeOut(equations), run_time=RUN_NORMAL)
+        decision = self.result_card(r"L=4\in\mathbb{Z}\quad\Rightarrow\quad\text{READ POSITION 4}", "Integer locator → direct read.", width=8.4)
+        decision.move_to(DOWN * 1.35)
+        self.play(FadeIn(decision), run_time=RUN_NORMAL)
+        self.highlight_positions(ordered, [4])
+        self.wait(PAUSE_THINK)
+
+        # STEP 5
+        banner, bar = self.swap_step(
+            banner, bar, 5,
+            "READ THE ORDERED POSITION",
+            "Position 4 contains the score 64, so this is the percentile value.",
+        )
+        self.play(FadeOut(decision), run_time=RUN_NORMAL)
+        marker = Arrow(DOWN * 0.20, UP * 0.42, color=BLACK_LINE, stroke_width=2.2, buff=0.05)
+        marker.next_to(ordered[0][0][3], DOWN, buff=0.20)
+        label = self.math(r"x_{(4)}=64", 41).next_to(marker, DOWN, buff=0.12)
+        result = self.formula_panel(r"\boxed{P_{40}=64}", width=5.2, height=1.12, font_size=46)
+        result.move_to(DOWN * 1.95)
+        self.play(GrowArrow(marker), Write(label), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(FadeIn(result), run_time=RUN_NORMAL)
+        self.wait(PAUSE_RESULT)
+
+        # STEP 6
+        banner, bar = self.swap_step(
+            banner, bar, 6,
+            "INTERPRET AND CHECK",
+            "State what the answer means and verify that it came from an ordered position, not from 40% of 64.",
+        )
+        self.play(FadeOut(marker), FadeOut(label), FadeOut(result), run_time=RUN_NORMAL)
+        interpretation = self.note_panel(
+            "FINAL STATEMENT",
+            [
+                "P40 = 64 is the 40th-percentile benchmark for this ordered score set.",
+                "The number 40 describes relative position; 64 is the data value.",
+                "Check: L=4 is integer, so direct reading was the correct operation.",
+            ],
+            width=10.2,
+            title_size=27,
+            body_size=23,
+        )
+        interpretation.move_to(DOWN * 1.25)
+        self.play(FadeIn(interpretation, shift=UP * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 4. Worked Example B: P65, explicit interpolation
+    # ------------------------------------------------------------------
+    def example_p65(self) -> None:
+        self.set_header(
+            4,
+            "WORKED EXAMPLE B — FIND P65",
+            "The first three steps are the same. The difference appears only after the locator is computed.",
+        )
+
+        banner = None
+        bar = None
+        ordered = self.ordered_row(ORDERED, box_size=0.69, font_size=29)
+        ordered.move_to(UP * 0.55)
+        self.play(FadeIn(ordered), run_time=RUN_NORMAL)
+
+        # STEP 1
+        banner, bar = self.swap_step(
+            banner, bar, 1,
+            "ORDER THE DATA",
+            "The data are already sorted: 52, 58, 61, 64, 68, 72, 75, 81, 88.",
+        )
+        self.wait(PAUSE_EXAMPLE)
+
+        # STEP 2
+        banner, bar = self.swap_step(
+            banner, bar, 2,
