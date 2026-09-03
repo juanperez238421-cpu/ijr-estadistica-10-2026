@@ -1,0 +1,180 @@
+        self.set_header(
+            6,
+            "INTERPRETATION: VALUE AND RANK ARE DIFFERENT QUESTIONS",
+            "Finish every calculation by saying what the number represents in the context of the data.",
+        )
+
+        left = self.note_panel(
+            "PERCENTILE VALUE",
+            [
+                "Input: percentile k.",
+                "Question: what data value is at that percentile?",
+                "Example from today: P65 = 73.5.",
+                "Output keeps the original data units.",
+            ],
+            width=6.45,
+            title_size=27,
+            body_size=23,
+        )
+        right = self.note_panel(
+            "PERCENTILE RANK",
+            [
+                "Input: an observed data value.",
+                "Question: what relative standing does it have?",
+                "It is the inverse type of question.",
+                "Do not swap these two ideas.",
+            ],
+            width=6.45,
+            title_size=27,
+            body_size=23,
+        )
+        layout = self.split_layout(left, right, center_y=0.20)
+
+        context = self.note_panel(
+            "CONTEXT CHECK",
+            [
+                "High exam score: larger may be stronger performance.",
+                "Race time: smaller may be stronger performance.",
+                "Percentile = relative position; context decides the practical meaning.",
+            ],
+            width=11.0,
+            title_size=25,
+            body_size=22,
+        )
+        context.move_to(DOWN * 2.35)
+
+        self.assert_content_safe(VGroup(layout.group, context), "value-rank context")
+        self.play(FadeIn(left, shift=RIGHT * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXAMPLE)
+        self.play(FadeIn(right, shift=LEFT * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXAMPLE)
+        self.play(FadeIn(context), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 7. Guided challenge with deliberate pause + numbered reveal
+    # ------------------------------------------------------------------
+    def guided_challenge(self) -> None:
+        self.set_header(
+            7,
+            "GUIDED CHALLENGE — APPLY THE SIX STEPS YOURSELF",
+            "Find D3 and P85. The video will pause before revealing the full numbered solution.",
+        )
+
+        row = self.ordered_row(CHALLENGE_ORDERED, box_size=0.60, font_size=27)
+        row.move_to(UP * 1.05)
+        prompt = self.note_panel(
+            "YOUR SIX-STEP CHECKLIST",
+            [
+                "1. Order the data.",
+                "2. Identify k and n.",
+                "3. Compute L.",
+                "4. Decide integer or decimal.",
+                "5. Read or interpolate.",
+                "6. Interpret and check.",
+            ],
+            width=6.15,
+            title_size=25,
+            body_size=22,
+        )
+        prompt.move_to(LEFT * 3.55 + DOWN * 1.25)
+        tasks = self.note_panel(
+            "SOLVE",
+            [
+                "A. D3 = ?   First convert D3 to a percentile.",
+                "B. P85 = ?",
+                "Write every locator before calculating the value.",
+                "Do not reveal the answer until your steps are complete.",
+            ],
+            width=6.35,
+            title_size=25,
+            body_size=22,
+        )
+        tasks.move_to(RIGHT * 3.55 + DOWN * 1.25)
+
+        pause_label = self.text("PAUSE AND SOLVE NOW", 29, BOLD).move_to(DOWN * 3.00)
+        self.assert_content_safe(VGroup(row, prompt, tasks, pause_label), "guided challenge prompt")
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(FadeIn(prompt), FadeIn(tasks), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(FadeIn(pause_label), run_time=RUN_NORMAL)
+        self.wait(PAUSE_CHALLENGE)
+
+        self.play(FadeOut(prompt), FadeOut(tasks), FadeOut(pause_label), run_time=RUN_NORMAL)
+
+        d3 = self.note_panel(
+            "A. D3 → P30",
+            [
+                "1. Ordered data shown above.",
+                "2. k=30, n=11.",
+                "3. L=(30/100)(12)=3.6.",
+                "4. Decimal → use positions 3 and 4.",
+                "5. 17+0.6(18−17)=17.6.",
+                "6. D3=P30=17.6; check 17<17.6<18.",
+            ],
+            width=6.45,
+            title_size=26,
+            body_size=21,
+        )
+        p85 = self.note_panel(
+            "B. P85",
+            [
+                "1. Ordered data shown above.",
+                "2. k=85, n=11.",
+                "3. L=(85/100)(12)=10.2.",
+                "4. Decimal → use positions 10 and 11.",
+                "5. 39+0.2(43−39)=39.8.",
+                "6. P85=39.8; check 39<39.8<43.",
+            ],
+            width=6.45,
+            title_size=26,
+            body_size=21,
+        )
+        layout = self.split_layout(d3, p85, center_y=-0.70)
+        self.assert_content_safe(VGroup(row, layout.group), "challenge solution")
+
+        self.play(FadeIn(d3, shift=RIGHT * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.play(FadeIn(p85, shift=LEFT * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 8. Final reproducible method + common-error check
+    # ------------------------------------------------------------------
+    def final_summary(self) -> None:
+        self.set_header(
+            8,
+            "FINAL RECIPE — SAY THE STEP NUMBER BEFORE YOU DO THE MATH",
+            "This procedure is reusable for quartiles, deciles and percentiles under the class locator convention.",
+        )
+
+        route = self.process_map(
+            [
+                ("1", "ORDER DATA"),
+                ("2", "IDENTIFY k, n"),
+                ("3", "COMPUTE L"),
+                ("4", "DECIDE TYPE"),
+                ("5", "READ / INTERPOLATE"),
+                ("6", "INTERPRET + CHECK"),
+            ],
+            card_width=4.2,
+            card_height=1.05,
+            columns=3,
+        )
+        route.move_to(UP * 0.55)
+        self.fit(route, 13.4, 2.55)
+
+        identity = self.formula_panel(
+            r"Q_1=P_{25},\quad Q_2=P_{50},\quad Q_3=P_{75},\quad D_j=P_{10j}",
+            width=11.8,
+            height=1.00,
+            font_size=35,
+        )
+        identity.move_to(DOWN * 1.55)
+
+        warnings = VGroup(
+            self.text("DO NOT: use unsorted data.", 22, BOLD),
+            self.text("DO NOT: treat L as a data value.", 22, BOLD),
