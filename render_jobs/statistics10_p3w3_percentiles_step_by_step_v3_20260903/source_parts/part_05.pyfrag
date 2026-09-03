@@ -1,0 +1,18 @@
+            self.text("DO NOT: skip interpolation when L is decimal.", 22, BOLD),
+        ).arrange(DOWN, aligned_edge=LEFT, buff=0.12).move_to(DOWN * 2.70)
+
+        self.assert_content_safe(VGroup(route, identity, warnings), "final summary")
+        for card in route:
+            self.play(FadeIn(card, shift=UP * 0.10), run_time=RUN_NORMAL)
+            self.wait(PAUSE_STEP)
+        self.play(FadeIn(identity), run_time=RUN_NORMAL)
+        self.wait(PAUSE_EXAMPLE)
+        self.play(FadeIn(warnings), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.standard_closing("1 Order → 2 Identify → 3 Locate → 4 Decide → 5 Calculate → 6 Interpret.")
+
+
+# Preview:
+#   manim -pql scene.py Statistics10Period3Week3PercentilesStepByStepV3 --disable_caching
+# Final:
+#   manim -pqh scene.py Statistics10Period3Week3PercentilesStepByStepV3 --disable_caching
