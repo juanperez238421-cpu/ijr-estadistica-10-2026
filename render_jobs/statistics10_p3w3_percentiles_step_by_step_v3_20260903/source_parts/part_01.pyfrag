@@ -1,0 +1,180 @@
+            )
+            number = self.text(str(idx), 15, BOLD).move_to(badge)
+            word = self.text(label, 14, BOLD if idx == active else NORMAL)
+            content = VGroup(VGroup(badge, number), word).arrange(RIGHT, buff=0.10)
+            self.fit(content, 1.94, 0.38)
+            content.move_to(box)
+            cards.add(VGroup(box, content))
+        cards.arrange(RIGHT, buff=0.10)
+        cards.to_edge(DOWN, buff=0.13)
+        self.assert_within_frame(cards, "method bar")
+        return cards
+
+    def step_banner(self, number: int, title: str, instruction: str) -> VGroup:
+        badge = RoundedRectangle(
+            width=0.78,
+            height=0.70,
+            corner_radius=0.10,
+            stroke_color=BLACK_LINE,
+            stroke_width=2.2,
+            fill_color=VERY_LIGHT_GRAY,
+            fill_opacity=1.0,
+        )
+        badge_text = self.text(str(number), 27, BOLD).move_to(badge)
+        title_m = self.text(title, 29, BOLD)
+        instruction_m = self.text(instruction, 21)
+        texts = VGroup(title_m, instruction_m).arrange(DOWN, aligned_edge=LEFT, buff=0.06)
+        self.fit(texts, 11.8, 0.74)
+        group = VGroup(VGroup(badge, badge_text), texts).arrange(RIGHT, buff=0.22)
+        group.move_to(UP * 1.96)
+        self.assert_content_safe(group, f"step {number} banner")
+        return group
+
+    def swap_step(self, old_banner: VGroup | None, old_bar: VGroup | None, number: int, title: str, instruction: str):
+        new_banner = self.step_banner(number, title, instruction)
+        new_bar = self.method_bar(number)
+        animations = []
+        if old_banner is None:
+            animations.append(FadeIn(new_banner, shift=RIGHT * 0.10))
+        else:
+            animations.append(ReplacementTransform(old_banner, new_banner))
+        if old_bar is None:
+            animations.append(FadeIn(new_bar))
+        else:
+            animations.append(ReplacementTransform(old_bar, new_bar))
+        self.play(*animations, run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        return new_banner, new_bar
+
+    def highlight_positions(self, row: VGroup, positions: list[int]) -> None:
+        animations = []
+        for position in positions:
+            animations.append(row[0][0][position - 1].animate.set_fill(LIGHT_GRAY, opacity=1.0))
+        self.play(*animations, run_time=RUN_NORMAL)
+
+    def result_card(self, expression: str, caption: str, *, width: float = 7.0) -> VGroup:
+        formula = self.formula_panel(expression, width=width, height=1.12, font_size=43)
+        note = self.text(caption, 22, MEDIUM)
+        self.fit(note, width - 0.55, 0.52)
+        card = VGroup(formula, note).arrange(DOWN, buff=0.20)
+        return card
+
+    def interpolation_track(self, left_value: float, right_value: float, fraction: float, result: float, *, width: float = 5.2) -> VGroup:
+        start = LEFT * width / 2
+        end = RIGHT * width / 2
+        line = Line(start, end, color=BLACK_LINE, stroke_width=3.0)
+        left_dot = Dot(start, color=BLACK_LINE, radius=0.08)
+        right_dot = Dot(end, color=BLACK_LINE, radius=0.08)
+        target_point = start + fraction * (end - start)
+        target = Dot(target_point, color=BLACK_LINE, radius=0.11)
+        left_label = self.math(str(left_value).rstrip("0").rstrip("."), 30).next_to(left_dot, DOWN, buff=0.12)
+        right_label = self.math(str(right_value).rstrip("0").rstrip("."), 30).next_to(right_dot, DOWN, buff=0.12)
+        target_label = self.math(str(result).rstrip("0").rstrip("."), 32).next_to(target, UP, buff=0.14)
+        fraction_label = self.math(rf"d={fraction:g}", 26).next_to(target, UP, buff=0.72)
+        return VGroup(line, left_dot, right_dot, target, left_label, right_label, target_label, fraction_label)
+
+    def percentage_axis(self, *, width: float = 10.8, y: float = -0.65) -> VGroup:
+        x0 = -width / 2
+        x1 = width / 2
+        axis = Line([x0, y, 0], [x1, y, 0], color=BLACK_LINE, stroke_width=2.4)
+        ticks = VGroup()
+        labels = VGroup()
+        for p in [0, 25, 50, 75, 100]:
+            x = x0 + width * p / 100.0
+            tick = Line([x, y - 0.12, 0], [x, y + 0.12, 0], color=BLACK_LINE, stroke_width=1.8)
+            label = self.math(rf"{p}\%", 25).next_to(tick, DOWN, buff=0.10)
+            ticks.add(tick)
+            labels.add(label)
+        return VGroup(axis, ticks, labels)
+
+    # ------------------------------------------------------------------
+    # Opening
+    # ------------------------------------------------------------------
+    def opening(self) -> None:
+        self.standard_opening(
+            "STATISTICS 10 · PERIOD 3 · WEEK 3",
+            "PERCENTILES — STEP BY STEP",
+            "Connect IQR and quartiles to a precise language of relative position.",
+            "One method. Six numbered steps. Every example follows the same logic.",
+        )
+
+    # ------------------------------------------------------------------
+    # 1. IQR / boxplot bridge
+    # ------------------------------------------------------------------
+    def bridge_iqr_to_percentiles(self) -> None:
+        self.set_header(
+            1,
+            "START FROM THE IQR / BOXPLOT YOU ALREADY KNOW",
+            "The three quartiles are already percentile positions: Q1=P25, Q2=P50 and Q3=P75.",
+        )
+
+        axis = self.percentage_axis(width=10.8, y=-0.85)
+        x_left = -5.4
+        x25 = x_left + 10.8 * 0.25
+        x50 = x_left + 10.8 * 0.50
+        x75 = x_left + 10.8 * 0.75
+
+        box = Rectangle(
+            width=x75 - x25,
+            height=1.28,
+            stroke_color=BLACK_LINE,
+            stroke_width=2.6,
+            fill_color=VERY_LIGHT_GRAY,
+            fill_opacity=1.0,
+        ).move_to([(x25 + x75) / 2, 0.55, 0])
+        median = Line([x50, -0.09, 0], [x50, 1.19, 0], color=BLACK_LINE, stroke_width=3.0)
+        whisker_left = Line([-5.0, 0.55, 0], [x25, 0.55, 0], color=BLACK_LINE, stroke_width=2.3)
+        whisker_right = Line([x75, 0.55, 0], [5.0, 0.55, 0], color=BLACK_LINE, stroke_width=2.3)
+        caps = VGroup(
+            Line([-5.0, 0.25, 0], [-5.0, 0.85, 0], color=BLACK_LINE, stroke_width=2.1),
+            Line([5.0, 0.25, 0], [5.0, 0.85, 0], color=BLACK_LINE, stroke_width=2.1),
+        )
+        q1 = self.math(r"Q_1=P_{25}", 36).next_to(box.get_left(), UP, buff=0.22)
+        q2 = self.math(r"Q_2=P_{50}", 36).next_to(median, UP, buff=0.22)
+        q3 = self.math(r"Q_3=P_{75}", 36).next_to(box.get_right(), UP, buff=0.22)
+        q_labels = VGroup(q1, q2, q3)
+
+        reminder = self.note_panel(
+            "READ THE BOXPLOT AS POSITIONS",
+            [
+                "1. Q1 marks the 25th-percentile position.",
+                "2. Q2 is the median = 50th-percentile position.",
+                "3. Q3 marks the 75th-percentile position.",
+            ],
+            width=9.2,
+            title_size=25,
+            body_size=23,
+        )
+        reminder.move_to(DOWN * 2.30)
+
+        visual = VGroup(axis, box, median, whisker_left, whisker_right, caps, q_labels, reminder)
+        self.assert_content_safe(visual, "IQR-to-percentile bridge")
+
+        self.play(Create(axis[0]), FadeIn(axis[1]), FadeIn(axis[2]), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+        self.play(Create(whisker_left), Create(whisker_right), Create(caps), run_time=RUN_NORMAL)
+        self.play(FadeIn(box), Create(median), run_time=RUN_NORMAL)
+        self.wait(PAUSE_STEP)
+
+        for label in q_labels:
+            self.play(Write(label), run_time=RUN_NORMAL)
+            self.wait(PAUSE_STEP)
+
+        self.play(FadeIn(reminder, shift=UP * 0.10), run_time=RUN_NORMAL)
+        self.wait(PAUSE_THINK)
+        self.clear_stage()
+
+    # ------------------------------------------------------------------
+    # 2. Universal six-step algorithm
+    # ------------------------------------------------------------------
+    def six_step_method(self) -> None:
+        self.set_header(
+            2,
+            "THE SAME SIX STEPS SOLVE EVERY PERCENTILE IN THIS CLASS",
+            "Memorize the reasoning order, not isolated answers. The locator tells you what to do next.",
+        )
+
+        steps = [
+            ("1", "ORDER THE DATA"),
+            ("2", "IDENTIFY k AND n"),
+            ("3", "COMPUTE THE LOCATOR L"),
