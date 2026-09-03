@@ -10,8 +10,9 @@ DOCKER_USER_ARGS=(--user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home)
 
 mkdir -p "$JOB/build" "$JOB/delivery" "$JOB/qa_frames" library media
 
-# 1. Reconstruct exact V3 source and consolidated JP classroom style
-base64 -d "$JOB/payload/scene.py.gz.b64" | gzip -dc > "$JOB/build/scene.py"
+# 1. Reconstruct exact V3 source from lossless plain-text fragments and consolidated JP classroom style.
+#    Plain-text fragments replace the previous gzip/base64 source payload after transport CRC QA caught corruption.
+cat "$JOB"/source_parts/part_*.pyfrag > "$JOB/build/scene.py"
 printf '' > library/__init__.py
 base64 -d render_jobs/statistics10_p3w2_iqr_boxplot_20260824/payload/jp_classroom_style.py.gz.b64 \
   | gzip -dc > library/jp_classroom_style.py
