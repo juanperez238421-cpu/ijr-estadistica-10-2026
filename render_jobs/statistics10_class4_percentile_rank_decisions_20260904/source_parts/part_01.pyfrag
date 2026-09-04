@@ -1,0 +1,185 @@
+
+    # ------------------------------------------------------------------
+    # 04–07 · worked rank, threshold decisions, relative position
+    # ------------------------------------------------------------------
+    def scene_04_worked_72(self):
+        self.set_header(
+            4,
+            "WORKED EXAMPLE A · FIND PR(72)",
+            "Question: What is the percentile rank of 72?",
+        )
+        bar = self.build_step_bar(1)
+        self.add(bar)
+        row, boxes, _ = self.dataset_row(DATA_A, selected=72, y=1.25)
+        ordered = self.text("Already ordered: smallest → largest", 25, BOLD).move_to(UP * 2.15)
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        self.play(Write(ordered), run_time=RUN_NORMAL)
+        self.wait(2.4)
+
+        bar = self.active_step_swap(bar, 2)
+        xn = VGroup(
+            self.number_card("SELECTED VALUE", "x = 72", 3.5),
+            self.number_card("TOTAL", "n = 9", 3.5),
+        ).arrange(RIGHT, buff=0.40).move_to(DOWN * 0.10)
+        self.play(FadeIn(xn), run_time=RUN_NORMAL)
+        self.wait(2.4)
+
+        bar = self.active_step_swap(bar, 3)
+        self.play(FadeOut(xn), run_time=RUN_QUICK)
+        for idx in range(6):
+            self.play(boxes[idx].animate.set_fill(VERY_LIGHT_GRAY, opacity=1), run_time=0.35)
+        count = self.text("count(v ≤ 72) = 6", 31, BOLD).move_to(DOWN * 0.25)
+        self.play(Write(count), run_time=RUN_NORMAL)
+        self.wait(3.0)
+
+        bar = self.active_step_swap(bar, 4)
+        self.play(FadeOut(count), run_time=RUN_QUICK)
+        formula = self.write_formula_lines(
+            [
+                r"\mathrm{PR}(72)=100\times\frac{6}{9}",
+                r"=66.666\ldots",
+                r"\approx 66.7",
+            ],
+            center=DOWN * 1.00,
+            size=39,
+            buff=0.12,
+        )
+        self.wait(3.6)
+
+        bar = self.active_step_swap(bar, 5)
+        self.play(FadeOut(formula), run_time=RUN_QUICK)
+        interp = self.interpretation_card(
+            [
+                "Approximately 66.7% of the observations are at or below 72.",
+                "72 is at approximately the 66.7th percentile under our class convention.",
+            ],
+            width=12.6,
+        ).move_to(DOWN * 0.70)
+        self.play(FadeIn(interp), run_time=RUN_NORMAL)
+        self.wait(5.0)
+        self.clear_stage()
+
+    def scene_05_decision_81(self):
+        self.set_header(
+            5,
+            "FROM PERCENTILE RANK TO A DECISION",
+            "A program requires a student to be at or above the 80th percentile. Does a raw value of 81 meet the criterion?",
+        )
+        bar = self.build_step_bar(None)
+        self.add(bar)
+        criterion = self.boxed_text("REQUIREMENT: percentile rank ≥ 80", 7.0, 0.92, 27, True, PAPER_GRAY).move_to(UP * 2.05)
+        prompt = self.text("Predict first: YES or NO?", 31, BOLD).move_to(UP * 1.20)
+        self.play(FadeIn(criterion), Write(prompt), run_time=RUN_NORMAL)
+        self.wait(4.2)
+        self.play(FadeOut(prompt), run_time=RUN_QUICK)
+
+        bar = self.active_step_swap(bar, 2)
+        row, _, _ = self.dataset_row(DATA_A, selected=81, leq=81, compact=True, y=0.75)
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        facts = self.text("x = 81     n = 9     count(v ≤ 81) = 8", 28, BOLD).move_to(DOWN * 0.15)
+        self.play(Write(facts), run_time=RUN_NORMAL)
+        self.wait(2.3)
+
+        bar = self.active_step_swap(bar, 4)
+        eq = self.math(r"\mathrm{PR}(81)=100\times\frac{8}{9}\approx 88.9", 43).move_to(DOWN * 1.05)
+        compare = self.math(r"88.9\ge 80", 50).move_to(DOWN * 1.90)
+        self.play(Write(eq), run_time=RUN_NORMAL)
+        self.wait(2.8)
+        self.play(Write(compare), run_time=RUN_NORMAL)
+        self.wait(3.0)
+
+        bar = self.active_step_swap(bar, 5)
+        decision = self.boxed_text(
+            "YES — THE RELATIVE-POSITION REQUIREMENT IS MET.",
+            10.2, 0.90, 26, True, VERY_LIGHT_GRAY,
+        ).move_to(DOWN * 2.68)
+        self.play(FadeIn(decision), run_time=RUN_NORMAL)
+        self.wait(4.0)
+        self.clear_stage()
+
+    def scene_06_near_miss_75(self):
+        self.set_header(
+            6,
+            "NEAR-MISS DECISION",
+            "Does a value of 75 meet the same at-or-above-the-80th-percentile requirement?",
+        )
+        bar = self.build_step_bar(None)
+        self.add(bar)
+        criterion = self.boxed_text("REQUIREMENT: percentile rank ≥ 80", 6.9, 0.90, 27, True, PAPER_GRAY).move_to(UP * 2.0)
+        predict = self.text("Predict before calculating.", 31, BOLD).move_to(UP * 1.20)
+        self.play(FadeIn(criterion), Write(predict), run_time=RUN_NORMAL)
+        self.wait(4.0)
+        self.play(FadeOut(predict), run_time=RUN_QUICK)
+
+        bar = self.active_step_swap(bar, 3)
+        row, _, _ = self.dataset_row(DATA_A, selected=75, leq=75, compact=True, y=0.65)
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        facts = self.text("x = 75     count(v ≤ 75) = 7     n = 9", 28, BOLD).move_to(DOWN * 0.15)
+        self.play(Write(facts), run_time=RUN_NORMAL)
+        self.wait(2.2)
+
+        bar = self.active_step_swap(bar, 4)
+        eq = self.math(r"\mathrm{PR}(75)=100\times\frac{7}{9}\approx 77.8", 43).move_to(DOWN * 1.00)
+        comp = self.math(r"77.8<80", 50).move_to(DOWN * 1.83)
+        self.play(Write(eq), run_time=RUN_NORMAL)
+        self.wait(2.8)
+        self.play(Write(comp), run_time=RUN_NORMAL)
+        self.wait(2.8)
+
+        bar = self.active_step_swap(bar, 5)
+        insight = self.interpretation_card(
+            [
+                "NOT YET.",
+                "The raw score is not enough. We need its position relative to the group.",
+            ],
+            width=11.5,
+            title="DECISION",
+        ).move_to(DOWN * 2.28)
+        self.play(FadeIn(insight), run_time=RUN_NORMAL)
+        self.wait(4.4)
+        self.clear_stage()
+
+    def scene_07_same_value_different_group(self):
+        self.set_header(
+            7,
+            "SAME RAW VALUE · DIFFERENT GROUP",
+            "Percentile rank describes position relative to the chosen comparison distribution.",
+        )
+        same = self.boxed_text("SELECTED RAW VALUE: 72", 5.4, 0.84, 27, True, PAPER_GRAY).move_to(UP * 2.10)
+        self.play(FadeIn(same), run_time=RUN_NORMAL)
+
+        label_a = self.text("GROUP A", 25, BOLD).move_to(LEFT * 6.25 + UP * 1.05)
+        row_a, _, _ = self.dataset_row(DATA_A, selected=72, leq=72, compact=True, y=1.05)
+        row_a.shift(LEFT * 1.65)
+        pr_a = self.boxed_text("6 of 9 ≤ 72\nPR ≈ 66.7", 3.2, 1.05, 22, True).move_to(RIGHT * 5.55 + UP * 1.05)
+
+        label_b = self.text("GROUP B", 25, BOLD).move_to(LEFT * 6.25 + DOWN * 0.30)
+        row_b, _, _ = self.dataset_row(GROUP_B, selected=72, leq=72, compact=True, y=-0.30)
+        row_b.shift(LEFT * 1.65)
+        pr_b = self.boxed_text("4 of 9 ≤ 72\nPR ≈ 44.4", 3.2, 1.05, 22, True).move_to(RIGHT * 5.55 + DOWN * 0.30)
+
+        self.play(FadeIn(label_a), FadeIn(row_a), run_time=RUN_NORMAL)
+        self.wait(2.0)
+        self.play(FadeIn(pr_a), run_time=RUN_NORMAL)
+        self.wait(2.4)
+        self.play(FadeIn(label_b), FadeIn(row_b), run_time=RUN_NORMAL)
+        self.wait(2.0)
+        self.play(FadeIn(pr_b), run_time=RUN_NORMAL)
+        self.wait(3.2)
+
+        statement = self.boxed_text("SAME VALUE  ≠  SAME RELATIVE POSITION", 8.3, 0.88, 28, True, VERY_LIGHT_GRAY).move_to(DOWN * 1.60)
+        interpret = self.text(
+            "72 is ≈66.7th percentile in Group A, but ≈44.4th percentile in Group B.",
+            25, BOLD,
+        )
+        self.fit(interpret, 13.3, 0.55).move_to(DOWN * 2.35)
+        caveat = self.text("Percentile rank describes position — not intelligence, quality, or intrinsic ability.", 21)
+        self.fit(caveat, 12.9, 0.50).move_to(DOWN * 2.88)
+
+        self.play(FadeIn(statement), run_time=RUN_NORMAL)
+        self.wait(3.4)
+        self.play(Write(interpret), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        self.play(FadeIn(caveat), run_time=RUN_NORMAL)
+        self.wait(3.6)
+        self.clear_stage()
