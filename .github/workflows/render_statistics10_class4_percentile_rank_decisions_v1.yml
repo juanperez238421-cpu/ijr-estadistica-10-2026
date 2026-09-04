@@ -1,4 +1,4 @@
-name: Render Statistics 10 Class 4 Percentile Rank Decisions V1
+name: Render Statistics 10 Class 4 Percentile Rank Decisions FINAL
 
 on:
   workflow_dispatch:
@@ -34,7 +34,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Statistics10-Class4-Percentile-Rank-Decisions-V1-PQH
+          name: Statistics10-Class4-Percentile-Rank-Decisions-FINAL-PQH
           retention-days: 30
           if-no-files-found: warn
           path: |
@@ -46,18 +46,18 @@ jobs:
         run: |
           set -euo pipefail
           JOB='render_jobs/statistics10_class4_percentile_rank_decisions_20260904'
-          SRC="$JOB/delivery/Stat10_Class4_Percentile_Rank_Decisions_SENIOR_FINAL_PQH.mp4"
-          DST_DIR='deliveries/statistics10_class4_percentile_rank_decisions_v1'
+          SRC="$JOB/delivery/Statistics10_Class4_Percentile_Rank_Decisions_FINAL_pqh.mp4"
+          DST_DIR='deliveries/statistics10_class4_percentile_rank_decisions_final'
           test -s "$SRC"
           mkdir -p "$DST_DIR"
-          cp "$SRC" "$DST_DIR/Stat10_Class4_Percentile_Rank_Decisions_SENIOR_FINAL_PQH.mp4"
+          cp "$SRC" "$DST_DIR/Statistics10_Class4_Percentile_Rank_Decisions_FINAL_pqh.mp4"
           cp "$JOB/delivery/QA_contact_sheet.jpg" "$DST_DIR/QA_contact_sheet.jpg"
           cp "$JOB/delivery/RENDER_SUMMARY.txt" "$DST_DIR/RENDER_SUMMARY.txt"
           cp "$JOB/delivery/SHA256SUMS.txt" "$DST_DIR/SHA256SUMS.txt"
           cp "$JOB/delivery/ffprobe.txt" "$DST_DIR/ffprobe.txt"
-          cp "$JOB/delivery/stat10_class4_percentile_rank_decisions.py" "$DST_DIR/stat10_class4_percentile_rank_decisions.py"
+          cp "$JOB/delivery/statistics10_class4_percentile_rank.py" "$DST_DIR/statistics10_class4_percentile_rank.py"
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add "$DST_DIR"
-          git commit -m 'delivery: publish Statistics 10 Class 4 percentile-rank PQH render'
+          git commit -m 'delivery: publish Statistics 10 Class 4 percentile-rank FINAL PQH render'
           git push origin "HEAD:${GITHUB_REF_NAME}"
