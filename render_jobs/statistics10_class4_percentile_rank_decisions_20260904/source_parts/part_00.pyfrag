@@ -1,0 +1,393 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""Statistics 10 · Class 4 · Percentile Rank & Decisions.
+
+Senior classroom continuation of the Statistics 10 Class 3 lesson on
+quartiles, deciles and percentiles.
+
+Class convention:
+    PR(x) = 100 * count(v <= x) / n
+
+Target: Manim Community Edition 0.20.1.
+"""
+from __future__ import annotations
+
+from library.jp_classroom_style import *
+
+
+DATA_A = [52, 58, 61, 64, 68, 72, 75, 81, 88]
+GROUP_B = [60, 65, 70, 72, 75, 80, 85, 90, 95]
+TIES = [55, 60, 60, 65, 70, 75, 75, 80, 85, 90]
+CHALLENGE = [48, 55, 60, 63, 67, 70, 74, 78, 82, 90]
+EXIT_DATA = [10, 20, 30, 40, 50]
+
+STEP_LABELS = [
+    (1, "ORDER\nTHE DATA"),
+    (2, "IDENTIFY\nx AND n"),
+    (3, "COUNT\nVALUES <= x"),
+    (4, "COMPUTE\nPR(x)"),
+    (5, "INTERPRET\nAND DECIDE"),
+]
+
+
+def count_leq(data, x):
+    return sum(v <= x for v in data)
+
+
+def percentile_rank(data, x):
+    return 100.0 * count_leq(data, x) / len(data)
+
+
+def validate_all_data():
+    assert DATA_A == sorted(DATA_A)
+    assert len(DATA_A) == 9
+    assert count_leq(DATA_A, 72) == 6
+    assert abs(percentile_rank(DATA_A, 72) - 66.6666666667) < 1e-8
+    assert count_leq(DATA_A, 75) == 7
+    assert abs(percentile_rank(DATA_A, 75) - 77.7777777778) < 1e-8
+    assert count_leq(DATA_A, 81) == 8
+    assert abs(percentile_rank(DATA_A, 81) - 88.8888888889) < 1e-8
+
+    assert GROUP_B == sorted(GROUP_B)
+    assert len(GROUP_B) == 9
+    assert count_leq(GROUP_B, 72) == 4
+    assert abs(percentile_rank(GROUP_B, 72) - 44.4444444444) < 1e-8
+
+    assert TIES == sorted(TIES)
+    assert len(TIES) == 10
+    assert count_leq(TIES, 75) == 7
+    assert percentile_rank(TIES, 75) == 70.0
+
+    assert CHALLENGE == sorted(CHALLENGE)
+    assert len(CHALLENGE) == 10
+    assert count_leq(CHALLENGE, 74) == 7
+    assert percentile_rank(CHALLENGE, 74) == 70.0
+
+    assert EXIT_DATA == sorted(EXIT_DATA)
+    assert len(EXIT_DATA) == 5
+    assert count_leq(EXIT_DATA, 30) == 3
+    assert percentile_rank(EXIT_DATA, 30) == 60.0
+
+
+class Stat10Class4PercentileRankDecisions(JPMathClassroomScene):
+    """Percentile rank as relative position and a decision tool."""
+
+    def validate_lesson_data(self):
+        validate_all_data()
+
+    # ------------------------------------------------------------------
+    # Reusable visual helpers
+    # ------------------------------------------------------------------
+    def boxed_text(self, text, width, height=1.10, size=28, bold=False, fill=WHITE):
+        box = RoundedRectangle(
+            width=width,
+            height=height,
+            corner_radius=0.12,
+            stroke_color=BLACK_LINE,
+            stroke_width=1.8,
+            fill_color=fill,
+            fill_opacity=1.0,
+        )
+        label = self.text(text, size, BOLD if bold else NORMAL)
+        self.fit(label, width - 0.45, height - 0.25)
+        label.move_to(box)
+        return VGroup(box, label)
+
+    def dataset_row(self, values, selected=None, leq=None, compact=False, y=0.2):
+        box_w = 0.84 if compact else 1.12
+        box_h = 0.70 if compact else 0.84
+        size = 23 if compact else 29
+        buff = 0.07 if compact else 0.11
+        boxes = []
+        labels = []
+        for value in values:
+            fill = WHITE
+            stroke_w = 1.7
+            if leq is not None and value <= leq:
+                fill = VERY_LIGHT_GRAY
+                stroke_w = 2.2
+            if selected is not None and value == selected:
+                fill = LIGHT_GRAY
+                stroke_w = 3.0
+            box = RoundedRectangle(
+                width=box_w,
+                height=box_h,
+                corner_radius=0.08,
+                stroke_color=BLACK_LINE,
+                stroke_width=stroke_w,
+                fill_color=fill,
+                fill_opacity=1.0,
+            )
+            label = self.text(str(value), size, BOLD if selected == value else NORMAL)
+            label.move_to(box)
+            boxes.append(box)
+            labels.append(label)
+        cells = VGroup(*[VGroup(b, t) for b, t in zip(boxes, labels)])
+        cells.arrange(RIGHT, buff=buff)
+        cells.move_to(UP * y)
+        return cells, boxes, labels
+
+    def build_step_bar(self, active=None):
+        panel = RoundedRectangle(
+            width=15.10,
+            height=0.94,
+            corner_radius=0.10,
+            stroke_color=LIGHT_GRAY,
+            stroke_width=1.5,
+            fill_color=WHITE,
+            fill_opacity=1.0,
+        )
+        cards = VGroup()
+        for number, label in STEP_LABELS:
+            is_active = number == active
+            card = RoundedRectangle(
+                width=2.83,
+                height=0.72,
+                corner_radius=0.08,
+                stroke_color=BLACK_LINE if is_active else LIGHT_GRAY,
+                stroke_width=2.3 if is_active else 1.2,
+                fill_color=VERY_LIGHT_GRAY if is_active else WHITE,
+                fill_opacity=1.0,
+            )
+            badge = Circle(
+                radius=0.18,
+                stroke_color=BLACK_LINE,
+                stroke_width=1.7,
+                fill_color=BLACK_LINE if is_active else WHITE,
+                fill_opacity=1.0,
+            )
+            badge_num = self.text(str(number), 18, BOLD)
+            if is_active:
+                badge_num.set_color(WHITE)
+            badge_num.move_to(badge)
+            txt = self.text(label, 15, BOLD if is_active else NORMAL)
+            self.fit(txt, 2.12, 0.53)
+            content = VGroup(VGroup(badge, badge_num), txt).arrange(RIGHT, buff=0.15)
+            content.move_to(card)
+            cards.add(VGroup(card, content))
+        cards.arrange(RIGHT, buff=0.10)
+        cards.move_to(panel)
+        bar = VGroup(panel, cards)
+        bar.move_to(DOWN * 3.78)
+        return bar
+
+    def number_card(self, label, value, width=3.3):
+        box = RoundedRectangle(
+            width=width,
+            height=1.40,
+            corner_radius=0.12,
+            stroke_color=BLACK_LINE,
+            stroke_width=1.8,
+            fill_color=WHITE,
+            fill_opacity=1,
+        )
+        a = self.text(label, 22, BOLD)
+        b = self.text(value, 35, BOLD)
+        self.fit(b, width - 0.4, 0.55)
+        content = VGroup(a, b).arrange(DOWN, buff=0.12).move_to(box)
+        return VGroup(box, content)
+
+    def interpretation_card(self, lines, width=11.8, title="INTERPRET"):
+        title_m = self.text(title, 23, BOLD)
+        body = VGroup(*[self.text(line, 25 if len(line) < 74 else 22) for line in lines])
+        body.arrange(DOWN, aligned_edge=LEFT, buff=0.13)
+        content = VGroup(title_m, body).arrange(DOWN, aligned_edge=LEFT, buff=0.18)
+        self.fit(content, width - 0.55, 1.65)
+        box = RoundedRectangle(
+            width=width,
+            height=max(1.55, content.height + 0.48),
+            corner_radius=0.12,
+            stroke_color=BLACK_LINE,
+            stroke_width=1.8,
+            fill_color=PAPER_GRAY,
+            fill_opacity=1.0,
+        )
+        content.move_to(box).align_to(box, LEFT).shift(RIGHT * 0.28)
+        return VGroup(box, content)
+
+    def formula_card(self, expression, width=7.0, size=42):
+        panel = RoundedRectangle(
+            width=width,
+            height=1.26,
+            corner_radius=0.12,
+            stroke_color=BLACK_LINE,
+            stroke_width=2.0,
+            fill_color=PAPER_GRAY,
+            fill_opacity=1,
+        )
+        eq = self.math(expression, size)
+        self.fit(eq, width - 0.48, 0.92)
+        eq.move_to(panel)
+        return VGroup(panel, eq)
+
+    def active_step_swap(self, old_bar, step):
+        new_bar = self.build_step_bar(step)
+        self.play(ReplacementTransform(old_bar, new_bar), run_time=RUN_QUICK)
+        return new_bar
+
+    def write_formula_lines(self, expressions, center=ORIGIN, size=38, buff=0.20):
+        lines = VGroup(*[self.math(expr, size) for expr in expressions])
+        lines.arrange(DOWN, aligned_edge=LEFT, buff=buff)
+        self.fit(lines, 7.5, 2.8)
+        lines.move_to(center)
+        for line in lines:
+            self.play(Write(line), run_time=RUN_NORMAL)
+            self.wait(1.15)
+        return lines
+
+    def construct(self):
+        self.scene_00_opening()
+        self.scene_01_position_first()
+        self.scene_02_define_rank()
+        self.scene_03_method()
+        self.scene_04_worked_72()
+        self.scene_05_decision_81()
+        self.scene_06_near_miss_75()
+        self.scene_07_same_value_different_group()
+        self.scene_08_ties()
+        self.scene_09_value_vs_rank()
+        self.scene_10_guided_challenge()
+        self.scene_11_exit_ticket()
+        self.scene_12_final_recipe()
+
+    # ------------------------------------------------------------------
+    # 00–03 · conceptual reversal, meaning, definition, method
+    # ------------------------------------------------------------------
+    def scene_00_opening(self):
+        self.set_header(
+            0,
+            "STATISTICS 10 · CLASS 4",
+            "Percentile Rank & Decisions — from a raw value to relative position and an evidence-based decision.",
+        )
+        title = self.text("PERCENTILE RANK & DECISIONS", 48, BOLD)
+        subtitle = self.text("Where does a value stand in the dataset?", 30)
+        VGroup(title, subtitle).arrange(DOWN, buff=0.20).move_to(UP * 1.55)
+        last = self.boxed_text("LAST CLASS\nP65  →  FIND A VALUE", 5.3, 1.45, 26, True)
+        today = self.boxed_text("TODAY\n72  →  FIND ITS RELATIVE POSITION", 6.3, 1.45, 25, True)
+        VGroup(last, today).arrange(RIGHT, buff=0.55).move_to(DOWN * 0.15)
+        note = self.boxed_text(
+            "Related questions — not mechanically inverse formulas.",
+            9.1, 0.82, 22, False, PAPER_GRAY,
+        ).move_to(DOWN * 1.65)
+        q = self.text("TODAY'S QUESTION:  How high or low is one observation compared with the group?", 27, BOLD)
+        self.fit(q, 13.6, 0.60).move_to(DOWN * 2.55)
+
+        self.play(Write(title), run_time=RUN_SLOW)
+        self.play(FadeIn(subtitle, shift=UP * 0.08), run_time=RUN_NORMAL)
+        self.wait(2.4)
+        self.play(FadeIn(last), run_time=RUN_NORMAL)
+        self.wait(2.0)
+        self.play(FadeIn(today), run_time=RUN_NORMAL)
+        self.wait(2.6)
+        self.play(FadeIn(note), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        self.play(Write(q), run_time=RUN_NORMAL)
+        self.wait(4.0)
+        self.clear_stage()
+
+    def scene_01_position_first(self):
+        self.set_header(
+            1,
+            "START WITH POSITION, NOT THE FORMULA",
+            "First see what percentile rank means: count how much of the ordered dataset is at or below the selected value.",
+        )
+        prompt = self.text("Where is 72 relative to the other observations?", 34, BOLD).move_to(UP * 2.05)
+        row, boxes, labels = self.dataset_row(DATA_A, selected=72, y=0.70)
+        self.play(Write(prompt), run_time=RUN_NORMAL)
+        self.play(LaggedStart(*[FadeIn(cell, shift=UP * 0.08) for cell in row], lag_ratio=0.08), run_time=RUN_SLOW * 1.7)
+        self.wait(3.3)
+
+        for idx in range(6):
+            mark = self.text("✓", 24, BOLD).next_to(row[idx], UP, buff=0.10)
+            self.play(
+                boxes[idx].animate.set_fill(VERY_LIGHT_GRAY, opacity=1),
+                FadeIn(mark, shift=DOWN * 0.06),
+                run_time=0.55,
+            )
+            self.wait(0.55)
+
+        count = self.text("6 observations are at or below 72.", 30, BOLD).move_to(DOWN * 0.35)
+        frac = self.math(r"\frac{6}{9}\approx 0.667", 43).move_to(DOWN * 1.15)
+        percent = self.math(r"\approx 66.7\%", 48).move_to(DOWN * 1.95)
+        rank = self.boxed_text("PERCENTILE RANK ≈ 66.7", 6.5, 0.92, 28, True, VERY_LIGHT_GRAY).move_to(DOWN * 2.65)
+        self.play(Write(count), run_time=RUN_NORMAL)
+        self.wait(2.0)
+        self.play(Write(frac), run_time=RUN_NORMAL)
+        self.wait(2.0)
+        self.play(Write(percent), run_time=RUN_NORMAL)
+        self.wait(3.3)
+        self.play(FadeIn(rank), run_time=RUN_NORMAL)
+        self.wait(3.8)
+        self.clear_stage()
+
+    def scene_02_define_rank(self):
+        self.set_header(
+            2,
+            "DEFINE PERCENTILE RANK",
+            "In this class, percentile rank is the percentage of observations at or below a selected value.",
+        )
+        row, _, _ = self.dataset_row(DATA_A, selected=72, leq=72, compact=True, y=1.85)
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+
+        x_card = self.number_card("SELECTED VALUE", "x = 72", 3.4)
+        n_card = self.number_card("TOTAL COUNT", "n = 9", 3.4)
+        c_card = self.number_card("COUNT AT OR BELOW x", "count = 6", 4.2)
+        cards = VGroup(x_card, n_card, c_card).arrange(RIGHT, buff=0.30).move_to(UP * 0.45)
+        self.play(FadeIn(x_card), run_time=RUN_NORMAL)
+        self.wait(1.7)
+        self.play(FadeIn(n_card), run_time=RUN_NORMAL)
+        self.wait(1.7)
+        self.play(FadeIn(c_card), run_time=RUN_NORMAL)
+        self.wait(2.2)
+
+        formula = self.formula_card(
+            r"\mathrm{PR}(x)=100\times\frac{\mathrm{count}(v\le x)}{n}",
+            8.2, 40,
+        ).move_to(DOWN * 1.15)
+        self.play(FadeIn(formula), run_time=RUN_NORMAL)
+        self.wait(3.2)
+        flow = self.text("COUNT  ÷  TOTAL  ×  100  =  RELATIVE POSITION %", 28, BOLD).move_to(DOWN * 2.00)
+        misconception = self.boxed_text("72 points  ≠  72nd percentile", 6.9, 0.85, 27, True, VERY_LIGHT_GRAY).move_to(DOWN * 2.78)
+        self.play(Write(flow), run_time=RUN_NORMAL)
+        self.wait(2.6)
+        self.play(FadeIn(misconception), run_time=RUN_NORMAL)
+        self.wait(4.0)
+        self.clear_stage()
+
+    def scene_03_method(self):
+        self.set_header(
+            3,
+            "THE FIVE-STEP METHOD",
+            "Say the step number before doing the operation. One action at a time.",
+        )
+        big_cards = VGroup()
+        for number, label in [
+            (1, "ORDER THE DATA"),
+            (2, "IDENTIFY x AND n"),
+            (3, "COUNT VALUES ≤ x"),
+            (4, "COMPUTE THE PERCENTILE RANK"),
+            (5, "INTERPRET AND DECIDE"),
+        ]:
+            badge = Circle(radius=0.28, stroke_color=BLACK_LINE, stroke_width=2, fill_color=BLACK_LINE, fill_opacity=1)
+            num = self.text(str(number), 24, BOLD).set_color(WHITE).move_to(badge)
+            text = self.text(label, 28, BOLD)
+            row = VGroup(VGroup(badge, num), text).arrange(RIGHT, buff=0.25)
+            card = RoundedRectangle(
+                width=7.9, height=0.90, corner_radius=0.10,
+                stroke_color=LIGHT_GRAY, stroke_width=1.4,
+                fill_color=WHITE, fill_opacity=1,
+            )
+            row.move_to(card).align_to(card, LEFT).shift(RIGHT * 0.35)
+            big_cards.add(VGroup(card, row))
+        big_cards.arrange(DOWN, buff=0.12).move_to(UP * 0.20)
+
+        for card in big_cards:
+            self.play(FadeIn(card, shift=RIGHT * 0.12), run_time=RUN_NORMAL)
+            self.wait(1.7)
+        self.wait(2.7)
+        bar = self.build_step_bar(None)
+        self.play(FadeOut(big_cards, shift=UP * 0.08), FadeIn(bar, shift=UP * 0.08), run_time=RUN_SLOW)
+        label = self.text("This tracker stays with us during every worked example.", 27, BOLD).move_to(UP * 0.35)
+        self.play(Write(label), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        self.clear_stage()
