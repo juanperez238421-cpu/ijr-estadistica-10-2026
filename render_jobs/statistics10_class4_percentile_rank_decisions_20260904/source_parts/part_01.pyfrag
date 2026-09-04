@@ -33,6 +33,7 @@
         self.wait(3.0)
 
         bar = self.active_step_swap(bar, 4)
+        self.play(FadeOut(count), run_time=RUN_QUICK)
         formula = self.write_formula_lines(
             [
                 r"\mathrm{PR}(72)=100\times\frac{6}{9}",
@@ -46,7 +47,7 @@
         self.wait(3.6)
 
         bar = self.active_step_swap(bar, 5)
-        self.play(FadeOut(count), FadeOut(formula), run_time=RUN_QUICK)
+        self.play(FadeOut(formula), run_time=RUN_QUICK)
         interp = self.interpretation_card(
             [
                 "Approximately 66.7% of the observations are at or below 72.",
@@ -133,7 +134,7 @@
             ],
             width=11.5,
             title="DECISION",
-        ).move_to(DOWN * 2.52)
+        ).move_to(DOWN * 2.28)
         self.play(FadeIn(insight), run_time=RUN_NORMAL)
         self.wait(4.4)
         self.clear_stage()
