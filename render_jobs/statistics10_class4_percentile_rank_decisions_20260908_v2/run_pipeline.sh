@@ -13,6 +13,10 @@ DOCKER_USER_ARGS=(--user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home)
 mkdir -p "$JOB/delivery" "$JOB/qa" library media
 rm -f "$JOB/qa"/* || true
 
+# The runner owns media QA. Manim itself stays pinned in the 0.20.1 container.
+command -v ffprobe >/dev/null 2>&1
+command -v ffmpeg >/dev/null 2>&1
+
 # Reconstruct the shared JP classroom style used by the validated V1 branch.
 printf '' > library/__init__.py
 base64 -d render_jobs/statistics10_p3w2_iqr_boxplot_20260824/payload/jp_classroom_style.py.gz.b64 | gzip -dc > library/jp_classroom_style.py
@@ -77,24 +81,24 @@ FINAL_MP4="$(find media/videos -type f -path '*1080p*' -name "${SCENE}.mp4" | so
 test -n "$FINAL_MP4" && test -s "$FINAL_MP4"
 cp "$FINAL_MP4" "$JOB/delivery/$OUT"
 
-# 4. Technical acceptance + complete decode.
-docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffprobe "$MANIM_IMAGE" \
-  -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
-  -of default=noprint_wrappers=1 "$JOB/delivery/$OUT" | tee "$JOB/delivery/ffprobe.txt"
+# 4. Technical acceptance + complete decode using native Ubuntu FFmpeg tools.
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+  -of default=noprint_wrappers=1 "$JOB/delivery/$OUT" \
+  | tee "$JOB/delivery/ffprobe.txt"
 grep -q '^codec_name=h264$' "$JOB/delivery/ffprobe.txt"
 grep -q '^width=1920$' "$JOB/delivery/ffprobe.txt"
 grep -q '^height=1080$' "$JOB/delivery/ffprobe.txt"
 grep -q '^r_frame_rate=30/1$' "$JOB/delivery/ffprobe.txt"
 grep -q '^pix_fmt=yuv420p$' "$JOB/delivery/ffprobe.txt"
 
-docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffmpeg "$MANIM_IMAGE" \
-  -nostdin -v error -i "$JOB/delivery/$OUT" -f null -
+ffmpeg -nostdin -v error -i "$JOB/delivery/$OUT" -f null -
 printf 'Full FFmpeg decode: PASS\n' | tee "$JOB/delivery/DECODE_QA.txt"
 
 # 5. Duration gate and dense visual audit contact sheet.
-DURATION="$(docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffprobe "$MANIM_IMAGE" \
-  -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$JOB/delivery/$OUT")"
-python - "$DURATION" <<'PY'
+DURATION="$(ffprobe -v error -show_entries format=duration \
+  -of default=noprint_wrappers=1:nokey=1 "$JOB/delivery/$OUT")"
+python3 - "$DURATION" <<'PY'
 import sys
 d=float(sys.argv[1])
 assert 280 <= d <= 470, f"Unexpected V2 duration: {d:.2f}s"
@@ -102,9 +106,9 @@ print(f"Duration gate: PASS ({d:.2f}s)")
 PY
 printf 'duration_seconds=%s\n' "$DURATION" > "$JOB/delivery/duration.txt"
 
-docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffmpeg "$MANIM_IMAGE" \
-  -nostdin -y -v error -i "$JOB/delivery/$OUT" \
-  -vf "fps=1/12,scale=480:-2,tile=4x9:padding=4:margin=4" -frames:v 1 "$JOB/qa/QA_contact_sheet.jpg"
+ffmpeg -nostdin -y -v error -i "$JOB/delivery/$OUT" \
+  -vf "fps=1/12,scale=480:-2,tile=4x9:padding=4:margin=4" \
+  -frames:v 1 "$JOB/qa/QA_contact_sheet.jpg"
 test -s "$JOB/qa/QA_contact_sheet.jpg"
 cp "$JOB/qa/QA_contact_sheet.jpg" "$JOB/delivery/QA_contact_sheet.jpg"
 
