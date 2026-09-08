@@ -26,12 +26,20 @@ jobs:
       - name: Pull pinned ManimCE image
         run: docker pull manimcommunity/manim:v0.20.1
 
+      - name: Install FFmpeg QA tools on runner
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
       - name: Run full Class 4 V2 senior render + QA protocol
         id: render_protocol
         run: bash render_jobs/statistics10_class4_percentile_rank_decisions_v2_20260908/run_pipeline.sh
 
       - name: Upload final MP4 and complete QA package
         if: always()
+        continue-on-error: true
         uses: actions/upload-artifact@v4
         with:
           name: Statistics10-Class4-V2-Percentile-Rank-Decisions-SENIOR-FINAL-PQH
