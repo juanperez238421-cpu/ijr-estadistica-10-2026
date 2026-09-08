@@ -9,11 +9,26 @@ SOURCE="$JOB/statistics10_class4_percentile_rank_v2.py"
 MANIM_IMAGE="manimcommunity/manim:v0.20.1"
 DOCKER_USER_ARGS=(--user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home)
 
-mkdir -p "$JOB/build" "$JOB/delivery" "$JOB/qa_frames" "$JOB/qa_dense" "$JOB/qa_targeted" library media
+mkdir -p \
+  "$JOB/build" \
+  "$JOB/delivery" \
+  "$JOB/qa_frames" \
+  "$JOB/qa_dense" \
+  "$JOB/qa_targeted" \
+  "$JOB/pql_media" \
+  "$JOB/final_media" \
+  library
+rm -rf "$JOB/pql_media" "$JOB/final_media"
+mkdir -p "$JOB/pql_media" "$JOB/final_media"
 rm -f "$JOB/qa_frames"/*.png "$JOB/qa_dense"/*.png "$JOB/qa_targeted"/*.png
+
+command -v ffprobe >/dev/null 2>&1 || { echo 'ffprobe is required on the GitHub runner.' >&2; exit 1; }
+command -v ffmpeg  >/dev/null 2>&1 || { echo 'ffmpeg is required on the GitHub runner.' >&2; exit 1; }
+
 cp "$SOURCE" "$JOB/build/scene.py"
 printf '' > library/__init__.py
 base64 -d render_jobs/statistics10_p3w2_iqr_boxplot_20260824/payload/jp_classroom_style.py.gz.b64 | gzip -dc > library/jp_classroom_style.py
+cp library/jp_classroom_style.py "$JOB/build/jp_classroom_style_original.py"
 sha256sum "$JOB/build/scene.py" library/jp_classroom_style.py | tee "$JOB/delivery/source_sha256.txt"
 
 # 1) Syntax, architecture, deterministic mathematical QA, and content guards.
@@ -46,8 +61,19 @@ if grep -Eqi 'z-score|z score|empirical rule|68-95-99|standard normal|google col
 fi
 printf 'Source + content guards: PASS\n' | tee "$JOB/delivery/SOURCE_QA.txt"
 
-# 2) Literal PQL gate with compressed timing only for preview speed.
-rm -rf media/videos/scene/480p15
+# 2) Literal PQL gate. The shared style library fixes Full HD globally, so for
+# this preview only we temporarily patch the generated library to 854x480/15fps.
+# The exact original library is restored before the final PQH render.
+python - <<'PY'
+from pathlib import Path
+p=Path('library/jp_classroom_style.py')
+s=p.read_text(encoding='utf-8')
+s=s.replace('config.pixel_width = 1920', 'config.pixel_width = 854')
+s=s.replace('config.pixel_height = 1080', 'config.pixel_height = 480')
+s=s.replace('config.frame_rate = 30', 'config.frame_rate = 15')
+p.write_text(s, encoding='utf-8')
+PY
+
 docker run --rm "${DOCKER_USER_ARGS[@]}" -e LESSON_TIME_SCALE=0.16 -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
   set -euo pipefail
   mkdir -p /tmp/bin
@@ -55,12 +81,25 @@ docker run --rm "${DOCKER_USER_ARGS[@]}" -e LESSON_TIME_SCALE=0.16 -v "$ROOT:/ma
   chmod +x /tmp/bin/xdg-open
   export PATH="/tmp/bin:$PATH"
   export PYTHONPATH="/manim:${PYTHONPATH:-}"
-  manim -pql render_jobs/statistics10_class4_percentile_rank_decisions_v2_20260908/build/scene.py Statistics10Class4PercentileRankV2 --format=mp4 --disable_caching
+  manim -pql render_jobs/statistics10_class4_percentile_rank_decisions_v2_20260908/build/scene.py Statistics10Class4PercentileRankV2 \
+    --media_dir render_jobs/statistics10_class4_percentile_rank_decisions_v2_20260908/pql_media \
+    --format=mp4 --disable_caching
 '
-PQL_MP4="$(find media/videos -type f -path '*480p*' -name "${SCENE_NAME}.mp4" | sort | tail -n 1)"
+
+PQL_MP4="$(find "$JOB/pql_media" -type f -name "${SCENE_NAME}.mp4" | sort | tail -n 1)"
 test -n "$PQL_MP4" && test -s "$PQL_MP4"
-PQL_DURATION="$(docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffprobe "$MANIM_IMAGE" -v error -show_entries format=duration -of default=nk=1:nw=1 "$PQL_MP4")"
-printf 'PQL full-timeline gate: PASS\nPQL duration: %s s\n' "$PQL_DURATION" | tee "$JOB/delivery/PQL_QA.txt"
+PQL_DURATION="$(ffprobe -v error -show_entries format=duration -of default=nk=1:nw=1 "$PQL_MP4")"
+PQL_WIDTH="$(ffprobe -v error -select_streams v:0 -show_entries stream=width -of default=nk=1:nw=1 "$PQL_MP4")"
+PQL_HEIGHT="$(ffprobe -v error -select_streams v:0 -show_entries stream=height -of default=nk=1:nw=1 "$PQL_MP4")"
+PQL_FPS="$(ffprobe -v error -select_streams v:0 -show_entries stream=r_frame_rate -of default=nk=1:nw=1 "$PQL_MP4")"
+test "$PQL_WIDTH" = "854"
+test "$PQL_HEIGHT" = "480"
+test "$PQL_FPS" = "15/1"
+printf 'PQL full-timeline gate: PASS\nPQL duration: %s s\nPQL format: %sx%s @ %s\n' \
+  "$PQL_DURATION" "$PQL_WIDTH" "$PQL_HEIGHT" "$PQL_FPS" | tee "$JOB/delivery/PQL_QA.txt"
+
+# Restore exact classroom library before final render.
+cp "$JOB/build/jp_classroom_style_original.py" library/jp_classroom_style.py
 
 # Compute a final timing scale from the full-timeline PQL duration so the PQH
 # stays in the requested 6:30–7:45 classroom window. Target midpoint: 7:00.
@@ -76,7 +115,6 @@ PY
 printf 'Adaptive final LESSON_TIME_SCALE=%s\n' "$FINAL_SCALE" | tee "$JOB/delivery/TIMING_QA.txt"
 
 # 3) Literal PQH final render.
-rm -rf media/videos/scene/1080p60 media/videos/scene/1080p30
 docker run --rm "${DOCKER_USER_ARGS[@]}" -e LESSON_TIME_SCALE="$FINAL_SCALE" -v "$ROOT:/manim" -w /manim --entrypoint bash "$MANIM_IMAGE" -c '
   set -euo pipefail
   mkdir -p /tmp/bin
@@ -84,35 +122,39 @@ docker run --rm "${DOCKER_USER_ARGS[@]}" -e LESSON_TIME_SCALE="$FINAL_SCALE" -v 
   chmod +x /tmp/bin/xdg-open
   export PATH="/tmp/bin:$PATH"
   export PYTHONPATH="/manim:${PYTHONPATH:-}"
-  manim -pqh render_jobs/statistics10_class4_percentile_rank_decisions_v2_20260908/build/scene.py Statistics10Class4PercentileRankV2 --fps 30 --format=mp4 --disable_caching
+  manim -pqh render_jobs/statistics10_class4_percentile_rank_decisions_v2_20260908/build/scene.py Statistics10Class4PercentileRankV2 \
+    --media_dir render_jobs/statistics10_class4_percentile_rank_decisions_v2_20260908/final_media \
+    --fps 30 --format=mp4 --disable_caching
 '
-FINAL_MP4="$(find media/videos -type f -path '*1080p*' -name "${SCENE_NAME}.mp4" | sort | tail -n 1)"
+
+FINAL_MP4="$(find "$JOB/final_media" -type f -name "${SCENE_NAME}.mp4" | sort | tail -n 1)"
 test -n "$FINAL_MP4" && test -s "$FINAL_MP4"
 cp "$FINAL_MP4" "$JOB/delivery/$OUT_NAME"
 
 # 4) Technical acceptance: H.264, Full HD, 30 fps, yuv420p, full decode.
-docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffprobe "$MANIM_IMAGE" \
-  -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+ffprobe -v error -select_streams v:0 \
+  -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
   -of default=noprint_wrappers=1 "$JOB/delivery/$OUT_NAME" | tee "$JOB/delivery/ffprobe.txt"
 grep -q '^codec_name=h264$' "$JOB/delivery/ffprobe.txt"
 grep -q '^width=1920$' "$JOB/delivery/ffprobe.txt"
 grep -q '^height=1080$' "$JOB/delivery/ffprobe.txt"
 grep -q '^r_frame_rate=30/1$' "$JOB/delivery/ffprobe.txt"
 grep -q '^pix_fmt=yuv420p$' "$JOB/delivery/ffprobe.txt"
-docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffmpeg "$MANIM_IMAGE" -nostdin -v error -i "$JOB/delivery/$OUT_NAME" -f null -
+ffmpeg -nostdin -v error -i "$JOB/delivery/$OUT_NAME" -f null -
 printf 'Full FFmpeg decode: PASS\n' | tee "$JOB/delivery/DECODE_QA.txt"
 
 # 5) Duration gate + distributed/dense QA extraction.
-DURATION="$(docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffprobe "$MANIM_IMAGE" -v error -show_entries format=duration -of default=nk=1:nw=1 "$JOB/delivery/$OUT_NAME")"
+DURATION="$(ffprobe -v error -show_entries format=duration -of default=nk=1:nw=1 "$JOB/delivery/$OUT_NAME")"
 FILE_SIZE="$(stat -c%s "$JOB/delivery/$OUT_NAME")"
 python - <<PY
 D=float('$DURATION')
 assert 390 <= D <= 465, f'Class duration outside 6:30–7:45 target: {D:.2f}s'
 print(f'Duration gate: PASS ({D:.2f}s)')
 PY
+
 INTERVAL="$(python -c "d=float('$DURATION'); print(d/48.0)")"
-docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffmpeg "$MANIM_IMAGE" -nostdin -v error -i "$JOB/delivery/$OUT_NAME" -vf "fps=1/$INTERVAL,scale=540:-2" "$JOB/qa_frames/frame_%03d.png"
-docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffmpeg "$MANIM_IMAGE" -nostdin -v error -i "$JOB/delivery/$OUT_NAME" -vf "fps=1/5,scale=640:-2" "$JOB/qa_dense/dense_%03d.png"
+ffmpeg -nostdin -v error -i "$JOB/delivery/$OUT_NAME" -vf "fps=1/$INTERVAL,scale=540:-2" "$JOB/qa_frames/frame_%03d.png"
+ffmpeg -nostdin -v error -i "$JOB/delivery/$OUT_NAME" -vf "fps=1/5,scale=640:-2" "$JOB/qa_dense/dense_%03d.png"
 DISTRIBUTED_COUNT="$(find "$JOB/qa_frames" -type f -name 'frame_*.png' | wc -l)"
 DENSE_COUNT="$(find "$JOB/qa_dense" -type f -name 'dense_*.png' | wc -l)"
 test "$DISTRIBUTED_COUNT" -ge 46
@@ -122,11 +164,11 @@ test "$DENSE_COUNT" -ge 70
 for spec in '017:cumulative_visual' '035:cumulative_worked' '060:cumulative_ties' '079:cumulative_challenge'; do
   pct="${spec%%:*}"; name="${spec##*:}"
   start="$(python -c "d=float('$DURATION'); p=float('$pct')/100; print(max(0,d*p-7))")"
-  docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffmpeg "$MANIM_IMAGE" -nostdin -v error \
-    -ss "$start" -t 14 -i "$JOB/delivery/$OUT_NAME" -vf "fps=2,scale=640:-2" "$JOB/qa_targeted/${name}_%03d.png"
+  ffmpeg -nostdin -v error -ss "$start" -t 14 -i "$JOB/delivery/$OUT_NAME" \
+    -vf "fps=2,scale=640:-2" "$JOB/qa_targeted/${name}_%03d.png"
 done
 
-# 6) Build main + targeted contact sheets.
+# 6) Build main contact sheet inside the pinned Manim image (Pillow available).
 docker run --rm -i "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint python "$MANIM_IMAGE" - <<'PY'
 from pathlib import Path
 from PIL import Image, ImageDraw
@@ -157,15 +199,15 @@ if len(frames) < 46:
 sheet(frames, ROOT/'delivery/QA_contact_sheet.jpg', cols=4)
 PY
 
-# Create targeted sheets from time windows using a small reusable shell/Python helper.
+# Targeted contact sheets around high-risk layouts.
 make_target_sheet() {
   local fraction="$1"; local window="$2"; local stem="$3"; local prefix="$4"
   local start
   start="$(python -c "d=float('$DURATION'); f=float('$fraction'); w=float('$window'); print(max(0,d*f-w/2))")"
   local tmp="$JOB/qa_targeted/${stem}_frames"
   mkdir -p "$tmp"; rm -f "$tmp"/*.png
-  docker run --rm "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint ffmpeg "$MANIM_IMAGE" -nostdin -v error \
-    -ss "$start" -t "$window" -i "$JOB/delivery/$OUT_NAME" -vf "fps=1/3,scale=640:-2" "$tmp/f_%03d.png"
+  ffmpeg -nostdin -v error -ss "$start" -t "$window" -i "$JOB/delivery/$OUT_NAME" \
+    -vf "fps=1/3,scale=640:-2" "$tmp/f_%03d.png"
   docker run --rm -i "${DOCKER_USER_ARGS[@]}" -v "$ROOT:/manim" -w /manim --entrypoint python "$MANIM_IMAGE" - "$tmp" "$JOB/delivery/${stem}.jpg" "$prefix" <<'PY'
 from pathlib import Path
 from PIL import Image,ImageDraw
@@ -174,11 +216,17 @@ folder=Path(sys.argv[1]); out=Path(sys.argv[2]); prefix=sys.argv[3]
 paths=sorted(folder.glob('f_*.png'))
 ims=[]
 for i,p in enumerate(paths,1):
-    im=Image.open(p).convert('RGB'); c=Image.new('RGB',(im.width,im.height+24),'white'); c.paste(im,(0,24)); ImageDraw.Draw(c).text((8,5),f'{prefix} {i:02d}',fill='black'); ims.append(c)
-if not ims: raise SystemExit('No targeted frames')
+    im=Image.open(p).convert('RGB')
+    c=Image.new('RGB',(im.width,im.height+24),'white')
+    c.paste(im,(0,24))
+    ImageDraw.Draw(c).text((8,5),f'{prefix} {i:02d}',fill='black')
+    ims.append(c)
+if not ims:
+    raise SystemExit('No targeted frames')
 cols=4; w=max(x.width for x in ims); h=max(x.height for x in ims); rows=(len(ims)+cols-1)//cols
 s=Image.new('RGB',(cols*w,rows*h),'white')
-for i,im in enumerate(ims): s.paste(im,((i%cols)*w,(i//cols)*h))
+for i,im in enumerate(ims):
+    s.paste(im,((i%cols)*w,(i//cols)*h))
 s.save(out,quality=92)
 PY
 }
@@ -190,12 +238,13 @@ make_target_sheet 0.95 34 QA_final_bridge bridge
 # 7) Canonical delivery package + traceability.
 cp "$JOB/build/scene.py" "$JOB/delivery/statistics10_class4_percentile_rank_v2.py"
 cp "$JOB/README.md" "$JOB/delivery/README.md"
-cp library/jp_classroom_style.py "$JOB/delivery/jp_classroom_style.py"
+cp "$JOB/build/jp_classroom_style_original.py" "$JOB/delivery/jp_classroom_style.py"
 sha256sum "$JOB/delivery/$OUT_NAME" | tee "$JOB/delivery/SHA256SUMS.txt"
 SHA256="$(cut -d' ' -f1 "$JOB/delivery/SHA256SUMS.txt")"
 {
   printf 'Scene: %s\n' "$SCENE_NAME"
   printf 'ManimCE: 0.20.1\n'
+  printf 'PQL command: LESSON_TIME_SCALE=0.16 manim -pql %s/build/scene.py %s --format=mp4 --disable_caching\n' "$JOB" "$SCENE_NAME"
   printf 'Render command: LESSON_TIME_SCALE=%s manim -pqh %s/build/scene.py %s --fps 30 --format=mp4 --disable_caching\n' "$FINAL_SCALE" "$JOB" "$SCENE_NAME"
   printf 'Final MP4: %s\n' "$OUT_NAME"
   printf 'Duration seconds: %s\n' "$DURATION"
