@@ -1,0 +1,69 @@
+name: Render Statistics 10 Class 4 V3 Percentile Rank SENIOR FINAL
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - render/statistics10-class4-percentile-rank-v3-20260908
+    paths:
+      - 'render_jobs/statistics10_class4_percentile_rank_v3_20260908/TRIGGER_RENDER.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout exact Class 4 V3 branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull pinned ManimCE image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Install FFmpeg QA tools and Pillow
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg python3-pil
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
+      - name: Run PQL → PQH render and QA protocol
+        id: render_protocol
+        run: bash render_jobs/statistics10_class4_percentile_rank_v3_20260908/run_pipeline.sh
+
+      - name: Upload V3 final MP4 and QA package
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-Class4-V3-Percentile-Rank-SENIOR-FINAL-PQH
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            render_jobs/statistics10_class4_percentile_rank_v3_20260908/delivery/
+            render_jobs/statistics10_class4_percentile_rank_v3_20260908/qa_frames/
+
+      - name: Publish exact validated V3 MP4 to branch
+        if: steps.render_protocol.outcome == 'success'
+        run: |
+          set -euo pipefail
+          JOB='render_jobs/statistics10_class4_percentile_rank_v3_20260908'
+          SRC="$JOB/delivery/Statistics10_Class4_Percentile_Rank_V3_SENIOR_FINAL_pqh.mp4"
+          DST='deliveries/statistics10_class4_percentile_rank_v3_final'
+          test -s "$SRC"
+          rm -rf "$DST"
+          mkdir -p "$DST"
+          cp -a "$JOB/delivery/." "$DST/"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$DST"
+          if ! git diff --cached --quiet; then
+            git commit -m 'delivery: publish Statistics 10 Class 4 V3 SENIOR FINAL PQH'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi

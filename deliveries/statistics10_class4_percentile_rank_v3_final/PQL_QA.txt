@@ -1,0 +1,3 @@
+PQL gate: PASS
+Preview: 854x480 @ 15/1
+Preview duration: 29.133333 s
