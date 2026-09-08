@@ -1,0 +1,186 @@
+name: Render Statistics 10 IQR Box Plot FINAL PQH
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore exact audited source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p delivery
+          echo "512dfc150bfae7589d59bad6406163bd10cd6684148a791193b043d003243720  source_chunks_iqr_final/part_00" | sha256sum -c -
+          echo "74f51dd36e32608bc137d2aa59bc81baa116d18fec9a8ba8ca848f4a12cc08e3  source_chunks_iqr_final/part_01" | sha256sum -c -
+          echo "ca1fd22fd967fb8d355309cb264ebfdbe348cbe0057907cc0965ef9764b996ed  source_chunks_iqr_final/part_02" | sha256sum -c -
+          echo "db88e69cab9366878029ea85fb946a6c477008aa2be4702ca00f36c8fe828634  source_chunks_iqr_final/part_03" | sha256sum -c -
+          echo "f190888539df7c7caede13e55efa5ae7cbf88ce03848bf8413d7598f5bb7a47a  source_chunks_iqr_final/part_04" | sha256sum -c -
+          cat source_chunks_iqr_final/part_{00,01,02,03,04} > source.gz.b64
+          test "$(wc -c < source.gz.b64)" -eq 16408
+          base64 -d source.gz.b64 | gzip -d > statistics10_iqr_boxplot_construction_final.py
+          echo "d3cdb8f81878d3e9dfe070b7d2b2ec3b01d249a5f8486745b79f105d8c084957  statistics10_iqr_boxplot_construction_final.py" | sha256sum -c -
+          cp statistics10_iqr_boxplot_construction_final.py delivery/
+
+      - name: Validate source and overlap corrections
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile statistics10_iqr_boxplot_construction_final.py
+          grep -q '^class Statistics10IQRBoxPlotConstruction' statistics10_iqr_boxplot_construction_final.py
+          grep -q 'def labeled_chip_panel' statistics10_iqr_boxplot_construction_final.py
+          grep -q 'def clean_text_swap' statistics10_iqr_boxplot_construction_final.py
+          grep -q 'Completed modified box plot' statistics10_iqr_boxplot_construction_final.py
+          grep -q 'comparison.move_to(DOWN \* 1.52)' statistics10_iqr_boxplot_construction_final.py
+          ! grep -q 'ReplacementTransform' statistics10_iqr_boxplot_construction_final.py
+          python - <<'PY'
+          from pathlib import Path
+          s=Path('statistics10_iqr_boxplot_construction_final.py').read_text()
+          assert not [(i,ord(c)) for i,c in enumerate(s) if ord(c)<32 and c not in '\n\t']
+          for token in (r'\frac',r'\text','LOWER_FENCE','UPPER_FENCE','OUTLIERS','FadeOut(outlier_note)'):
+              assert token in s
+          print('Static overlap-remediation audit passed.')
+          PY
+
+      - name: Prepare ManimCE environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg python3-pil
+          docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run mathematical assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home \
+            -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 \
+            -c 'python statistics10_iqr_boxplot_construction_final.py' \
+            | tee delivery/MATHEMATICAL_ASSERTIONS.txt
+          grep -q 'IQR final-layout lesson assertions passed' delivery/MATHEMATICAL_ASSERTIONS.txt
+
+      - name: Render complete literal pql preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=0.10 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open; export PATH="/tmp/manim-bin:$PATH"
+              manim -pql --fps 15 -r 854,480 statistics10_iqr_boxplot_construction_final.py \
+                Statistics10IQRBoxPlotConstruction --format=mp4 --disable_caching --media_dir media_preview
+              V=$(find media_preview -type f -name Statistics10IQRBoxPlotConstruction.mp4 -print -quit)
+              test -s "$V"; cp "$V" delivery/Statistics10_IQR_BoxPlot_Construction_Final_pql.mp4
+            '
+          ffmpeg -v error -i delivery/Statistics10_IQR_BoxPlot_Construction_Final_pql.mp4 -f null -
+
+      - name: Render final literal pqh video
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --rm --user "$(id -u):$(id -g)" -e HOME=/tmp/manim-home -e LESSON_TIME_SCALE=1.00 \
+            -v "$PWD:/manim" -w /manim --entrypoint bash manimcommunity/manim:v0.20.1 -c '
+              set -euo pipefail
+              mkdir -p /tmp/manim-home /tmp/manim-bin delivery
+              printf "#!/usr/bin/env bash\nexit 0\n" > /tmp/manim-bin/xdg-open
+              chmod +x /tmp/manim-bin/xdg-open; export PATH="/tmp/manim-bin:$PATH"
+              manim -pqh --fps 30 -r 1920,1080 statistics10_iqr_boxplot_construction_final.py \
+                Statistics10IQRBoxPlotConstruction --format=mp4 --disable_caching --media_dir media_final
+              V=$(find media_final -type f -name Statistics10IQRBoxPlotConstruction.mp4 -print -quit)
+              test -s "$V"; cp "$V" delivery/Statistics10_IQR_BoxPlot_Construction_FINAL_pqh.mp4
+            '
+
+      - name: Verify full output and frame boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Statistics10_IQR_BoxPlot_Construction_FINAL_pqh.mp4
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,profile,width,height,r_frame_rate,avg_frame_rate,pix_fmt,nb_frames \
+            -show_entries format=duration,size -of default=noprint_wrappers=1 "$V" | tee delivery/FFPROBE.txt
+          grep -qx 'codec_name=h264' delivery/FFPROBE.txt
+          grep -qx 'width=1920' delivery/FFPROBE.txt
+          grep -qx 'height=1080' delivery/FFPROBE.txt
+          grep -qx 'r_frame_rate=30/1' delivery/FFPROBE.txt
+          grep -qx 'pix_fmt=yuv420p' delivery/FFPROBE.txt
+          ffmpeg -v error -i "$V" -f null -
+          python - "$V" <<'PY'
+          import subprocess,sys
+          v=sys.argv[1]; w,h=320,180; n=w*h
+          border=[y*w+x for y in range(h) for x in range(w) if x<2 or x>=w-2 or y<2 or y>=h-2]
+          p=subprocess.Popen(['ffmpeg','-v','error','-i',v,'-vf',f'scale={w}:{h},format=gray','-f','rawvideo','-pix_fmt','gray','-'],stdout=subprocess.PIPE)
+          frames=maximum=0; bad=[]
+          while True:
+              d=p.stdout.read(n)
+              if not d: break
+              assert len(d)==n; frames+=1
+              dark=sum(d[i]<96 for i in border); maximum=max(maximum,dark)
+              if dark>28 and len(bad)<20: bad.append((frames,dark))
+          p.stdout.close(); assert p.wait()==0
+          open('delivery/ALL_FRAME_BORDER_SCAN.txt','w').write(f'frames_scanned={frames}\nmax_dark_border_pixels={maximum}\nviolations={bad}\nresult={"PASS" if not bad else "FAIL"}\n')
+          assert not bad,bad
+          PY
+
+      - name: Create targeted and broad visual QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          V=delivery/Statistics10_IQR_BoxPlot_Construction_FINAL_pqh.mp4
+          mkdir -p delivery/qa_frames delivery/targeted_qa
+          D=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$V")
+          python - "$D" <<'PY'
+          import subprocess,sys
+          v='delivery/Statistics10_IQR_BoxPlot_Construction_FINAL_pqh.mp4'; d=float(sys.argv[1])
+          fractions=[.02,.06,.10,.14,.18,.22,.26,.30,.34,.38,.42,.46,.50,.54,.58,.62,.66,.70,.74,.78,.82,.87,.93,.98]
+          for i,f in enumerate(fractions,1):
+              t=max(0,min(d-.2,d*f)); subprocess.run(['ffmpeg','-y','-v','error','-ss',f'{t:.3f}','-i',v,'-frames:v','1',f'delivery/qa_frames/frame_{i:02d}.png'],check=True)
+          for t in [82,84,86,104,124,144,146,148,150,158,162,166,168,170,172,174,188,204,208,212,214,230]:
+              if t<d: subprocess.run(['ffmpeg','-y','-v','error','-ss',str(t),'-i',v,'-frames:v','1',f'delivery/targeted_qa/t_{t:03d}.png'],check=True)
+          PY
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/qa_frames/frame_*.png' \
+            -vf 'scale=420:-1,tile=4x6:padding=8:margin=8:color=white' -frames:v 1 delivery/QA_CONTACT_SHEET.png
+          ffmpeg -y -v error -pattern_type glob -i 'delivery/targeted_qa/t_*.png' \
+            -vf 'scale=420:-1,tile=4x6:padding=8:margin=8:color=white' -frames:v 1 delivery/TARGETED_QA_CONTACT_SHEET.png
+
+      - name: Create reports and hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > delivery/RENDER_INFO.txt <<'EOF'
+          Scene: Statistics10IQRBoxPlotConstruction
+          Source: statistics10_iqr_boxplot_construction_final.py
+          Revision: final overlap-remediation audit
+          ManimCE: 0.20.1
+          Final: 1920x1080, 30 fps, literal -pqh
+          Corrected: duplicate half-data labels; glyph merges; construction guide contact; graph-label collisions; outlier/whisker overlap; RANGE/IQR collisions; transition ghosting.
+          Verified: Q1=3.5; Q2=5; Q3=7.5; IQR=4; fences=-2.5 and 13.5; outlier=15; whiskers=2 and 8.
+          EOF
+          sha256sum delivery/Statistics10_IQR_BoxPlot_Construction_FINAL_pqh.mp4 \
+            delivery/Statistics10_IQR_BoxPlot_Construction_Final_pql.mp4 \
+            delivery/statistics10_iqr_boxplot_construction_final.py \
+            delivery/QA_CONTACT_SHEET.png delivery/TARGETED_QA_CONTACT_SHEET.png > delivery/SHA256SUMS.txt
+          cp delivery/FFPROBE.txt delivery/TECHNICAL_VERIFICATION.txt
+          cat delivery/ALL_FRAME_BORDER_SCAN.txt >> delivery/TECHNICAL_VERIFICATION.txt
+          cat delivery/SHA256SUMS.txt >> delivery/TECHNICAL_VERIFICATION.txt
+
+      - name: Upload complete final delivery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-IQR-BoxPlot-FINAL-pqh
+          path: delivery/
+          if-no-files-found: error
+          retention-days: 7

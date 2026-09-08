@@ -1,0 +1,4 @@
+Statistics 10 · Class 4 · IQR / Modified Box Plot · fixed rerender
+Date: 2026-09-08
+Baseline: PR #5 head 47742dfa4013a211c4fb37db753abbce87b0c7d4
+Purpose: rerun the already overlap-remediated IQR / modified-boxplot ManimCE scene through the full literal -pql -> -pqh QA pipeline and publish a fresh downloadable artifact.
