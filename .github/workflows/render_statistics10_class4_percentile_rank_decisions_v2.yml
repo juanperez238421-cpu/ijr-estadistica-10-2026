@@ -6,7 +6,8 @@ on:
     branches:
       - render/statistics10-class4-percentile-rank-decisions-v2-qa-20260908
     paths:
-      - 'render_jobs/statistics10_class4_percentile_rank_decisions_20260908_v2/TRIGGER_RENDER.txt'
+      - '.github/workflows/render_statistics10_class4_percentile_rank_decisions_v2.yml'
+      - 'render_jobs/statistics10_class4_percentile_rank_decisions_20260908_v2/**'
 
 permissions:
   contents: write
@@ -22,6 +23,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Ensure FFmpeg QA tools
+        run: |
+          set -euo pipefail
+          if ! command -v ffprobe >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffprobe -version | head -n 1
+          ffmpeg -version | head -n 1
 
       - name: Pull pinned ManimCE image
         run: docker pull manimcommunity/manim:v0.20.1
