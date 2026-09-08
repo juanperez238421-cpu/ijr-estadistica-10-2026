@@ -1,0 +1,6 @@
+Statistics 10 · Class 4 · IQR / Modified Box Plot
+Scene: Statistics10IQRBoxPlotConstruction
+ManimCE: 0.20.1
+Final: 1920x1080, 30 fps, H.264, yuv420p, literal -pqh
+Verified values: Q1=3.5; Q2=5; Q3=7.5; IQR=4; fences=-2.5 and 13.5; outlier=15; whiskers=2 and 8.
+Fixed layout baseline: duplicate half-data labels, glyph merges, construction guide contact, graph-label collisions, outlier/whisker overlap, RANGE/IQR collisions, transition ghosting.
