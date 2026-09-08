@@ -1,0 +1,12 @@
+Render Statistics 10 Class 4 V2 · Percentile Rank, Relative Position & Decisions
+Senior pedagogical + visual QA revision
+2026-09-08 · rerun after runner FFmpeg installation fix
+
+Baseline: PR #36 / fed2d45b48ae5e335fa23d8d0f960842547804ac
+Branch: render/statistics10-class4-percentile-rank-decisions-v2-20260908
+Target: Statistics10_Class4_Percentile_Rank_Decisions_V2_SENIOR_FINAL_pqh.mp4
+
+Required sequence: SEE -> COUNT -> LOCATE -> FORMALIZE -> INTERPRET -> DECIDE
+Required convention: PR(x) = 100 * count(values <= x) / n
+Required final bridge: Introduction to the Normal Distribution, intuition only.
+Pipeline: isolated PQL/PQH media directories, 854x480/15fps preview gate, host FFmpeg/ffprobe installed by workflow, full technical and visual QA.

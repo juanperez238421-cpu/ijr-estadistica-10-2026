@@ -1,0 +1,225 @@
+
+    # ------------------------------------------------------------------
+    # 08–12 · ties, inverse-question distinction, challenge, exit, close
+    # ------------------------------------------------------------------
+    def scene_08_ties(self):
+        self.set_header(
+            8,
+            "TIES · WHAT IF VALUES REPEAT?",
+            "Use the stated classroom convention consistently: count every observation at or below x.",
+        )
+        row, boxes, _ = self.dataset_row(TIES, selected=75, y=1.45)
+        self.play(FadeIn(row), run_time=RUN_NORMAL)
+        self.wait(2.3)
+        for i, value in enumerate(TIES):
+            if value <= 75:
+                self.play(boxes[i].animate.set_fill(VERY_LIGHT_GRAY, opacity=1), run_time=0.28)
+        count = self.text("55, 60, 60, 65, 70, 75, 75  →  count = 7", 27, BOLD).move_to(UP * 0.45)
+        self.play(Write(count), run_time=RUN_NORMAL)
+        self.wait(2.3)
+
+        eq = self.write_formula_lines(
+            [
+                r"\mathrm{PR}(75)=100\times\frac{7}{10}",
+                r"=70",
+            ],
+            center=DOWN * 0.55,
+            size=42,
+            buff=0.15,
+        )
+        interp = self.boxed_text("70% of the observations are at or below 75.", 8.6, 0.90, 26, True).move_to(DOWN * 1.72)
+        note = self.boxed_text(
+            "Other conventions may treat ties differently. Use one stated convention consistently.",
+            10.8, 0.82, 20, False, PAPER_GRAY,
+        ).move_to(DOWN * 2.65)
+        self.play(FadeIn(interp), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        self.play(FadeIn(note), run_time=RUN_NORMAL)
+        self.wait(4.0)
+        self.clear_stage()
+
+    def scene_09_value_vs_rank(self):
+        self.set_header(
+            9,
+            "PERCENTILE VALUE vs PERCENTILE RANK",
+            "The questions are related, but they run in opposite directions and are not mechanically inverse formulas.",
+        )
+        left_box = RoundedRectangle(
+            width=6.35, height=4.45, corner_radius=0.14,
+            stroke_color=BLACK_LINE, stroke_width=2,
+            fill_color=WHITE, fill_opacity=1,
+        ).move_to(LEFT * 3.45 + DOWN * 0.05)
+        right_box = left_box.copy().move_to(RIGHT * 3.45 + DOWN * 0.05)
+
+        left_content = VGroup(
+            self.text("PERCENTILE VALUE", 29, BOLD),
+            self.text("Given: P65", 26, BOLD),
+            self.text("What value is located there?", 23),
+            self.math(r"P_{65}\approx 73.5", 40),
+            self.text("position  →  value", 26, BOLD),
+        ).arrange(DOWN, buff=0.28).move_to(left_box)
+        right_content = VGroup(
+            self.text("PERCENTILE RANK", 29, BOLD),
+            self.text("Given: 72", 26, BOLD),
+            self.text("Where does this value stand?", 23),
+            self.math(r"\mathrm{PR}(72)\approx 66.7", 40),
+            self.text("value  →  relative position", 26, BOLD),
+        ).arrange(DOWN, buff=0.28).move_to(right_box)
+
+        self.play(Create(left_box), FadeIn(left_content), run_time=RUN_SLOW)
+        self.wait(2.8)
+        self.play(Create(right_box), FadeIn(right_content), run_time=RUN_SLOW)
+        self.wait(4.0)
+        warning = self.boxed_text("DO NOT CONFUSE:  P80  with  PR(x)=80", 8.1, 0.85, 26, True, VERY_LIGHT_GRAY).move_to(DOWN * 2.63)
+        score_note = self.text("80th percentile  ≠  80% score", 25, BOLD).move_to(DOWN * 3.18)
+        self.play(FadeIn(warning), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        self.play(Write(score_note), run_time=RUN_NORMAL)
+        self.wait(4.2)
+        self.clear_stage()
+
+    def scene_10_guided_challenge(self):
+        self.set_header(
+            10,
+            "GUIDED CHALLENGE",
+            "Dataset: 48, 55, 60, 63, 67, 70, 74, 78, 82, 90. Find the percentile rank of 74.",
+        )
+        bar = self.build_step_bar(None)
+        self.add(bar)
+        prompt = self.text("Work the five steps before the reveal.", 32, BOLD).move_to(UP * 2.05)
+        row, boxes, _ = self.dataset_row(CHALLENGE, selected=74, compact=True, y=0.85)
+        self.play(Write(prompt), FadeIn(row), run_time=RUN_NORMAL)
+        self.wait(5.5)
+        self.play(FadeOut(prompt), run_time=RUN_QUICK)
+
+        bar = self.active_step_swap(bar, 2)
+        facts = self.text("x = 74        n = 10", 31, BOLD).move_to(UP * 1.85)
+        self.play(Write(facts), run_time=RUN_NORMAL)
+        self.wait(2.0)
+        bar = self.active_step_swap(bar, 3)
+        for i, value in enumerate(CHALLENGE):
+            if value <= 74:
+                self.play(boxes[i].animate.set_fill(VERY_LIGHT_GRAY, opacity=1), run_time=0.25)
+        count = self.text("count(v ≤ 74) = 7", 29, BOLD).move_to(DOWN * 0.05)
+        self.play(Write(count), run_time=RUN_NORMAL)
+        self.wait(2.4)
+
+        bar = self.active_step_swap(bar, 4)
+        eq = self.math(r"\mathrm{PR}(74)=100\times\frac{7}{10}=70", 43).move_to(DOWN * 0.82)
+        self.play(Write(eq), run_time=RUN_NORMAL)
+        self.wait(3.2)
+        bar = self.active_step_swap(bar, 5)
+        decision = self.interpretation_card(
+            [
+                "74 is at the 70th percentile under our class convention.",
+                "Criterion: at or above the 70th percentile → YES, exactly at the threshold.",
+            ],
+            width=12.4,
+            title="INTERPRET + DECIDE",
+        ).move_to(DOWN * 1.85)
+        self.play(FadeIn(decision), run_time=RUN_NORMAL)
+        self.wait(5.0)
+        self.clear_stage()
+
+    def scene_11_exit_ticket(self):
+        self.set_header(
+            11,
+            "QUICK CHECK · MINI EXIT TICKET",
+            "Answer each prompt before the concise reveal.",
+        )
+        prompt1 = self.boxed_text(
+            "1 · Dataset: 10, 20, 30, 40, 50\nFind PR(30).",
+            9.0, 1.35, 28, True,
+        ).move_to(UP * 1.30)
+        self.play(FadeIn(prompt1), run_time=RUN_NORMAL)
+        self.wait(4.5)
+        answer1 = self.boxed_text("3/5 × 100 = 60     →     PR(30) = 60", 8.4, 0.95, 28, True, VERY_LIGHT_GRAY).move_to(DOWN * 0.10)
+        self.play(FadeIn(answer1), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        self.play(FadeOut(prompt1), FadeOut(answer1), run_time=RUN_QUICK)
+
+        prompt2 = self.boxed_text(
+            "2 · A student is at the 85th percentile.\nInterpret that statement correctly.",
+            9.8, 1.35, 27, True,
+        ).move_to(UP * 1.30)
+        self.play(FadeIn(prompt2), run_time=RUN_NORMAL)
+        self.wait(4.8)
+        answer2 = self.boxed_text(
+            "About 85% of observations are at or below that position under the stated convention.",
+            11.4, 1.05, 23, True, VERY_LIGHT_GRAY,
+        ).move_to(DOWN * 0.10)
+        self.play(FadeIn(answer2), run_time=RUN_NORMAL)
+        self.wait(3.6)
+        self.play(FadeOut(prompt2), FadeOut(answer2), run_time=RUN_QUICK)
+
+        prompt3 = self.boxed_text(
+            "3 · Two students both score 72 in different groups.\nMust they have the same percentile rank?",
+            10.6, 1.35, 27, True,
+        ).move_to(UP * 1.30)
+        self.play(FadeIn(prompt3), run_time=RUN_NORMAL)
+        self.wait(4.8)
+        answer3 = self.boxed_text(
+            "NO. Percentile rank depends on the distribution of the comparison group.",
+            10.6, 1.00, 24, True, VERY_LIGHT_GRAY,
+        ).move_to(DOWN * 0.10)
+        self.play(FadeIn(answer3), run_time=RUN_NORMAL)
+        self.wait(4.0)
+        self.clear_stage()
+
+    def scene_12_final_recipe(self):
+        self.set_header(
+            12,
+            "FINAL RECIPE",
+            "Turn a raw value into relative position, then use that position to support a decision.",
+        )
+        route = VGroup()
+        for number, label in [
+            ("1", "ORDER"),
+            ("2", "IDENTIFY x AND n"),
+            ("3", "COUNT ≤ x"),
+            ("4", "CONVERT TO %"),
+            ("5", "INTERPRET + DECIDE"),
+        ]:
+            box = RoundedRectangle(
+                width=2.48, height=1.00, corner_radius=0.10,
+                stroke_color=BLACK_LINE, stroke_width=1.8,
+                fill_color=WHITE, fill_opacity=1,
+            )
+            num = self.text(number, 20, BOLD)
+            txt = self.text(label, 19, BOLD)
+            self.fit(txt, 2.08, 0.45)
+            content = VGroup(num, txt).arrange(DOWN, buff=0.07).move_to(box)
+            route.add(VGroup(box, content))
+        route.arrange(RIGHT, buff=0.22).move_to(UP * 1.25)
+
+        self.play(
+            LaggedStart(*[FadeIn(card, shift=UP * 0.08) for card in route], lag_ratio=0.12),
+            run_time=RUN_SLOW * 2.0,
+        )
+        self.wait(3.0)
+        flow = self.text("VALUE  →  COUNT  →  PERCENTAGE  →  RELATIVE POSITION  →  DECISION", 29, BOLD)
+        self.fit(flow, 13.5, 0.62).move_to(UP * 0.05)
+        self.play(Write(flow), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        key = self.boxed_text(
+            "A percentile rank gives meaning to a value by placing it inside a distribution.",
+            12.2, 1.05, 26, True, VERY_LIGHT_GRAY,
+        ).move_to(DOWN * 1.05)
+        self.play(FadeIn(key), run_time=RUN_NORMAL)
+        self.wait(4.0)
+        note = self.boxed_text(
+            "Percentile-rank conventions can vary. We use this cumulative classroom convention consistently.",
+            11.6, 0.82, 20, False, PAPER_GRAY,
+        ).move_to(DOWN * 1.95)
+        self.play(FadeIn(note), run_time=RUN_NORMAL)
+        self.wait(3.0)
+        next_box = self.boxed_text(
+            "NEXT CLASS · POSITION MEASURES + BOXPLOTS  →  COMPARE DISTRIBUTIONS",
+            11.8, 0.94, 25, True,
+        ).move_to(DOWN * 2.80)
+        self.play(FadeIn(next_box), run_time=RUN_NORMAL)
+        self.wait(5.0)
+
+
+if __name__ == "__main__":
+    validate_all_data()

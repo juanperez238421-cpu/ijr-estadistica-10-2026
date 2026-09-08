@@ -1,0 +1,63 @@
+name: Render Statistics 10 Class 4 Percentile Rank Decisions FINAL
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - render/statistics10-class4-percentile-rank-decisions-v1-20260904
+    paths:
+      - 'render_jobs/statistics10_class4_percentile_rank_decisions_20260904/TRIGGER_RENDER.txt'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout exact Class 4 branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pull pinned ManimCE image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run full senior Class 4 render protocol
+        id: render_protocol
+        run: bash render_jobs/statistics10_class4_percentile_rank_decisions_20260904/run_pipeline.sh
+
+      - name: Upload final MP4 and complete QA package
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-Class4-Percentile-Rank-Decisions-FINAL-PQH
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            render_jobs/statistics10_class4_percentile_rank_decisions_20260904/delivery/
+            render_jobs/statistics10_class4_percentile_rank_decisions_20260904/qa_dense/
+
+      - name: Publish exact validated MP4 and QA evidence to branch
+        if: steps.render_protocol.outcome == 'success'
+        run: |
+          set -euo pipefail
+          JOB='render_jobs/statistics10_class4_percentile_rank_decisions_20260904'
+          SRC="$JOB/delivery/Statistics10_Class4_Percentile_Rank_Decisions_FINAL_pqh.mp4"
+          DST_DIR='deliveries/statistics10_class4_percentile_rank_decisions_final'
+          test -s "$SRC"
+          mkdir -p "$DST_DIR"
+          cp "$SRC" "$DST_DIR/Statistics10_Class4_Percentile_Rank_Decisions_FINAL_pqh.mp4"
+          cp "$JOB/delivery/QA_contact_sheet.jpg" "$DST_DIR/QA_contact_sheet.jpg"
+          cp "$JOB/delivery/RENDER_SUMMARY.txt" "$DST_DIR/RENDER_SUMMARY.txt"
+          cp "$JOB/delivery/SHA256SUMS.txt" "$DST_DIR/SHA256SUMS.txt"
+          cp "$JOB/delivery/ffprobe.txt" "$DST_DIR/ffprobe.txt"
+          cp "$JOB/delivery/statistics10_class4_percentile_rank.py" "$DST_DIR/statistics10_class4_percentile_rank.py"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$DST_DIR"
+          git commit -m 'delivery: publish Statistics 10 Class 4 percentile-rank FINAL PQH render'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
