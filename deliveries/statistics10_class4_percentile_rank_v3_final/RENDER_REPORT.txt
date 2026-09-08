@@ -1,0 +1,12 @@
+Statistics 10 · Class 4 · Percentile Rank V3
+Scene: Statistics10Class4PercentileRankV3
+ManimCE: 0.20.1
+Final command: manim -pqh render_jobs/statistics10_class4_percentile_rank_v3_20260908/statistics10_class4_percentile_rank_v3.py Statistics10Class4PercentileRankV3 --format=mp4 --disable_caching
+Resolution: 1920x1080
+FPS: 30
+Duration: 153.800781 s
+PQL gate: PASS
+PQH render: PASS
+ffprobe acceptance: PASS
+Full decode: PASS
+Distributed visual QA frames: 30

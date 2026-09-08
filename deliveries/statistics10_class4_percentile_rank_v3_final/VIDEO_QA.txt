@@ -1,0 +1,2 @@
+Final duration: 153.800781 s
+Final bytes: 7710311
