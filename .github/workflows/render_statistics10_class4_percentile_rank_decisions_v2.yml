@@ -1,0 +1,74 @@
+name: Render Statistics 10 Class 4 Percentile Rank Decisions V2 QA
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - render/statistics10-class4-percentile-rank-decisions-v2-qa-20260908
+    paths:
+      - '.github/workflows/render_statistics10_class4_percentile_rank_decisions_v2.yml'
+      - 'render_jobs/statistics10_class4_percentile_rank_decisions_20260908_v2/**'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout exact V2 branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Ensure FFmpeg QA tools
+        run: |
+          set -euo pipefail
+          if ! command -v ffprobe >/dev/null 2>&1 || ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffprobe -version | head -n 1
+          ffmpeg -version | head -n 1
+
+      - name: Pull pinned ManimCE image
+        run: docker pull manimcommunity/manim:v0.20.1
+
+      - name: Run V2 QA and render protocol
+        id: render_protocol
+        run: bash render_jobs/statistics10_class4_percentile_rank_decisions_20260908_v2/run_pipeline.sh
+
+      - name: Upload V2 final MP4 and QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Statistics10-Class4-Percentile-Rank-Decisions-V2-QA-PQH
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            render_jobs/statistics10_class4_percentile_rank_decisions_20260908_v2/delivery/
+            render_jobs/statistics10_class4_percentile_rank_decisions_20260908_v2/qa/
+
+      - name: Publish validated V2 render to branch
+        if: steps.render_protocol.outcome == 'success'
+        run: |
+          set -euo pipefail
+          JOB='render_jobs/statistics10_class4_percentile_rank_decisions_20260908_v2'
+          SRC="$JOB/delivery/Statistics10_Class4_Percentile_Rank_Decisions_V2_FINAL_pqh.mp4"
+          DST='deliveries/statistics10_class4_percentile_rank_decisions_v2'
+          test -s "$SRC"
+          mkdir -p "$DST"
+          cp "$SRC" "$DST/Statistics10_Class4_Percentile_Rank_Decisions_V2_FINAL_pqh.mp4"
+          cp "$JOB/delivery/QA_contact_sheet.jpg" "$DST/QA_contact_sheet.jpg"
+          cp "$JOB/delivery/RENDER_SUMMARY.txt" "$DST/RENDER_SUMMARY.txt"
+          cp "$JOB/delivery/SHA256SUMS.txt" "$DST/SHA256SUMS.txt"
+          cp "$JOB/delivery/ffprobe.txt" "$DST/ffprobe.txt"
+          cp "$JOB/statistics10_class4_percentile_rank_v2.py" "$DST/statistics10_class4_percentile_rank_v2.py"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$DST"
+          git commit -m 'delivery: publish Statistics 10 Class 4 V2 QA render'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
