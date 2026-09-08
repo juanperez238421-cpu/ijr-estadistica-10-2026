@@ -22,13 +22,14 @@ The lesson explicitly notes that percentile-rank conventions can vary across tex
 - ManimCE: `0.20.1`
 - Final: 1920×1080, 30 fps, H.264/yuv420p
 
-## Five-step method
+## Six-step method
 
 1. ORDER THE DATA
-2. IDENTIFY x AND n
+2. IDENTIFY x
 3. COUNT VALUES <= x
-4. COMPUTE PR(x)
-5. INTERPRET AND DECIDE
+4. DIVIDE BY n
+5. CONVERT TO %
+6. INTERPRET / DECIDE
 
 ## Numerical gates
 
