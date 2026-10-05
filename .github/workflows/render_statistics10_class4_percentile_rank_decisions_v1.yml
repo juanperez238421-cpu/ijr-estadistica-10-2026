@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - render/statistics10-class4-percentile-rank-decisions-v1-20260904
+      - backup/recover-stat10-class4-v1-20261004
     paths:
       - 'render_jobs/statistics10_class4_percentile_rank_decisions_20260904/TRIGGER_RENDER.txt'
 
@@ -35,7 +35,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Statistics10-Class4-Percentile-Rank-Decisions-FINAL-PQH
-          retention-days: 30
+          retention-days: 2
           if-no-files-found: warn
           path: |
             render_jobs/statistics10_class4_percentile_rank_decisions_20260904/delivery/
